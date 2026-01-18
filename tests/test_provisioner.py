@@ -292,6 +292,345 @@ class TestCreateSite:
             provisioner.create_site("test.com")
 
 
+class TestCreatePost:
+    """Test create_post method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_create_post_success(self, mock_ssh_client):
+        """Test create_post returns post ID."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"123"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        post_id = provisioner.create_post("test.com", "Test Title", "Test Content")
+
+        assert post_id == 123
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_create_post_with_all_parameters(self, mock_ssh_client):
+        """Test create_post with all optional parameters."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"456"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        post_id = provisioner.create_post(
+            "test.com",
+            "Test Post",
+            "Content",
+            status="draft",
+            post_type="page",
+            author="admin",
+            date="2024-01-01 12:00:00",
+            slug="test-slug",
+            additional_flags=["--meta_input='key=value'"],
+        )
+
+        assert post_id == 456
+        # Verify command includes all parameters
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "--post_type=page" in call_args
+        assert "--post_author=admin" in call_args
+        assert "--post_date='2024-01-01 12:00:00'" in call_args
+        assert "--post_name=test-slug" in call_args
+        assert "--meta_input='key=value'" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_create_post_with_post_type(self, mock_ssh_client):
+        """Test create_post with post_type parameter."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"789"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        post_id = provisioner.create_post(
+            "test.com", "Page Title", "Content", post_type="page"
+        )
+
+        assert post_id == 789
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "--post_type=page" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_create_post_with_additional_flags(self, mock_ssh_client):
+        """Test create_post with additional_flags parameter."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"999"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        post_id = provisioner.create_post(
+            "test.com",
+            "Title",
+            "Content",
+            additional_flags=["--comment_status=closed", "--ping_status=closed"],
+        )
+
+        assert post_id == 999
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "--comment_status=closed" in call_args
+        assert "--ping_status=closed" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_create_post_failure_raises(self, mock_ssh_client):
+        """Test create_post raises on failure."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 1
+        mock_stdout.read.return_value = b"output"
+        mock_stderr.read.return_value = b"error"
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+
+        with pytest.raises(RuntimeError):
+            provisioner.create_post("test.com", "Title", "Content")
+
+
+class TestRestartNginx:
+    """Test restart_nginx method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_restart_nginx_success(self, mock_ssh_client):
+        """Test restart_nginx executes systemctl command."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b""
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.restart_nginx()
+
+        mock_client_instance.exec_command.assert_called_with("systemctl restart nginx")
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_restart_nginx_failure_raises(self, mock_ssh_client):
+        """Test restart_nginx raises on failure."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 1
+        mock_stdout.read.return_value = b"output"
+        mock_stderr.read.return_value = b"error"
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+
+        with pytest.raises(RuntimeError):
+            provisioner.restart_nginx()
+
+
+class TestEnsureSSL:
+    """Test ensure_ssl method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_ensure_ssl_already_enabled(self, mock_ssh_client):
+        """Test ensure_ssl skips when SSL already enabled."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # First call: check SSL exists (exit code 0)
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b""
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.ensure_ssl("test.com")
+
+        # Should only call the check command, not the update command
+        mock_client_instance.exec_command.assert_called_once_with(
+            "test -f /var/www/test.com/conf/nginx/ssl.conf"
+        )
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_ensure_ssl_enables_ssl(self, mock_ssh_client):
+        """Test ensure_ssl enables SSL when not present."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Setup mock to return different values for different commands
+        def exec_command_side_effect(command):
+            mock_stdout = Mock()
+            mock_stderr = Mock()
+            mock_channel = Mock()
+            mock_stdout.channel = mock_channel
+            mock_stdout.read.return_value = b""
+            mock_stderr.read.return_value = b""
+
+            if "test -f" in command:
+                # SSL check fails (not present)
+                mock_channel.recv_exit_status.return_value = 1
+            else:
+                # SSL enable succeeds
+                mock_channel.recv_exit_status.return_value = 0
+
+            return None, mock_stdout, mock_stderr
+
+        mock_client_instance.exec_command.side_effect = exec_command_side_effect
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.ensure_ssl("test.com")
+
+        # Should call both check and update commands
+        assert mock_client_instance.exec_command.call_count == 2
+
+
+class TestEnsureSwap:
+    """Test ensure_swap method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_ensure_swap_already_exists(self, mock_ssh_client):
+        """Test ensure_swap skips when swap already exists."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"swap output"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.ensure_swap()
+
+        # Should only call the check command
+        mock_client_instance.exec_command.assert_called_once_with("swapon --show")
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_ensure_swap_creates_swap(self, mock_ssh_client):
+        """Test ensure_swap creates swap when not present."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Setup mock to return different values for different commands
+        def exec_command_side_effect(command):
+            mock_stdout = Mock()
+            mock_stderr = Mock()
+            mock_channel = Mock()
+            mock_stdout.channel = mock_channel
+            mock_channel.recv_exit_status.return_value = 0
+            mock_stderr.read.return_value = b""
+
+            if "swapon --show" in command:
+                # No swap exists
+                mock_stdout.read.return_value = b""
+            else:
+                # All other commands succeed
+                mock_stdout.read.return_value = b"success"
+
+            return None, mock_stdout, mock_stderr
+
+        mock_client_instance.exec_command.side_effect = exec_command_side_effect
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.ensure_swap(size_gb=4)
+
+        # Should call multiple commands to create swap
+        assert mock_client_instance.exec_command.call_count == 6
+
+
 class TestFromEnv:
     """Test from_env classmethod."""
 

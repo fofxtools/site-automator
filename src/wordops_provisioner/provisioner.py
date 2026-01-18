@@ -125,6 +125,142 @@ class WordOpsProvisioner:
         logger.info(f"Site created successfully: {domain}")
         logger.debug(f"Site creation output:\n{output}")
 
+    def create_post(
+        self,
+        domain: str,
+        title: str,
+        content: str,
+        status: str = "publish",
+        post_type: str | None = None,
+        author: str | None = None,
+        date: str | None = None,
+        slug: str | None = None,
+        additional_flags: list[str] | None = None,
+    ) -> int:
+        """Create a WordPress post using WP-CLI.
+
+        Args:
+            domain: Domain name of the site
+            title: Post title
+            content: Post content
+            status: Post status (default: "publish")
+            post_type: Post type (e.g., "post", "page")
+            author: Post author (user ID or login)
+            date: Post date (e.g., "2024-01-01 12:00:00")
+            slug: Post slug
+            additional_flags: Additional WP-CLI flags (e.g., ["--key=value"])
+                              These are passed verbatim to WP-CLI, so should be properly escaped
+
+        Returns:
+            Post ID
+
+        Raises:
+            RuntimeError: If post creation fails
+        """
+        import shlex
+
+        # Use shlex.quote for proper shell escaping
+        title_escaped = shlex.quote(title)
+        content_escaped = shlex.quote(content)
+        status_escaped = shlex.quote(status)
+
+        command_parts = [
+            f"cd /var/www/{domain}/htdocs &&",
+            "wp post create",
+            f"--post_title={title_escaped}",
+            f"--post_content={content_escaped}",
+            f"--post_status={status_escaped}",
+        ]
+
+        # Add optional parameters with escaping
+        if post_type:
+            command_parts.append(f"--post_type={shlex.quote(post_type)}")
+        if author:
+            command_parts.append(f"--post_author={shlex.quote(author)}")
+        if date:
+            command_parts.append(f"--post_date={shlex.quote(date)}")
+        if slug:
+            command_parts.append(f"--post_name={shlex.quote(slug)}")
+
+        # Add additional flags (already should be properly formatted)
+        if additional_flags:
+            command_parts.extend(additional_flags)
+
+        command_parts.extend(["--porcelain", "--allow-root"])
+        command = " ".join(command_parts)
+
+        logger.info(f"Creating post on {domain}: {title}")
+        output, _ = self.run_command(command, check=True)
+        post_id = int(output.strip())
+        logger.info(f"Post created successfully: ID {post_id}")
+        logger.debug(f"Post creation output: {output}")
+
+        return post_id
+
+    def restart_nginx(self) -> None:
+        """Restart Nginx service.
+
+        Raises:
+            RuntimeError: If restart fails
+        """
+        logger.info("Restarting Nginx")
+        self.run_command("systemctl restart nginx", check=True)
+        logger.info("Nginx restarted successfully")
+
+    def ensure_ssl(self, domain: str) -> None:
+        """Enable SSL for domain if not already enabled.
+
+        Args:
+            domain: Domain name
+
+        Raises:
+            RuntimeError: If SSL enablement fails
+        """
+        # Check if SSL is already enabled by looking for SSL certificate files
+        check_cmd = f"test -f /var/www/{domain}/conf/nginx/ssl.conf"
+        _, exit_code = self.run_command(check_cmd, check=False)
+
+        if exit_code == 0:
+            logger.info(f"SSL already enabled for {domain}")
+            return
+
+        # Enable SSL using WordOps
+        logger.info(f"Enabling SSL for {domain}")
+        self.run_command(f"wo site update {domain} --letsencrypt", check=True)
+        logger.info(f"SSL enabled successfully for {domain}")
+
+    def ensure_swap(self, size_gb: int = 2) -> None:
+        """Create swap file if not already present.
+
+        Args:
+            size_gb: Swap file size in GB (default: 2)
+
+        Raises:
+            RuntimeError: If swap creation fails
+        """
+        # Check if swap is already enabled
+        output, _ = self.run_command("swapon --show", check=False)
+
+        if output.strip():
+            logger.info("Swap already exists")
+            return
+
+        # Create swap file
+        logger.info(f"Creating {size_gb}GB swap file")
+        self.run_command(f"fallocate -l {size_gb}G /swapfile", check=True)
+        self.run_command("chmod 600 /swapfile", check=True)
+        self.run_command("mkswap /swapfile", check=True)
+        self.run_command("swapon /swapfile", check=True)
+
+        # Add to fstab only if not already present (idempotent)
+        self.run_command(
+            "grep -q '^/swapfile ' /etc/fstab || "
+            "echo '/swapfile none swap sw 0 0' >> /etc/fstab",
+            check=True,
+        )
+
+        logger.info(f"Swap file created successfully: {size_gb}GB")
+
     @classmethod
     def from_env(cls) -> "WordOpsProvisioner":
         """Create provisioner from .env file.
