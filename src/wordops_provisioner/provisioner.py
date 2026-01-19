@@ -419,6 +419,345 @@ class WordOpsProvisioner:
 
         logger.info(f"Featured image set successfully (attachment ID: {attachment_id})")
 
+    def install_plugins(
+        self,
+        domain: str,
+        plugins: list[str],
+        activate: bool = True,
+    ) -> None:
+        """Install WordPress plugins from slugs or local paths.
+
+        Args:
+            domain: Domain name of the site
+            plugins: List of plugin slugs (e.g., "akismet") or file paths
+                    (e.g., "/shared/plugin.zip"). WP-CLI accepts both.
+            activate: Whether to activate plugins after installation (default: True)
+
+        Raises:
+            RuntimeError: If plugin installation fails
+
+        Note:
+            WP-CLI automatically detects whether each argument is a slug or path.
+        """
+        import shlex
+
+        if not plugins:
+            logger.warning("No plugins specified for installation")
+            return
+
+        logger.info(f"Installing {len(plugins)} plugin(s) on {domain}")
+
+        # Escape each plugin slug/path for shell safety
+        escaped_plugins = [shlex.quote(plugin) for plugin in plugins]
+        plugins_str = " ".join(escaped_plugins)
+
+        # Build command
+        cmd_parts = ["plugin install", plugins_str]
+        if activate:
+            cmd_parts.append("--activate")
+
+        wp_command = " ".join(cmd_parts)
+
+        logger.debug(f"Plugin install command: {wp_command}")
+        output, _ = self.wp(domain, wp_command, check=True)
+        logger.info(f"Plugins installed successfully: {', '.join(plugins)}")
+        logger.debug(f"Escaped plugin args: {escaped_plugins}")
+        logger.debug(f"Plugin install output:\n{output}")
+
+    def activate_plugins(
+        self,
+        domain: str,
+        plugins: list[str],
+    ) -> None:
+        """Activate WordPress plugins.
+
+        Args:
+            domain: Domain name of the site
+            plugins: List of plugin slugs to activate (e.g., ["akismet", "jetpack"])
+                    Note: Use plugin slugs, not file paths.
+
+        Raises:
+            RuntimeError: If plugin activation fails
+
+        Note:
+            This method expects plugin slugs (e.g., "akismet"), not file paths.
+            If you installed from a path, use the resulting plugin slug for activation.
+        """
+        import shlex
+
+        if not plugins:
+            logger.warning("No plugins specified for activation")
+            return
+
+        logger.info(f"Activating {len(plugins)} plugin(s) on {domain}")
+
+        # Escape each plugin slug for shell safety
+        escaped_plugins = [shlex.quote(plugin) for plugin in plugins]
+        plugins_str = " ".join(escaped_plugins)
+
+        wp_command = f"plugin activate {plugins_str}"
+
+        logger.debug(f"Plugin activate command: {wp_command}")
+        output, _ = self.wp(domain, wp_command, check=True)
+        logger.info(f"Plugins activated successfully: {', '.join(plugins)}")
+        logger.debug(f"Escaped plugin args: {escaped_plugins}")
+        logger.debug(f"Plugin activate output:\n{output}")
+
+    def deactivate_plugins(
+        self,
+        domain: str,
+        plugins: list[str],
+    ) -> None:
+        """Deactivate WordPress plugins.
+
+        Args:
+            domain: Domain name of the site
+            plugins: List of plugin slugs to deactivate (e.g., ["akismet", "jetpack"])
+
+        Raises:
+            RuntimeError: If plugin deactivation fails
+        """
+        import shlex
+
+        if not plugins:
+            logger.warning("No plugins specified for deactivation")
+            return
+
+        logger.info(f"Deactivating {len(plugins)} plugin(s) on {domain}")
+
+        # Escape each plugin slug for shell safety
+        escaped_plugins = [shlex.quote(plugin) for plugin in plugins]
+        plugins_str = " ".join(escaped_plugins)
+
+        wp_command = f"plugin deactivate {plugins_str}"
+
+        logger.debug(f"Plugin deactivate command: {wp_command}")
+        output, _ = self.wp(domain, wp_command, check=True)
+        logger.info(f"Plugins deactivated successfully: {', '.join(plugins)}")
+        logger.debug(f"Escaped plugin args: {escaped_plugins}")
+        logger.debug(f"Plugin deactivate output:\n{output}")
+
+    def deactivate_all_plugins(
+        self,
+        domain: str,
+        exclude: list[str] | None = None,
+    ) -> None:
+        """Deactivate all WordPress plugins, optionally excluding some.
+
+        Args:
+            domain: Domain name of the site
+            exclude: Optional list of plugin slugs to exclude from deactivation
+
+        Raises:
+            RuntimeError: If plugin deactivation fails
+        """
+        import shlex
+
+        logger.info(f"Deactivating all plugins on {domain}")
+
+        cmd_parts = ["plugin deactivate --all"]
+        escaped_exclude: list[str] = []
+
+        if exclude:
+            logger.info(f"Excluding {len(exclude)} plugin(s) from deactivation")
+            escaped_exclude = [shlex.quote(plugin) for plugin in exclude]
+            exclude_str = ",".join(escaped_exclude)
+            cmd_parts.append(f"--exclude={exclude_str}")
+            logger.debug(f"Excluded plugins: {exclude}")
+
+        wp_command = " ".join(cmd_parts)
+
+        logger.debug(f"Plugin deactivate command: {wp_command}")
+        output, _ = self.wp(domain, wp_command, check=True)
+        logger.info("All plugins deactivated successfully")
+        if escaped_exclude:
+            logger.debug(f"Escaped exclude args: {escaped_exclude}")
+        logger.debug(f"Plugin deactivate output:\n{output}")
+
+    def install_theme(
+        self,
+        domain: str,
+        theme: str,
+        activate: bool = True,
+    ) -> None:
+        """Install WordPress theme from slug or local path.
+
+        Args:
+            domain: Domain name of the site
+            theme: Theme slug (e.g., "twentytwentyfour") or file path
+                   (e.g., "/shared/astra.zip"). WP-CLI accepts both.
+            activate: Whether to activate theme after installation (default: True)
+
+        Raises:
+            RuntimeError: If theme installation fails
+
+        Note:
+            WP-CLI automatically detects whether the argument is a slug or path.
+        """
+        import shlex
+
+        logger.info(f"Installing theme on {domain}: {theme}")
+
+        # Escape theme slug/path for shell safety
+        escaped_theme = shlex.quote(theme)
+
+        # Build command
+        cmd_parts = ["theme install", escaped_theme]
+        if activate:
+            cmd_parts.append("--activate")
+
+        wp_command = " ".join(cmd_parts)
+
+        logger.debug(f"Theme install command: {wp_command}")
+        output, _ = self.wp(domain, wp_command, check=True)
+        logger.info(f"Theme installed successfully: {theme}")
+        logger.debug(f"Escaped theme arg: {escaped_theme}")
+        logger.debug(f"Theme install output:\n{output}")
+
+    def activate_theme(
+        self,
+        domain: str,
+        theme: str,
+    ) -> None:
+        """Activate WordPress theme.
+
+        Args:
+            domain: Domain name of the site
+            theme: Theme slug to activate (e.g., "twentytwentyfour")
+                   Note: Use theme slug, not file path.
+
+        Raises:
+            RuntimeError: If theme activation fails
+
+        Note:
+            This method expects a theme slug, not a file path.
+        """
+        import shlex
+
+        logger.info(f"Activating theme on {domain}: {theme}")
+
+        # Escape theme slug for shell safety
+        escaped_theme = shlex.quote(theme)
+
+        wp_command = f"theme activate {escaped_theme}"
+
+        logger.debug(f"Theme activate command: {wp_command}")
+        output, _ = self.wp(domain, wp_command, check=True)
+        logger.info(f"Theme activated successfully: {theme}")
+        logger.debug(f"Escaped theme arg: {escaped_theme}")
+        logger.debug(f"Theme activate output:\n{output}")
+
+    def delete_themes(
+        self,
+        domain: str,
+        themes: list[str],
+    ) -> None:
+        """Delete WordPress themes.
+
+        Args:
+            domain: Domain name of the site
+            themes: List of theme slugs to delete (e.g., ["twentytwentythree", "twentytwentyfour"])
+
+        Raises:
+            RuntimeError: If theme deletion fails (e.g., trying to delete active theme)
+
+        Note:
+            Active themes cannot be deleted and will cause WP-CLI to fail.
+            This method fails fast in that case.
+        """
+        import shlex
+
+        if not themes:
+            logger.warning("No themes specified for deletion")
+            return
+
+        logger.info(f"Deleting {len(themes)} theme(s) on {domain}")
+
+        # Escape each theme slug for shell safety
+        escaped_themes = [shlex.quote(theme) for theme in themes]
+        themes_str = " ".join(escaped_themes)
+
+        wp_command = f"theme delete {themes_str}"
+
+        logger.debug(f"Theme delete command: {wp_command}")
+        output, _ = self.wp(domain, wp_command, check=True)
+        logger.info(f"Themes deleted successfully: {', '.join(themes)}")
+        logger.debug(f"Escaped theme args: {escaped_themes}")
+        logger.debug(f"Theme delete output:\n{output}")
+
+    def disable_comments(self, domain: str) -> None:
+        """Disable comments site-wide on WordPress.
+
+        This method:
+        1. Disables comments on new posts/pages (default_comment_status)
+        2. Disables pingbacks/trackbacks on new posts (default_ping_status)
+        3. Closes comments on all existing posts and pages
+        4. Requires users to be logged in to comment (comment_registration)
+
+        Args:
+            domain: Domain name of the site
+
+        Raises:
+            RuntimeError: If disabling comments fails
+
+        Note:
+            This is a destructive operation. Existing comments are not deleted,
+            but commenting is disabled on all posts and pages.
+            The comment_registration setting acts as a safety net to prevent
+            anonymous comments even if themes override other settings.
+        """
+        logger.info(f"Disabling comments on {domain}")
+
+        # Disable comments on new posts
+        logger.debug("Setting default_comment_status to 'closed'")
+        self.wp(domain, "option update default_comment_status closed", check=True)
+
+        # Disable pingbacks/trackbacks on new posts
+        logger.debug("Setting default_ping_status to 'closed'")
+        self.wp(domain, "option update default_ping_status closed", check=True)
+
+        # Close comments on all existing posts and pages
+        logger.debug("Closing comments on all existing posts and pages")
+        self.wp(
+            domain,
+            "post list --format=ids | xargs -r -d ' ' -I % wp post update % --comment_status=closed",
+            check=True,
+        )
+
+        # Require users to be logged in to comment (safety net)
+        logger.debug("Setting comment_registration to '1' (require login)")
+        self.wp(domain, "option update comment_registration 1", check=True)
+
+        logger.info(f"Comments disabled successfully on {domain}")
+
+    def disable_comments_with_plugin(
+        self, domain: str, plugin_path: str | None = None
+    ) -> None:
+        """Disable comments using the Disable Comments plugin.
+
+        This method installs and configures the Disable Comments plugin to
+        disable comments everywhere on the site.
+
+        Args:
+            domain: Domain name of the site
+            plugin_path: Optional path to plugin zip file (e.g., "/shared/disable-comments.2.6.1.zip").
+                        If not provided, installs from WordPress.org using slug "disable-comments".
+
+        Raises:
+            RuntimeError: If plugin installation or configuration fails
+        """
+        logger.info(f"Disabling comments with plugin on {domain}")
+
+        # Install plugin
+        plugin = plugin_path if plugin_path else "disable-comments"
+        self.install_plugins(domain, [plugin], activate=True)
+
+        # Disable comments everywhere
+        logger.debug("Configuring plugin to disable comments everywhere")
+        self.wp(domain, "disable-comments settings --types=all", check=True)
+
+        logger.info(f"Comments disabled with plugin successfully on {domain}")
+
     def restart_nginx(self) -> None:
         """Restart Nginx service.
 

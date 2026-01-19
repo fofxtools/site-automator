@@ -881,6 +881,680 @@ class TestSetFeaturedImage:
             provisioner.set_featured_image("test.com", post_id=123, attachment_id=456)
 
 
+class TestInstallPlugins:
+    """Test install_plugins method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_install_single_plugin_slug(self, mock_ssh_client):
+        """Test installing a single plugin from slug."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.install_plugins("test.com", ["akismet"], activate=True)
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "plugin install" in call_args
+        assert "akismet" in call_args
+        assert "--activate" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_install_multiple_plugins(self, mock_ssh_client):
+        """Test installing multiple plugins at once."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.install_plugins("test.com", ["akismet", "jetpack"], activate=True)
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "plugin install" in call_args
+        assert "akismet" in call_args
+        assert "jetpack" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_install_plugin_from_path(self, mock_ssh_client):
+        """Test installing a plugin from file path."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.install_plugins("test.com", ["/shared/plugin.zip"], activate=True)
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "plugin install" in call_args
+        assert "/shared/plugin.zip" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_install_without_activation(self, mock_ssh_client):
+        """Test installing plugins without activation."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.install_plugins("test.com", ["akismet"], activate=False)
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "plugin install" in call_args
+        assert "--activate" not in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_install_empty_list_returns_early(self, mock_ssh_client):
+        """Test that empty plugin list returns without calling wp."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.install_plugins("test.com", [])
+
+        # Should not call exec_command for wp (only for SSH connection)
+        assert mock_client_instance.exec_command.call_count == 0
+
+
+class TestActivatePlugins:
+    """Test activate_plugins method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_activate_single_plugin(self, mock_ssh_client):
+        """Test activating a single plugin."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.activate_plugins("test.com", ["akismet"])
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "plugin activate" in call_args
+        assert "akismet" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_activate_multiple_plugins(self, mock_ssh_client):
+        """Test activating multiple plugins."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.activate_plugins("test.com", ["akismet", "jetpack"])
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "plugin activate" in call_args
+        assert "akismet" in call_args
+        assert "jetpack" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_activate_empty_list_returns_early(self, mock_ssh_client):
+        """Test that empty plugin list returns without calling wp."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.activate_plugins("test.com", [])
+
+        assert mock_client_instance.exec_command.call_count == 0
+
+
+class TestDeactivatePlugins:
+    """Test deactivate_plugins method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_deactivate_single_plugin(self, mock_ssh_client):
+        """Test deactivating a single plugin."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.deactivate_plugins("test.com", ["akismet"])
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "plugin deactivate" in call_args
+        assert "akismet" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_deactivate_multiple_plugins(self, mock_ssh_client):
+        """Test deactivating multiple plugins."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.deactivate_plugins("test.com", ["akismet", "jetpack"])
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "plugin deactivate" in call_args
+        assert "akismet" in call_args
+        assert "jetpack" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_deactivate_empty_list_returns_early(self, mock_ssh_client):
+        """Test that empty plugin list returns without calling wp."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.deactivate_plugins("test.com", [])
+
+        assert mock_client_instance.exec_command.call_count == 0
+
+
+class TestDeactivateAllPlugins:
+    """Test deactivate_all_plugins method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_deactivate_all_without_exclude(self, mock_ssh_client):
+        """Test deactivating all plugins without exclusions."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.deactivate_all_plugins("test.com")
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "plugin deactivate --all" in call_args
+        assert "--exclude" not in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_deactivate_all_with_exclude(self, mock_ssh_client):
+        """Test deactivating all plugins with exclusions."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.deactivate_all_plugins("test.com", exclude=["akismet", "jetpack"])
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "plugin deactivate --all" in call_args
+        assert "--exclude=" in call_args
+        assert "akismet" in call_args
+        assert "jetpack" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_deactivate_all_with_empty_exclude(self, mock_ssh_client):
+        """Test deactivating all plugins with empty exclude list."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.deactivate_all_plugins("test.com", exclude=[])
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "plugin deactivate --all" in call_args
+        # Empty exclude list should not add --exclude flag
+        assert "--exclude" not in call_args
+
+
+class TestInstallTheme:
+    """Test install_theme method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_install_theme_from_slug(self, mock_ssh_client):
+        """Test installing a theme from slug."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.install_theme("test.com", "twentytwentyfour", activate=True)
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "theme install" in call_args
+        assert "twentytwentyfour" in call_args
+        assert "--activate" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_install_theme_from_path(self, mock_ssh_client):
+        """Test installing a theme from file path."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.install_theme("test.com", "/shared/astra.zip", activate=True)
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "theme install" in call_args
+        assert "/shared/astra.zip" in call_args
+        assert "--activate" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_install_theme_without_activation(self, mock_ssh_client):
+        """Test installing theme without activation."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.install_theme("test.com", "astra", activate=False)
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "theme install" in call_args
+        assert "--activate" not in call_args
+
+
+class TestActivateTheme:
+    """Test activate_theme method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_activate_theme(self, mock_ssh_client):
+        """Test activating a theme."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.activate_theme("test.com", "astra")
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "theme activate" in call_args
+        assert "astra" in call_args
+
+
+class TestDeleteThemes:
+    """Test delete_themes method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_delete_single_theme(self, mock_ssh_client):
+        """Test deleting a single theme."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.delete_themes("test.com", ["twentytwentythree"])
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "theme delete" in call_args
+        assert "twentytwentythree" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_delete_multiple_themes(self, mock_ssh_client):
+        """Test deleting multiple themes."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.delete_themes("test.com", ["twentytwentythree", "twentytwentyfour"])
+
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "theme delete" in call_args
+        assert "twentytwentythree" in call_args
+        assert "twentytwentyfour" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_delete_empty_list_returns_early(self, mock_ssh_client):
+        """Test that empty theme list returns without calling wp."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.delete_themes("test.com", [])
+
+        assert mock_client_instance.exec_command.call_count == 0
+
+
+class TestDisableComments:
+    """Test disable_comments method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_disable_comments(self, mock_ssh_client):
+        """Test disabling comments site-wide."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.disable_comments("test.com")
+
+        # Verify all four commands were called
+        calls = mock_client_instance.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+
+        # Check default_comment_status was set to closed
+        assert any(
+            "option update default_comment_status closed" in cmd
+            for cmd in call_commands
+        )
+
+        # Check default_ping_status was set to closed
+        assert any(
+            "option update default_ping_status closed" in cmd for cmd in call_commands
+        )
+
+        # Check that existing posts were updated
+        assert any("post list --format=ids" in cmd for cmd in call_commands)
+
+        # Check comment_registration was set to 1 (require login)
+        assert any(
+            "option update comment_registration 1" in cmd for cmd in call_commands
+        )
+
+
+class TestDisableCommentsWithPlugin:
+    """Test disable_comments_with_plugin method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_disable_comments_with_plugin_from_slug(self, mock_ssh_client):
+        """Test disabling comments with plugin from WordPress.org slug."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.disable_comments_with_plugin("test.com")
+
+        # Verify commands were called
+        calls = mock_client_instance.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+
+        # Check plugin was installed
+        assert any(
+            "plugin install" in cmd and "disable-comments" in cmd
+            for cmd in call_commands
+        )
+
+        # Check plugin was configured
+        assert any(
+            "disable-comments settings --types=all" in cmd for cmd in call_commands
+        )
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_disable_comments_with_plugin_from_path(self, mock_ssh_client):
+        """Test disabling comments with plugin from file path."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.disable_comments_with_plugin(
+            "test.com", plugin_path="/shared/disable-comments.2.6.1.zip"
+        )
+
+        # Verify commands were called
+        calls = mock_client_instance.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+
+        # Check plugin was installed from path
+        assert any(
+            "plugin install" in cmd and "/shared/disable-comments.2.6.1.zip" in cmd
+            for cmd in call_commands
+        )
+
+        # Check plugin was configured
+        assert any(
+            "disable-comments settings --types=all" in cmd for cmd in call_commands
+        )
+
+
 class TestRestartNginx:
     """Test restart_nginx method."""
 
