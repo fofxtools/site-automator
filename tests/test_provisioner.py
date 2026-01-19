@@ -152,16 +152,103 @@ class TestRunCommand:
             provisioner.run_command("echo test")
 
 
+class TestWp:
+    """Test wp method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_wp_success(self, mock_ssh_client):
+        """Test wp() executes WP-CLI command successfully."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Setup mock command execution
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"6.9"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        output, exit_code = provisioner.wp("example.com", "core version")
+
+        assert output == "6.9"
+        assert exit_code == 0
+        mock_client_instance.exec_command.assert_called_with(
+            "cd /var/www/example.com/htdocs && wp core version --allow-root"
+        )
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_wp_failure_raises(self, mock_ssh_client):
+        """Test wp() raises exception on failure when check=True."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 1
+        mock_stdout.read.return_value = b""
+        mock_stderr.read.return_value = (
+            b"Error: This does not seem to be a WordPress installation."
+        )
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+
+        with pytest.raises(RuntimeError):
+            provisioner.wp("example.com", "core version")
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_wp_failure_without_check(self, mock_ssh_client):
+        """Test wp() returns exit code without raising when check=False."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 1
+        mock_stdout.read.return_value = b""
+        mock_stderr.read.return_value = b"Error"
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        output, exit_code = provisioner.wp("example.com", "core version", check=False)
+
+        assert exit_code == 1
+        assert "Error" in output
+
+
 class TestSiteExists:
     """Test site_exists method."""
 
     @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
     def test_site_exists_returns_true(self, mock_ssh_client):
-        """Test site_exists returns True when directory exists."""
+        """Test site_exists returns True when WordPress is installed."""
         mock_client_instance = Mock()
         mock_ssh_client.return_value = mock_client_instance
 
-        # Mock successful test command (exit code 0)
+        # Mock successful wp core is-installed command (exit code 0)
         mock_stdout = Mock()
         mock_stderr = Mock()
         mock_channel = Mock()
@@ -181,16 +268,16 @@ class TestSiteExists:
 
         assert result is True
         mock_client_instance.exec_command.assert_called_with(
-            "test -d /var/www/example.com"
+            "cd /var/www/example.com/htdocs && wp core is-installed --allow-root"
         )
 
     @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
     def test_site_exists_returns_false(self, mock_ssh_client):
-        """Test site_exists returns False when directory doesn't exist."""
+        """Test site_exists returns False when WordPress is not installed."""
         mock_client_instance = Mock()
         mock_ssh_client.return_value = mock_client_instance
 
-        # Mock failed test command (exit code 1)
+        # Mock failed wp core is-installed command (exit code 1)
         mock_stdout = Mock()
         mock_stderr = Mock()
         mock_channel = Mock()
@@ -290,6 +377,176 @@ class TestCreateSite:
 
         with pytest.raises(RuntimeError):
             provisioner.create_site("test.com")
+
+
+class TestConfigureSite:
+    """Test configure_site method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_configure_site_success(self, mock_ssh_client):
+        """Test configure_site updates all settings."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.configure_site(
+            "test.com",
+            "My Site",
+            "My Description",
+            timezone="America/New_York",
+            public=False,
+            permalink_structure="/%year%/%postname%/",
+        )
+
+        # Verify all wp commands were called
+        calls = mock_client_instance.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+
+        # Check that all expected commands were executed
+        assert any("option update blogname" in cmd for cmd in call_commands)
+        assert any("option update blogdescription" in cmd for cmd in call_commands)
+        assert any("option update timezone_string" in cmd for cmd in call_commands)
+        assert any("option update blog_public 0" in cmd for cmd in call_commands)
+        assert any("rewrite structure" in cmd for cmd in call_commands)
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_configure_site_with_defaults(self, mock_ssh_client):
+        """Test configure_site with default parameters."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.configure_site("test.com", "My Site", "My Description")
+
+        # Verify default values were used
+        calls = mock_client_instance.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+
+        assert any(
+            "option update timezone_string" in cmd and "UTC" in cmd
+            for cmd in call_commands
+        )
+        assert any("blog_public 1" in cmd for cmd in call_commands)
+        assert any(
+            "rewrite structure" in cmd and "/%postname%/" in cmd
+            for cmd in call_commands
+        )
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_configure_site_failure_raises(self, mock_ssh_client):
+        """Test configure_site raises on failure."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 1
+        mock_stdout.read.return_value = b"output"
+        mock_stderr.read.return_value = b"error"
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+
+        with pytest.raises(RuntimeError):
+            provisioner.configure_site("test.com", "My Site", "Description")
+
+
+class TestDeleteDemoContent:
+    """Test delete_demo_content method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_delete_demo_content_success(self, mock_ssh_client):
+        """Test delete_demo_content deletes all demo content."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"Success"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        provisioner.delete_demo_content("test.com")
+
+        # Verify all delete commands were called
+        calls = mock_client_instance.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+
+        # Check that all expected delete commands were executed
+        assert any("post delete 1 --force" in cmd for cmd in call_commands)
+        assert any("post delete 2 --force" in cmd for cmd in call_commands)
+        assert any("post delete 3 --force" in cmd for cmd in call_commands)
+        assert any("comment delete 1 --force" in cmd for cmd in call_commands)
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_delete_demo_content_idempotent(self, mock_ssh_client):
+        """Test delete_demo_content is idempotent (handles already deleted content)."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        # Return exit code 1 (content not found) for all delete commands
+        mock_channel.recv_exit_status.return_value = 1
+        mock_stdout.read.return_value = b"Warning: Failed deleting"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+
+        # Should not raise even if content doesn't exist
+        provisioner.delete_demo_content("test.com")
 
 
 class TestCreatePost:
@@ -448,6 +705,180 @@ class TestCreatePost:
 
         with pytest.raises(RuntimeError):
             provisioner.create_post("test.com", "Title", "Content")
+
+
+class TestEnsureAttachment:
+    """Test ensure_attachment method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_ensure_attachment_creates_new(self, mock_ssh_client):
+        """Test ensure_attachment imports new attachment when none exists."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_stdout.read.return_value = b"output"
+        mock_stderr.read.return_value = b""
+
+        # First call: search returns empty (no existing attachment)
+        # Second call: import returns attachment ID
+        # Third call: add meta
+        call_count = [0]
+
+        def mock_recv_exit_status():
+            call_count[0] += 1
+            return 0
+
+        mock_channel.recv_exit_status = mock_recv_exit_status
+
+        def mock_read():
+            if call_count[0] == 1:
+                return b""  # Search returns empty
+            elif call_count[0] == 2:
+                return b"123"  # Import returns ID
+            else:
+                return b"output"
+
+        mock_stdout.read = mock_read
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+
+        attachment_id = provisioner.ensure_attachment(
+            "test.com", "/path/to/image.jpg", title="Test Image"
+        )
+
+        assert attachment_id == 123
+        assert mock_client_instance.exec_command.call_count == 3
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_ensure_attachment_returns_existing(self, mock_ssh_client):
+        """Test ensure_attachment returns existing attachment ID."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"456"  # Existing attachment ID
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+
+        attachment_id = provisioner.ensure_attachment("test.com", "/path/to/image.jpg")
+
+        assert attachment_id == 456
+        # Should only call search, not import
+        assert mock_client_instance.exec_command.call_count == 1
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_ensure_attachment_failure_raises(self, mock_ssh_client):
+        """Test ensure_attachment raises on import failure."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        call_count = [0]
+
+        def mock_exec_command(cmd):
+            call_count[0] += 1
+
+            mock_stdout = Mock()
+            mock_stderr = Mock()
+            mock_channel = Mock()
+            mock_stdout.channel = mock_channel
+
+            if call_count[0] == 1:
+                # Search succeeds, returns empty
+                mock_channel.recv_exit_status.return_value = 0
+                mock_stdout.read.return_value = b""
+                mock_stderr.read.return_value = b""
+            else:
+                # Import fails
+                mock_channel.recv_exit_status.return_value = 1
+                mock_stdout.read.return_value = b"output"
+                mock_stderr.read.return_value = b"error"
+
+            return (None, mock_stdout, mock_stderr)
+
+        mock_client_instance.exec_command.side_effect = mock_exec_command
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+
+        with pytest.raises(RuntimeError):
+            provisioner.ensure_attachment("test.com", "/path/to/image.jpg")
+
+
+class TestSetFeaturedImage:
+    """Test set_featured_image method."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_set_featured_image_success(self, mock_ssh_client):
+        """Test set_featured_image sets _thumbnail_id meta."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"output"
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+
+        provisioner.set_featured_image("test.com", post_id=123, attachment_id=456)
+
+        # Verify wp post meta update was called
+        call_args = mock_client_instance.exec_command.call_args[0][0]
+        assert "post meta update 123 _thumbnail_id 456" in call_args
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    def test_set_featured_image_failure_raises(self, mock_ssh_client):
+        """Test set_featured_image raises on failure."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 1
+        mock_stdout.read.return_value = b"output"
+        mock_stderr.read.return_value = b"error"
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+
+        with pytest.raises(RuntimeError):
+            provisioner.set_featured_image("test.com", post_id=123, attachment_id=456)
 
 
 class TestRestartNginx:
