@@ -36,6 +36,41 @@ class TestInit:
         )
 
 
+class TestFromEnv:
+    """Test from_env classmethod."""
+
+    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("wordops_provisioner.provisioner.os.getenv")
+    @patch("wordops_provisioner.provisioner.load_dotenv")
+    def test_from_env_with_all_vars(
+        self, mock_load_dotenv, mock_getenv, mock_ssh_client
+    ):
+        """Test from_env with all environment variables set."""
+        mock_getenv.side_effect = lambda key, default=None: {
+            "SERVER_HOST": "192.168.1.1",
+            "SSH_USER": "admin",
+            "SSH_PASSWORD": "secret",
+        }.get(key, default)
+
+        provisioner = WordOpsProvisioner.from_env()
+
+        mock_load_dotenv.assert_called_once()
+        assert provisioner.host == "192.168.1.1"
+        assert provisioner.user == "admin"
+        assert provisioner.password == "secret"
+
+    @patch("wordops_provisioner.provisioner.os.getenv")
+    @patch("wordops_provisioner.provisioner.load_dotenv")
+    def test_from_env_missing_host_raises(self, mock_load_dotenv, mock_getenv):
+        """Test from_env raises when SERVER_HOST is missing."""
+        mock_getenv.side_effect = lambda key, default=None: {
+            "SSH_PASSWORD": "secret"
+        }.get(key, default)
+
+        with pytest.raises(ValueError):
+            WordOpsProvisioner.from_env()
+
+
 class TestClose:
     """Test close method."""
 
@@ -412,38 +447,3 @@ class TestEnsureSwap:
 
         # Should call multiple commands to create swap
         assert mock_client_instance.exec_command.call_count == 6
-
-
-class TestFromEnv:
-    """Test from_env classmethod."""
-
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
-    @patch("wordops_provisioner.provisioner.os.getenv")
-    @patch("wordops_provisioner.provisioner.load_dotenv")
-    def test_from_env_with_all_vars(
-        self, mock_load_dotenv, mock_getenv, mock_ssh_client
-    ):
-        """Test from_env with all environment variables set."""
-        mock_getenv.side_effect = lambda key, default=None: {
-            "SERVER_HOST": "192.168.1.1",
-            "SSH_USER": "admin",
-            "SSH_PASSWORD": "secret",
-        }.get(key, default)
-
-        provisioner = WordOpsProvisioner.from_env()
-
-        mock_load_dotenv.assert_called_once()
-        assert provisioner.host == "192.168.1.1"
-        assert provisioner.user == "admin"
-        assert provisioner.password == "secret"
-
-    @patch("wordops_provisioner.provisioner.os.getenv")
-    @patch("wordops_provisioner.provisioner.load_dotenv")
-    def test_from_env_missing_host_raises(self, mock_load_dotenv, mock_getenv):
-        """Test from_env raises when SERVER_HOST is missing."""
-        mock_getenv.side_effect = lambda key, default=None: {
-            "SSH_PASSWORD": "secret"
-        }.get(key, default)
-
-        with pytest.raises(ValueError):
-            WordOpsProvisioner.from_env()

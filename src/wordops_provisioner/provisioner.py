@@ -36,6 +36,32 @@ class WordOpsProvisioner:
         self._client: paramiko.SSHClient | None = None
         self._connect()
 
+    @classmethod
+    def from_env(cls) -> "WordOpsProvisioner":
+        """Create provisioner from .env file.
+
+        Expects environment variables:
+            - SERVER_HOST: Server hostname or IP
+            - SSH_USER: SSH username (optional, defaults to 'root')
+            - SSH_PASSWORD: SSH password
+
+        Returns:
+            WordOpsProvisioner instance
+
+        Raises:
+            ValueError: If required environment variables are missing
+        """
+        load_dotenv()
+
+        host = os.getenv("SERVER_HOST")
+        if not host:
+            raise ValueError("SERVER_HOST environment variable is required")
+
+        user = os.getenv("SSH_USER", "root")
+        password = os.getenv("SSH_PASSWORD")
+
+        return cls(host=host, user=user, password=password)
+
     def _connect(self) -> None:
         """Establish SSH connection."""
         logger.info(f"Connecting to {self.host} as {self.user}")
@@ -176,29 +202,3 @@ class WordOpsProvisioner:
         )
 
         logger.info(f"Swap file created successfully: {size_gb}GB")
-
-    @classmethod
-    def from_env(cls) -> "WordOpsProvisioner":
-        """Create provisioner from .env file.
-
-        Expects environment variables:
-            - SERVER_HOST: Server hostname or IP
-            - SSH_USER: SSH username (optional, defaults to 'root')
-            - SSH_PASSWORD: SSH password
-
-        Returns:
-            WordOpsProvisioner instance
-
-        Raises:
-            ValueError: If required environment variables are missing
-        """
-        load_dotenv()
-
-        host = os.getenv("SERVER_HOST")
-        if not host:
-            raise ValueError("SERVER_HOST environment variable is required")
-
-        user = os.getenv("SSH_USER", "root")
-        password = os.getenv("SSH_PASSWORD")
-
-        return cls(host=host, user=user, password=password)

@@ -2,5 +2,12 @@
 
 from .provisioner import WordOpsProvisioner
 from .deployer import WordPressDeployer
+from .registrars import RegistrarNameserverManager
+from .digitalocean import DigitalOceanDNSManager
 
-__all__ = ["WordOpsProvisioner", "WordPressDeployer"]
+__all__ = [
+    "WordOpsProvisioner",
+    "WordPressDeployer",
+    "RegistrarNameserverManager",
+    "DigitalOceanDNSManager",
+]

@@ -12,7 +12,9 @@ license = { text = "MIT" }
 
 dependencies = [
   "paramiko",
+  "pydo",
   "python-dotenv",
+  "requests",
 ]
 
 [project.optional-dependencies]
@@ -22,6 +24,8 @@ dev = [
   "pytest",
   "ruff",
   "types-paramiko",
+  "types-requests",
+  "responses",
 ]
 
 [tool.setuptools]
