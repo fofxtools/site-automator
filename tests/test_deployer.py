@@ -117,6 +117,30 @@ class TestConfigureSite:
             deployer.configure_site("test.com", "My Site", "Description")
 
 
+class TestSyncAdminPasswordToDb:
+    """Test sync_admin_password_to_db method."""
+
+    def test_sync_admin_password_to_db_success(self, deployer, mock_ssh_client):
+        """Test sync_admin_password_to_db updates admin password to DB_PASSWORD."""
+        # First call returns DB_PASSWORD, second call updates user
+        mock_ssh_client._mock_stdout.read.side_effect = [
+            b"MyDbPassword123",  # eval 'echo DB_PASSWORD;'
+            b"Success: Updated user 1.",  # user update
+        ]
+
+        deployer.sync_admin_password_to_db("test.com")
+
+        # Verify commands were called
+        calls = mock_ssh_client.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+
+        assert len(call_commands) == 2
+        assert "eval 'echo DB_PASSWORD;'" in call_commands[0]
+        assert "user update 1" in call_commands[1]
+        assert "--user_pass=MyDbPassword123" in call_commands[1]
+        assert "--skip-email" in call_commands[1]
+
+
 class TestDeleteDemoContent:
     """Test delete_demo_content method."""
 

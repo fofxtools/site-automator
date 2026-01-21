@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 from wordops_provisioner.provisioner import WordOpsProvisioner
 from wordops_provisioner.deployer import WordPressDeployer
+from wordops_provisioner.tracking import PageviewTrackingSetup
 
 
 @pytest.fixture
@@ -43,3 +44,9 @@ def provisioner(mock_ssh_client):
 def deployer(provisioner):
     """Create a WordPressDeployer wrapping the provisioner."""
     return WordPressDeployer(provisioner)
+
+
+@pytest.fixture
+def tracking(provisioner):
+    """Create a PageviewTrackingSetup wrapping the provisioner."""
+    return PageviewTrackingSetup(provisioner)

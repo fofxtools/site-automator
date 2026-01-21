@@ -108,6 +108,34 @@ class WordPressDeployer:
 
         logger.info(f"Site settings configured successfully for {domain}")
 
+    def sync_admin_password_to_db(self, domain: str) -> None:
+        """Update WordPress admin password to match DB_PASSWORD from wp-config.php.
+
+        Sets the password for user ID 1 (admin) to the same value as DB_PASSWORD.
+
+        Args:
+            domain: Domain name of the site
+
+        Raises:
+            RuntimeError: If password update fails
+        """
+        import shlex
+
+        logger.info(f"Syncing admin password to DB_PASSWORD for {domain}")
+
+        # Get DB_PASSWORD from wp-config.php
+        output, _ = self.wp(domain, "eval 'echo DB_PASSWORD;'", check=True)
+        db_password = output.strip()
+
+        # Update admin password (skip-email to avoid prompts)
+        self.wp(
+            domain,
+            f"user update 1 --user_pass={shlex.quote(db_password)} --skip-email",
+            check=True,
+        )
+
+        logger.info(f"Admin password synced successfully for {domain}")
+
     def delete_demo_content(self, domain: str) -> None:
         """Delete default WordPress demo content.
 
