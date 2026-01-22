@@ -4,7 +4,7 @@ import pytest
 import responses
 from unittest.mock import patch
 
-from wordops_provisioner import RegistrarNameserverManager
+from site_automator import RegistrarNameserverManager
 
 
 class TestInit:
@@ -37,8 +37,8 @@ class TestInit:
 class TestFromEnv:
     """Test from_env classmethod."""
 
-    @patch("wordops_provisioner.registrars.os.getenv")
-    @patch("wordops_provisioner.registrars.load_dotenv")
+    @patch("site_automator.registrars.os.getenv")
+    @patch("site_automator.registrars.load_dotenv")
     def test_from_env_with_all_vars(self, mock_load_dotenv, mock_getenv):
         """Test from_env with all environment variables set."""
         mock_getenv.side_effect = lambda key, default=None: {

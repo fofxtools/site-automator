@@ -1,7 +1,7 @@
-"""WordOps Provisioner - Provision WordPress sites via WordOps over SSH."""
+"""Site Automator - Provision and deploy WordPress sites via WordOps over SSH."""
 
-from .provisioner import WordOpsProvisioner
-from .deployer import WordPressDeployer
+from .wordops import WordOpsProvisioner
+from .wordpress import WordPressDeployer
 from .registrars import RegistrarNameserverManager
 from .digitalocean import DigitalOceanDNSManager
 from .tracking import PageviewTrackingSetup

@@ -6,11 +6,11 @@ import pytest
 class TestWp:
     """Test wp method."""
 
-    def test_wp_success(self, deployer, mock_ssh_client):
+    def test_wp_success(self, wordpress, mock_ssh_client):
         """Test wp() executes WP-CLI command successfully."""
         mock_ssh_client._mock_stdout.read.return_value = b"6.9"
 
-        output, exit_code = deployer.wp("example.com", "core version")
+        output, exit_code = wordpress.wp("example.com", "core version")
 
         assert output == "6.9"
         assert exit_code == 0
@@ -18,7 +18,7 @@ class TestWp:
             "cd /var/www/example.com/htdocs && wp core version --allow-root"
         )
 
-    def test_wp_failure_raises(self, deployer, mock_ssh_client):
+    def test_wp_failure_raises(self, wordpress, mock_ssh_client):
         """Test wp() raises exception on failure when check=True."""
         mock_ssh_client._mock_channel.recv_exit_status.return_value = 1
         mock_ssh_client._mock_stdout.read.return_value = b""
@@ -27,15 +27,15 @@ class TestWp:
         )
 
         with pytest.raises(RuntimeError):
-            deployer.wp("example.com", "core version")
+            wordpress.wp("example.com", "core version")
 
-    def test_wp_failure_without_check(self, deployer, mock_ssh_client):
+    def test_wp_failure_without_check(self, wordpress, mock_ssh_client):
         """Test wp() returns exit code without raising when check=False."""
         mock_ssh_client._mock_channel.recv_exit_status.return_value = 1
         mock_ssh_client._mock_stdout.read.return_value = b""
         mock_ssh_client._mock_stderr.read.return_value = b"Error"
 
-        output, exit_code = deployer.wp("example.com", "core version", check=False)
+        output, exit_code = wordpress.wp("example.com", "core version", check=False)
 
         assert exit_code == 1
         assert "Error" in output
@@ -44,23 +44,23 @@ class TestWp:
 class TestSiteExists:
     """Test site_exists method."""
 
-    def test_site_exists_returns_true(self, deployer, mock_ssh_client):
+    def test_site_exists_returns_true(self, wordpress, mock_ssh_client):
         """Test site_exists returns True when WordPress is installed."""
         mock_ssh_client._mock_stdout.read.return_value = b""
 
-        result = deployer.site_exists("example.com")
+        result = wordpress.site_exists("example.com")
 
         assert result is True
         mock_ssh_client.exec_command.assert_called_with(
             "cd /var/www/example.com/htdocs && wp core is-installed --allow-root"
         )
 
-    def test_site_exists_returns_false(self, deployer, mock_ssh_client):
+    def test_site_exists_returns_false(self, wordpress, mock_ssh_client):
         """Test site_exists returns False when WordPress is not installed."""
         mock_ssh_client._mock_channel.recv_exit_status.return_value = 1
         mock_ssh_client._mock_stdout.read.return_value = b""
 
-        result = deployer.site_exists("nonexistent.com")
+        result = wordpress.site_exists("nonexistent.com")
 
         assert result is False
 
@@ -68,9 +68,9 @@ class TestSiteExists:
 class TestConfigureSite:
     """Test configure_site method."""
 
-    def test_configure_site_success(self, deployer, mock_ssh_client):
+    def test_configure_site_success(self, wordpress, mock_ssh_client):
         """Test configure_site updates all settings."""
-        deployer.configure_site(
+        wordpress.configure_site(
             "test.com",
             "My Site",
             "My Description",
@@ -90,9 +90,9 @@ class TestConfigureSite:
         assert any("option update blog_public 0" in cmd for cmd in call_commands)
         assert any("rewrite structure" in cmd for cmd in call_commands)
 
-    def test_configure_site_with_defaults(self, deployer, mock_ssh_client):
+    def test_configure_site_with_defaults(self, wordpress, mock_ssh_client):
         """Test configure_site with default parameters."""
-        deployer.configure_site("test.com", "My Site", "My Description")
+        wordpress.configure_site("test.com", "My Site", "My Description")
 
         # Verify default values were used
         calls = mock_ssh_client.exec_command.call_args_list
@@ -108,19 +108,19 @@ class TestConfigureSite:
             for cmd in call_commands
         )
 
-    def test_configure_site_failure_raises(self, deployer, mock_ssh_client):
+    def test_configure_site_failure_raises(self, wordpress, mock_ssh_client):
         """Test configure_site raises on failure."""
         mock_ssh_client._mock_channel.recv_exit_status.return_value = 1
         mock_ssh_client._mock_stderr.read.return_value = b"error"
 
         with pytest.raises(RuntimeError):
-            deployer.configure_site("test.com", "My Site", "Description")
+            wordpress.configure_site("test.com", "My Site", "Description")
 
 
 class TestSyncAdminPasswordToDb:
     """Test sync_admin_password_to_db method."""
 
-    def test_sync_admin_password_to_db_success(self, deployer, mock_ssh_client):
+    def test_sync_admin_password_to_db_success(self, wordpress, mock_ssh_client):
         """Test sync_admin_password_to_db updates admin password to DB_PASSWORD."""
         # First call returns DB_PASSWORD, second call updates user
         mock_ssh_client._mock_stdout.read.side_effect = [
@@ -128,7 +128,7 @@ class TestSyncAdminPasswordToDb:
             b"Success: Updated user 1.",  # user update
         ]
 
-        deployer.sync_admin_password_to_db("test.com")
+        wordpress.sync_admin_password_to_db("test.com")
 
         # Verify commands were called
         calls = mock_ssh_client.exec_command.call_args_list
@@ -144,9 +144,9 @@ class TestSyncAdminPasswordToDb:
 class TestDeleteDemoContent:
     """Test delete_demo_content method."""
 
-    def test_delete_demo_content_success(self, deployer, mock_ssh_client):
+    def test_delete_demo_content_success(self, wordpress, mock_ssh_client):
         """Test delete_demo_content deletes all demo content."""
-        deployer.delete_demo_content("test.com")
+        wordpress.delete_demo_content("test.com")
 
         # Verify all delete commands were called
         calls = mock_ssh_client.exec_command.call_args_list
@@ -158,32 +158,32 @@ class TestDeleteDemoContent:
         assert any("post delete 3 --force" in cmd for cmd in call_commands)
         assert any("comment delete 1 --force" in cmd for cmd in call_commands)
 
-    def test_delete_demo_content_idempotent(self, deployer, mock_ssh_client):
+    def test_delete_demo_content_idempotent(self, wordpress, mock_ssh_client):
         """Test delete_demo_content is idempotent (handles already deleted content)."""
         # Return exit code 1 (content not found) for all delete commands
         mock_ssh_client._mock_channel.recv_exit_status.return_value = 1
         mock_ssh_client._mock_stdout.read.return_value = b"Warning: Failed deleting"
 
         # Should not raise even if content doesn't exist
-        deployer.delete_demo_content("test.com")
+        wordpress.delete_demo_content("test.com")
 
 
 class TestCreatePost:
     """Test create_post method."""
 
-    def test_create_post_success(self, deployer, mock_ssh_client):
+    def test_create_post_success(self, wordpress, mock_ssh_client):
         """Test create_post returns post ID."""
         mock_ssh_client._mock_stdout.read.return_value = b"123"
 
-        post_id = deployer.create_post("test.com", "Test Title", "Test Content")
+        post_id = wordpress.create_post("test.com", "Test Title", "Test Content")
 
         assert post_id == 123
 
-    def test_create_post_with_all_parameters(self, deployer, mock_ssh_client):
+    def test_create_post_with_all_parameters(self, wordpress, mock_ssh_client):
         """Test create_post with all optional parameters."""
         mock_ssh_client._mock_stdout.read.return_value = b"456"
 
-        post_id = deployer.create_post(
+        post_id = wordpress.create_post(
             "test.com",
             "Test Post",
             "Content",
@@ -204,11 +204,11 @@ class TestCreatePost:
         assert "--post_name=test-slug" in call_args
         assert "--meta_input='key=value'" in call_args
 
-    def test_create_post_with_post_type(self, deployer, mock_ssh_client):
+    def test_create_post_with_post_type(self, wordpress, mock_ssh_client):
         """Test create_post with post_type parameter."""
         mock_ssh_client._mock_stdout.read.return_value = b"789"
 
-        post_id = deployer.create_post(
+        post_id = wordpress.create_post(
             "test.com", "Page Title", "Content", post_type="page"
         )
 
@@ -216,11 +216,11 @@ class TestCreatePost:
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "--post_type=page" in call_args
 
-    def test_create_post_with_additional_flags(self, deployer, mock_ssh_client):
+    def test_create_post_with_additional_flags(self, wordpress, mock_ssh_client):
         """Test create_post with additional_flags parameter."""
         mock_ssh_client._mock_stdout.read.return_value = b"999"
 
-        post_id = deployer.create_post(
+        post_id = wordpress.create_post(
             "test.com",
             "Title",
             "Content",
@@ -232,19 +232,19 @@ class TestCreatePost:
         assert "--comment_status=closed" in call_args
         assert "--ping_status=closed" in call_args
 
-    def test_create_post_failure_raises(self, deployer, mock_ssh_client):
+    def test_create_post_failure_raises(self, wordpress, mock_ssh_client):
         """Test create_post raises on failure."""
         mock_ssh_client._mock_channel.recv_exit_status.return_value = 1
         mock_ssh_client._mock_stderr.read.return_value = b"error"
 
         with pytest.raises(RuntimeError):
-            deployer.create_post("test.com", "Title", "Content")
+            wordpress.create_post("test.com", "Title", "Content")
 
 
 class TestEnsureAttachment:
     """Test ensure_attachment method."""
 
-    def test_ensure_attachment_creates_new(self, deployer, mock_ssh_client):
+    def test_ensure_attachment_creates_new(self, wordpress, mock_ssh_client):
         """Test ensure_attachment imports new attachment when none exists."""
         # First call: search returns empty (no existing attachment)
         # Second call: import returns attachment ID
@@ -267,26 +267,26 @@ class TestEnsureAttachment:
 
         mock_ssh_client._mock_stdout.read = mock_read
 
-        attachment_id = deployer.ensure_attachment(
+        attachment_id = wordpress.ensure_attachment(
             "test.com", "/path/to/image.jpg", title="Test Image"
         )
 
         assert attachment_id == 123
         assert mock_ssh_client.exec_command.call_count == 3
 
-    def test_ensure_attachment_returns_existing(self, deployer, mock_ssh_client):
+    def test_ensure_attachment_returns_existing(self, wordpress, mock_ssh_client):
         """Test ensure_attachment returns existing attachment ID."""
         mock_ssh_client._mock_stdout.read.return_value = (
             b"456"  # Existing attachment ID
         )
 
-        attachment_id = deployer.ensure_attachment("test.com", "/path/to/image.jpg")
+        attachment_id = wordpress.ensure_attachment("test.com", "/path/to/image.jpg")
 
         assert attachment_id == 456
         # Should only call search, not import
         assert mock_ssh_client.exec_command.call_count == 1
 
-    def test_ensure_attachment_failure_raises(self, deployer, mock_ssh_client):
+    def test_ensure_attachment_failure_raises(self, wordpress, mock_ssh_client):
         """Test ensure_attachment raises on import failure."""
         from unittest.mock import Mock
 
@@ -316,69 +316,69 @@ class TestEnsureAttachment:
         mock_ssh_client.exec_command.side_effect = mock_exec_command
 
         with pytest.raises(RuntimeError):
-            deployer.ensure_attachment("test.com", "/path/to/image.jpg")
+            wordpress.ensure_attachment("test.com", "/path/to/image.jpg")
 
 
 class TestSetFeaturedImage:
     """Test set_featured_image method."""
 
-    def test_set_featured_image_success(self, deployer, mock_ssh_client):
+    def test_set_featured_image_success(self, wordpress, mock_ssh_client):
         """Test set_featured_image sets _thumbnail_id meta."""
-        deployer.set_featured_image("test.com", post_id=123, attachment_id=456)
+        wordpress.set_featured_image("test.com", post_id=123, attachment_id=456)
 
         # Verify wp post meta update was called
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "post meta update 123 _thumbnail_id 456" in call_args
 
-    def test_set_featured_image_failure_raises(self, deployer, mock_ssh_client):
+    def test_set_featured_image_failure_raises(self, wordpress, mock_ssh_client):
         """Test set_featured_image raises on failure."""
         mock_ssh_client._mock_channel.recv_exit_status.return_value = 1
         mock_ssh_client._mock_stderr.read.return_value = b"error"
 
         with pytest.raises(RuntimeError):
-            deployer.set_featured_image("test.com", post_id=123, attachment_id=456)
+            wordpress.set_featured_image("test.com", post_id=123, attachment_id=456)
 
 
 class TestInstallPlugins:
     """Test install_plugins method."""
 
-    def test_install_single_plugin_slug(self, deployer, mock_ssh_client):
+    def test_install_single_plugin_slug(self, wordpress, mock_ssh_client):
         """Test installing a single plugin from slug."""
-        deployer.install_plugins("test.com", ["akismet"], activate=True)
+        wordpress.install_plugins("test.com", ["akismet"], activate=True)
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "plugin install" in call_args
         assert "akismet" in call_args
         assert "--activate" in call_args
 
-    def test_install_multiple_plugins(self, deployer, mock_ssh_client):
+    def test_install_multiple_plugins(self, wordpress, mock_ssh_client):
         """Test installing multiple plugins at once."""
-        deployer.install_plugins("test.com", ["akismet", "jetpack"], activate=True)
+        wordpress.install_plugins("test.com", ["akismet", "jetpack"], activate=True)
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "plugin install" in call_args
         assert "akismet" in call_args
         assert "jetpack" in call_args
 
-    def test_install_plugin_from_path(self, deployer, mock_ssh_client):
+    def test_install_plugin_from_path(self, wordpress, mock_ssh_client):
         """Test installing a plugin from file path."""
-        deployer.install_plugins("test.com", ["/shared/plugin.zip"], activate=True)
+        wordpress.install_plugins("test.com", ["/shared/plugin.zip"], activate=True)
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "plugin install" in call_args
         assert "/shared/plugin.zip" in call_args
 
-    def test_install_without_activation(self, deployer, mock_ssh_client):
+    def test_install_without_activation(self, wordpress, mock_ssh_client):
         """Test installing plugins without activation."""
-        deployer.install_plugins("test.com", ["akismet"], activate=False)
+        wordpress.install_plugins("test.com", ["akismet"], activate=False)
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "plugin install" in call_args
         assert "--activate" not in call_args
 
-    def test_install_empty_list_returns_early(self, deployer, mock_ssh_client):
+    def test_install_empty_list_returns_early(self, wordpress, mock_ssh_client):
         """Test that empty plugin list returns without calling wp."""
-        deployer.install_plugins("test.com", [])
+        wordpress.install_plugins("test.com", [])
 
         # Should not call exec_command for wp (only for SSH connection)
         assert mock_ssh_client.exec_command.call_count == 0
@@ -387,26 +387,26 @@ class TestInstallPlugins:
 class TestActivatePlugins:
     """Test activate_plugins method."""
 
-    def test_activate_single_plugin(self, deployer, mock_ssh_client):
+    def test_activate_single_plugin(self, wordpress, mock_ssh_client):
         """Test activating a single plugin."""
-        deployer.activate_plugins("test.com", ["akismet"])
+        wordpress.activate_plugins("test.com", ["akismet"])
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "plugin activate" in call_args
         assert "akismet" in call_args
 
-    def test_activate_multiple_plugins(self, deployer, mock_ssh_client):
+    def test_activate_multiple_plugins(self, wordpress, mock_ssh_client):
         """Test activating multiple plugins."""
-        deployer.activate_plugins("test.com", ["akismet", "jetpack"])
+        wordpress.activate_plugins("test.com", ["akismet", "jetpack"])
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "plugin activate" in call_args
         assert "akismet" in call_args
         assert "jetpack" in call_args
 
-    def test_activate_empty_list_returns_early(self, deployer, mock_ssh_client):
+    def test_activate_empty_list_returns_early(self, wordpress, mock_ssh_client):
         """Test that empty plugin list returns without calling wp."""
-        deployer.activate_plugins("test.com", [])
+        wordpress.activate_plugins("test.com", [])
 
         assert mock_ssh_client.exec_command.call_count == 0
 
@@ -414,26 +414,26 @@ class TestActivatePlugins:
 class TestDeactivatePlugins:
     """Test deactivate_plugins method."""
 
-    def test_deactivate_single_plugin(self, deployer, mock_ssh_client):
+    def test_deactivate_single_plugin(self, wordpress, mock_ssh_client):
         """Test deactivating a single plugin."""
-        deployer.deactivate_plugins("test.com", ["akismet"])
+        wordpress.deactivate_plugins("test.com", ["akismet"])
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "plugin deactivate" in call_args
         assert "akismet" in call_args
 
-    def test_deactivate_multiple_plugins(self, deployer, mock_ssh_client):
+    def test_deactivate_multiple_plugins(self, wordpress, mock_ssh_client):
         """Test deactivating multiple plugins."""
-        deployer.deactivate_plugins("test.com", ["akismet", "jetpack"])
+        wordpress.deactivate_plugins("test.com", ["akismet", "jetpack"])
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "plugin deactivate" in call_args
         assert "akismet" in call_args
         assert "jetpack" in call_args
 
-    def test_deactivate_empty_list_returns_early(self, deployer, mock_ssh_client):
+    def test_deactivate_empty_list_returns_early(self, wordpress, mock_ssh_client):
         """Test that empty plugin list returns without calling wp."""
-        deployer.deactivate_plugins("test.com", [])
+        wordpress.deactivate_plugins("test.com", [])
 
         assert mock_ssh_client.exec_command.call_count == 0
 
@@ -441,17 +441,17 @@ class TestDeactivatePlugins:
 class TestDeactivateAllPlugins:
     """Test deactivate_all_plugins method."""
 
-    def test_deactivate_all_without_exclude(self, deployer, mock_ssh_client):
+    def test_deactivate_all_without_exclude(self, wordpress, mock_ssh_client):
         """Test deactivating all plugins without exclusions."""
-        deployer.deactivate_all_plugins("test.com")
+        wordpress.deactivate_all_plugins("test.com")
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "plugin deactivate --all" in call_args
         assert "--exclude" not in call_args
 
-    def test_deactivate_all_with_exclude(self, deployer, mock_ssh_client):
+    def test_deactivate_all_with_exclude(self, wordpress, mock_ssh_client):
         """Test deactivating all plugins with exclusions."""
-        deployer.deactivate_all_plugins("test.com", exclude=["akismet", "jetpack"])
+        wordpress.deactivate_all_plugins("test.com", exclude=["akismet", "jetpack"])
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "plugin deactivate --all" in call_args
@@ -459,9 +459,9 @@ class TestDeactivateAllPlugins:
         assert "akismet" in call_args
         assert "jetpack" in call_args
 
-    def test_deactivate_all_with_empty_exclude(self, deployer, mock_ssh_client):
+    def test_deactivate_all_with_empty_exclude(self, wordpress, mock_ssh_client):
         """Test deactivating all plugins with empty exclude list."""
-        deployer.deactivate_all_plugins("test.com", exclude=[])
+        wordpress.deactivate_all_plugins("test.com", exclude=[])
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "plugin deactivate --all" in call_args
@@ -472,27 +472,27 @@ class TestDeactivateAllPlugins:
 class TestInstallTheme:
     """Test install_theme method."""
 
-    def test_install_theme_from_slug(self, deployer, mock_ssh_client):
+    def test_install_theme_from_slug(self, wordpress, mock_ssh_client):
         """Test installing a theme from slug."""
-        deployer.install_theme("test.com", "twentytwentyfour", activate=True)
+        wordpress.install_theme("test.com", "twentytwentyfour", activate=True)
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "theme install" in call_args
         assert "twentytwentyfour" in call_args
         assert "--activate" in call_args
 
-    def test_install_theme_from_path(self, deployer, mock_ssh_client):
+    def test_install_theme_from_path(self, wordpress, mock_ssh_client):
         """Test installing a theme from file path."""
-        deployer.install_theme("test.com", "/shared/astra.zip", activate=True)
+        wordpress.install_theme("test.com", "/shared/astra.zip", activate=True)
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "theme install" in call_args
         assert "/shared/astra.zip" in call_args
         assert "--activate" in call_args
 
-    def test_install_theme_without_activation(self, deployer, mock_ssh_client):
+    def test_install_theme_without_activation(self, wordpress, mock_ssh_client):
         """Test installing theme without activation."""
-        deployer.install_theme("test.com", "astra", activate=False)
+        wordpress.install_theme("test.com", "astra", activate=False)
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "theme install" in call_args
@@ -502,9 +502,9 @@ class TestInstallTheme:
 class TestActivateTheme:
     """Test activate_theme method."""
 
-    def test_activate_theme(self, deployer, mock_ssh_client):
+    def test_activate_theme(self, wordpress, mock_ssh_client):
         """Test activating a theme."""
-        deployer.activate_theme("test.com", "astra")
+        wordpress.activate_theme("test.com", "astra")
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "theme activate" in call_args
@@ -514,26 +514,26 @@ class TestActivateTheme:
 class TestDeleteThemes:
     """Test delete_themes method."""
 
-    def test_delete_single_theme(self, deployer, mock_ssh_client):
+    def test_delete_single_theme(self, wordpress, mock_ssh_client):
         """Test deleting a single theme."""
-        deployer.delete_themes("test.com", ["twentytwentythree"])
+        wordpress.delete_themes("test.com", ["twentytwentythree"])
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "theme delete" in call_args
         assert "twentytwentythree" in call_args
 
-    def test_delete_multiple_themes(self, deployer, mock_ssh_client):
+    def test_delete_multiple_themes(self, wordpress, mock_ssh_client):
         """Test deleting multiple themes."""
-        deployer.delete_themes("test.com", ["twentytwentythree", "twentytwentyfour"])
+        wordpress.delete_themes("test.com", ["twentytwentythree", "twentytwentyfour"])
 
         call_args = mock_ssh_client.exec_command.call_args[0][0]
         assert "theme delete" in call_args
         assert "twentytwentythree" in call_args
         assert "twentytwentyfour" in call_args
 
-    def test_delete_empty_list_returns_early(self, deployer, mock_ssh_client):
+    def test_delete_empty_list_returns_early(self, wordpress, mock_ssh_client):
         """Test that empty theme list returns without calling wp."""
-        deployer.delete_themes("test.com", [])
+        wordpress.delete_themes("test.com", [])
 
         assert mock_ssh_client.exec_command.call_count == 0
 
@@ -541,9 +541,9 @@ class TestDeleteThemes:
 class TestDisableComments:
     """Test disable_comments method."""
 
-    def test_disable_comments(self, deployer, mock_ssh_client):
+    def test_disable_comments(self, wordpress, mock_ssh_client):
         """Test disabling comments site-wide."""
-        deployer.disable_comments("test.com")
+        wordpress.disable_comments("test.com")
 
         # Verify all four commands were called
         calls = mock_ssh_client.exec_command.call_args_list
@@ -572,9 +572,9 @@ class TestDisableComments:
 class TestDisableCommentsWithPlugin:
     """Test disable_comments_with_plugin method."""
 
-    def test_disable_comments_with_plugin_from_slug(self, deployer, mock_ssh_client):
+    def test_disable_comments_with_plugin_from_slug(self, wordpress, mock_ssh_client):
         """Test disabling comments with plugin from WordPress.org slug."""
-        deployer.disable_comments_with_plugin("test.com")
+        wordpress.disable_comments_with_plugin("test.com")
 
         # Verify commands were called
         calls = mock_ssh_client.exec_command.call_args_list
@@ -591,9 +591,9 @@ class TestDisableCommentsWithPlugin:
             "disable-comments settings --types=all" in cmd for cmd in call_commands
         )
 
-    def test_disable_comments_with_plugin_from_path(self, deployer, mock_ssh_client):
+    def test_disable_comments_with_plugin_from_path(self, wordpress, mock_ssh_client):
         """Test disabling comments with plugin from file path."""
-        deployer.disable_comments_with_plugin(
+        wordpress.disable_comments_with_plugin(
             "test.com", plugin_path="/shared/disable-comments.2.6.1.zip"
         )
 

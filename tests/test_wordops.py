@@ -3,24 +3,24 @@
 import pytest
 from unittest.mock import Mock, patch
 
-from wordops_provisioner import WordOpsProvisioner
+from site_automator import WordOpsProvisioner
 
 
 class TestInit:
     """Test __init__ and _connect methods."""
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_init_stores_credentials(self, mock_ssh_client):
         """Test that credentials are stored correctly."""
-        provisioner = WordOpsProvisioner(
+        wordops = WordOpsProvisioner(
             host="example.com", user="testuser", password="testpass"
         )
 
-        assert provisioner.host == "example.com"
-        assert provisioner.user == "testuser"
-        assert provisioner.password == "testpass"
+        assert wordops.host == "example.com"
+        assert wordops.user == "testuser"
+        assert wordops.password == "testpass"
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_init_connects_to_ssh(self, mock_ssh_client):
         """Test that SSH connection is established on init."""
         mock_client_instance = Mock()
@@ -39,9 +39,9 @@ class TestInit:
 class TestFromEnv:
     """Test from_env classmethod."""
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
-    @patch("wordops_provisioner.provisioner.os.getenv")
-    @patch("wordops_provisioner.provisioner.load_dotenv")
+    @patch("site_automator.wordops.paramiko.SSHClient")
+    @patch("site_automator.wordops.os.getenv")
+    @patch("site_automator.wordops.load_dotenv")
     def test_from_env_with_all_vars(
         self, mock_load_dotenv, mock_getenv, mock_ssh_client
     ):
@@ -52,15 +52,15 @@ class TestFromEnv:
             "SSH_PASSWORD": "secret",
         }.get(key, default)
 
-        provisioner = WordOpsProvisioner.from_env()
+        wordops = WordOpsProvisioner.from_env()
 
         mock_load_dotenv.assert_called_once()
-        assert provisioner.host == "192.168.1.1"
-        assert provisioner.user == "admin"
-        assert provisioner.password == "secret"
+        assert wordops.host == "192.168.1.1"
+        assert wordops.user == "admin"
+        assert wordops.password == "secret"
 
-    @patch("wordops_provisioner.provisioner.os.getenv")
-    @patch("wordops_provisioner.provisioner.load_dotenv")
+    @patch("site_automator.wordops.os.getenv")
+    @patch("site_automator.wordops.load_dotenv")
     def test_from_env_missing_host_raises(self, mock_load_dotenv, mock_getenv):
         """Test from_env raises when SERVER_HOST is missing."""
         mock_getenv.side_effect = lambda key, default=None: {
@@ -74,30 +74,30 @@ class TestFromEnv:
 class TestClose:
     """Test close method."""
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_close_closes_client(self, mock_ssh_client):
         """Test that close() closes the SSH client."""
         mock_client_instance = Mock()
         mock_ssh_client.return_value = mock_client_instance
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        provisioner.close()
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops.close()
 
         mock_client_instance.close.assert_called_once()
-        assert provisioner._client is None
+        assert wordops._client is None
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_close_handles_none_client(self, mock_ssh_client):
         """Test that close() handles None client gracefully."""
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        provisioner._client = None
-        provisioner.close()  # Should not raise
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops._client = None
+        wordops.close()  # Should not raise
 
 
 class TestRunCommand:
     """Test run_command method."""
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_run_command_success(self, mock_ssh_client):
         """Test successful command execution."""
         # Setup mock SSH client
@@ -119,14 +119,14 @@ class TestRunCommand:
             mock_stderr,
         )
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        output, exit_code = provisioner.run_command("echo test")
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        output, exit_code = wordops.run_command("echo test")
 
         assert output == "command output"
         assert exit_code == 0
         mock_client_instance.exec_command.assert_called_with("echo test")
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_run_command_failure_with_check(self, mock_ssh_client):
         """Test command failure raises exception when check=True."""
         mock_client_instance = Mock()
@@ -146,12 +146,12 @@ class TestRunCommand:
             mock_stderr,
         )
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
 
         with pytest.raises(RuntimeError):
-            provisioner.run_command("false", check=True)
+            wordops.run_command("false", check=True)
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_run_command_failure_without_check(self, mock_ssh_client):
         """Test command failure returns exit code when check=False."""
         mock_client_instance = Mock()
@@ -171,26 +171,26 @@ class TestRunCommand:
             mock_stderr,
         )
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        output, exit_code = provisioner.run_command("false", check=False)
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        output, exit_code = wordops.run_command("false", check=False)
 
         assert exit_code == 1
         assert "error" in output
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_run_command_no_client_raises(self, mock_ssh_client):
         """Test run_command raises when client is None."""
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        provisioner._client = None
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops._client = None
 
         with pytest.raises(RuntimeError):
-            provisioner.run_command("echo test")
+            wordops.run_command("echo test")
 
 
 class TestCreateSite:
     """Test create_site method."""
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_create_site_without_flags(self, mock_ssh_client):
         """Test create_site with no flags."""
         mock_client_instance = Mock()
@@ -210,12 +210,12 @@ class TestCreateSite:
             mock_stderr,
         )
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        provisioner.create_site("test.com")
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops.create_site("test.com")
 
         mock_client_instance.exec_command.assert_called_with("wo site create test.com")
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_create_site_with_flags(self, mock_ssh_client):
         """Test create_site with flags."""
         mock_client_instance = Mock()
@@ -235,14 +235,14 @@ class TestCreateSite:
             mock_stderr,
         )
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        provisioner.create_site("test.com", flags=["--wp", "--php81"])
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops.create_site("test.com", flags=["--wp", "--php81"])
 
         mock_client_instance.exec_command.assert_called_with(
             "wo site create test.com --wp --php81"
         )
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_create_site_failure_raises(self, mock_ssh_client):
         """Test create_site raises on failure."""
         mock_client_instance = Mock()
@@ -262,16 +262,16 @@ class TestCreateSite:
             mock_stderr,
         )
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
 
         with pytest.raises(RuntimeError):
-            provisioner.create_site("test.com")
+            wordops.create_site("test.com")
 
 
 class TestRestartNginx:
     """Test restart_nginx method."""
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_restart_nginx_success(self, mock_ssh_client):
         """Test restart_nginx executes systemctl command."""
         mock_client_instance = Mock()
@@ -291,12 +291,12 @@ class TestRestartNginx:
             mock_stderr,
         )
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        provisioner.restart_nginx()
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops.restart_nginx()
 
         mock_client_instance.exec_command.assert_called_with("systemctl restart nginx")
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_restart_nginx_failure_raises(self, mock_ssh_client):
         """Test restart_nginx raises on failure."""
         mock_client_instance = Mock()
@@ -316,16 +316,16 @@ class TestRestartNginx:
             mock_stderr,
         )
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
 
         with pytest.raises(RuntimeError):
-            provisioner.restart_nginx()
+            wordops.restart_nginx()
 
 
 class TestEnsureSSL:
     """Test ensure_ssl method."""
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_ensure_ssl_already_enabled(self, mock_ssh_client):
         """Test ensure_ssl skips when SSL already enabled."""
         mock_client_instance = Mock()
@@ -346,15 +346,15 @@ class TestEnsureSSL:
             mock_stderr,
         )
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        provisioner.ensure_ssl("test.com")
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops.ensure_ssl("test.com")
 
         # Should only call the check command, not the update command
         mock_client_instance.exec_command.assert_called_once_with(
             "test -f /var/www/test.com/conf/nginx/ssl.conf"
         )
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_ensure_ssl_enables_ssl(self, mock_ssh_client):
         """Test ensure_ssl enables SSL when not present."""
         mock_client_instance = Mock()
@@ -380,8 +380,8 @@ class TestEnsureSSL:
 
         mock_client_instance.exec_command.side_effect = exec_command_side_effect
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        provisioner.ensure_ssl("test.com")
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops.ensure_ssl("test.com")
 
         # Should call both check and update commands
         assert mock_client_instance.exec_command.call_count == 2
@@ -390,7 +390,7 @@ class TestEnsureSSL:
 class TestEnsureSwap:
     """Test ensure_swap method."""
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_ensure_swap_already_exists(self, mock_ssh_client):
         """Test ensure_swap skips when swap already exists."""
         mock_client_instance = Mock()
@@ -410,13 +410,13 @@ class TestEnsureSwap:
             mock_stderr,
         )
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        provisioner.ensure_swap()
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops.ensure_swap()
 
         # Should only call the check command
         mock_client_instance.exec_command.assert_called_once_with("swapon --show")
 
-    @patch("wordops_provisioner.provisioner.paramiko.SSHClient")
+    @patch("site_automator.wordops.paramiko.SSHClient")
     def test_ensure_swap_creates_swap(self, mock_ssh_client):
         """Test ensure_swap creates swap when not present."""
         mock_client_instance = Mock()
@@ -442,8 +442,8 @@ class TestEnsureSwap:
 
         mock_client_instance.exec_command.side_effect = exec_command_side_effect
 
-        provisioner = WordOpsProvisioner(host="example.com", password="pass")
-        provisioner.ensure_swap(size_gb=4)
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops.ensure_swap(size_gb=4)
 
         # Should call multiple commands to create swap
         assert mock_client_instance.exec_command.call_count == 6

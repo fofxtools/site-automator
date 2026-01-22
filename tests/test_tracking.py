@@ -2,13 +2,13 @@
 
 import pytest
 from unittest.mock import patch
-from wordops_provisioner.tracking import PageviewTrackingSetup
+from site_automator.tracking import PageviewTrackingSetup
 
 
 @pytest.fixture
-def tracking(provisioner):
-    """Create a PageviewTrackingSetup wrapping the provisioner."""
-    return PageviewTrackingSetup(provisioner)
+def tracking(wordops):
+    """Create a PageviewTrackingSetup using a WordOpsProvisioner instance."""
+    return PageviewTrackingSetup(wordops)
 
 
 class TestCreateDbUser:

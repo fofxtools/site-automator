@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import Mock, patch
 
-from wordops_provisioner import DigitalOceanDNSManager
+from site_automator import DigitalOceanDNSManager
 
 
 class TestInit:
@@ -27,8 +27,8 @@ class TestInit:
 class TestFromEnv:
     """Test from_env classmethod."""
 
-    @patch("wordops_provisioner.digitalocean.os.getenv")
-    @patch("wordops_provisioner.digitalocean.load_dotenv")
+    @patch("site_automator.digitalocean.os.getenv")
+    @patch("site_automator.digitalocean.load_dotenv")
     def test_from_env_with_token(self, mock_load_dotenv, mock_getenv):
         """Test from_env with DIGITALOCEAN_TOKEN set."""
         mock_getenv.return_value = "test_token"
@@ -50,7 +50,7 @@ class TestGetDoClient:
         with pytest.raises(ValueError, match="DigitalOcean token is not configured"):
             dns._get_do_client()
 
-    @patch("wordops_provisioner.digitalocean.Client")
+    @patch("site_automator.digitalocean.Client")
     def test_get_client_creates_client(self, mock_client_class):
         """Test that client is created with token."""
         mock_client_instance = Mock()
@@ -63,7 +63,7 @@ class TestGetDoClient:
         assert client == mock_client_instance
         assert dns._do_client == mock_client_instance
 
-    @patch("wordops_provisioner.digitalocean.Client")
+    @patch("site_automator.digitalocean.Client")
     def test_get_client_reuses_existing(self, mock_client_class):
         """Test that client is reused if already created."""
         mock_client_instance = Mock()
@@ -80,7 +80,7 @@ class TestGetDoClient:
 class TestCreateDnsZoneIfMissing:
     """Test create_dns_zone_if_missing method."""
 
-    @patch("wordops_provisioner.digitalocean.Client")
+    @patch("site_automator.digitalocean.Client")
     def test_create_zone_when_missing(self, mock_client_class):
         """Test creating zone when it doesn't exist."""
         mock_client = Mock()
@@ -94,7 +94,7 @@ class TestCreateDnsZoneIfMissing:
         mock_client.domains.get.assert_called_once_with(domain_name="example.com")
         mock_client.domains.create.assert_called_once_with(body={"name": "example.com"})
 
-    @patch("wordops_provisioner.digitalocean.Client")
+    @patch("site_automator.digitalocean.Client")
     def test_skip_create_when_exists(self, mock_client_class):
         """Test skipping creation when zone exists."""
         mock_client = Mock()
@@ -111,7 +111,7 @@ class TestCreateDnsZoneIfMissing:
 class TestEnsureARecord:
     """Test ensure_a_record method."""
 
-    @patch("wordops_provisioner.digitalocean.Client")
+    @patch("site_automator.digitalocean.Client")
     def test_create_record_when_missing(self, mock_client_class):
         """Test creating A record when it doesn't exist."""
         mock_client = Mock()
@@ -126,7 +126,7 @@ class TestEnsureARecord:
             body={"type": "A", "name": "@", "data": "192.0.2.1"},
         )
 
-    @patch("wordops_provisioner.digitalocean.Client")
+    @patch("site_automator.digitalocean.Client")
     def test_skip_when_record_matches(self, mock_client_class):
         """Test skipping when A record already has correct IP."""
         mock_client = Mock()
@@ -143,7 +143,7 @@ class TestEnsureARecord:
         mock_client.domains.create_record.assert_not_called()
         mock_client.domains.update_record.assert_not_called()
 
-    @patch("wordops_provisioner.digitalocean.Client")
+    @patch("site_automator.digitalocean.Client")
     def test_update_when_ip_differs(self, mock_client_class):
         """Test updating A record when IP differs."""
         mock_client = Mock()
@@ -167,7 +167,7 @@ class TestEnsureARecord:
 class TestEnsureCnameRecord:
     """Test ensure_cname_record method."""
 
-    @patch("wordops_provisioner.digitalocean.Client")
+    @patch("site_automator.digitalocean.Client")
     def test_create_record_when_missing(self, mock_client_class):
         """Test creating CNAME record when it doesn't exist."""
         mock_client = Mock()
@@ -182,7 +182,7 @@ class TestEnsureCnameRecord:
             body={"type": "CNAME", "name": "www", "data": "@"},
         )
 
-    @patch("wordops_provisioner.digitalocean.Client")
+    @patch("site_automator.digitalocean.Client")
     def test_skip_when_record_matches(self, mock_client_class):
         """Test skipping when CNAME record already has correct target."""
         mock_client = Mock()
@@ -197,7 +197,7 @@ class TestEnsureCnameRecord:
         mock_client.domains.create_record.assert_not_called()
         mock_client.domains.update_record.assert_not_called()
 
-    @patch("wordops_provisioner.digitalocean.Client")
+    @patch("site_automator.digitalocean.Client")
     def test_update_when_target_differs(self, mock_client_class):
         """Test updating CNAME record when target differs."""
         mock_client = Mock()
@@ -221,7 +221,7 @@ class TestEnsureCnameRecord:
 class TestEnsureBasicDnsDigitalocean:
     """Test ensure_basic_dns_digitalocean method."""
 
-    @patch("wordops_provisioner.digitalocean.Client")
+    @patch("site_automator.digitalocean.Client")
     def test_calls_all_helper_methods(self, mock_client_class):
         """Test that main method calls all helper methods."""
         mock_client = Mock()

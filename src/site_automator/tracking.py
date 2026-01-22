@@ -5,7 +5,7 @@ import secrets
 import shlex
 import string
 
-from wordops_provisioner.provisioner import WordOpsProvisioner
+from site_automator.wordops import WordOpsProvisioner
 
 logger = logging.getLogger(__name__)
 
@@ -13,15 +13,15 @@ logger = logging.getLogger(__name__)
 class PageviewTrackingSetup:
     """Setup pageview tracking plugins and database."""
 
-    provisioner: WordOpsProvisioner
+    wordops: WordOpsProvisioner
 
-    def __init__(self, provisioner: WordOpsProvisioner) -> None:
+    def __init__(self, wordops: WordOpsProvisioner) -> None:
         """Initialize PageviewTrackingSetup.
 
         Args:
-            provisioner: WordOpsProvisioner instance
+            wordops: WordOpsProvisioner instance
         """
-        self.provisioner = provisioner
+        self.wordops = wordops
 
     def _create_db_user(self, username: str) -> str:
         """Create MySQL user with random password and grant all privileges.
@@ -50,20 +50,16 @@ class PageviewTrackingSetup:
         flush_sql = "FLUSH PRIVILEGES;"
 
         logger.debug(f"Creating MySQL user if not exists: {username}")
-        self.provisioner.run_command(
-            f"mysql -e {shlex.quote(create_user_sql)}", check=True
-        )
+        self.wordops.run_command(f"mysql -e {shlex.quote(create_user_sql)}", check=True)
 
         logger.debug(f"Setting password for MySQL user: {username}")
-        self.provisioner.run_command(
-            f"mysql -e {shlex.quote(alter_user_sql)}", check=True
-        )
+        self.wordops.run_command(f"mysql -e {shlex.quote(alter_user_sql)}", check=True)
 
         logger.debug(f"Granting all privileges to: {username}")
-        self.provisioner.run_command(f"mysql -e {shlex.quote(grant_sql)}", check=True)
+        self.wordops.run_command(f"mysql -e {shlex.quote(grant_sql)}", check=True)
 
         logger.debug("Flushing privileges")
-        self.provisioner.run_command(f"mysql -e {shlex.quote(flush_sql)}", check=True)
+        self.wordops.run_command(f"mysql -e {shlex.quote(flush_sql)}", check=True)
 
         logger.info(f"MySQL user created successfully: {username}")
         return password
@@ -89,9 +85,7 @@ class PageviewTrackingSetup:
         )
 
         logger.debug(f"Creating database: {db_name}")
-        self.provisioner.run_command(
-            f"mysql -e {shlex.quote(create_db_sql)}", check=True
-        )
+        self.wordops.run_command(f"mysql -e {shlex.quote(create_db_sql)}", check=True)
 
         logger.info(f"Database created successfully: {db_name}")
 
@@ -128,7 +122,7 @@ class PageviewTrackingSetup:
                 f"{db_name_escaped} < {sql_file_escaped}"
             )
 
-            self.provisioner.run_command(command, check=True)
+            self.wordops.run_command(command, check=True)
             logger.debug(f"SQL file executed successfully: {sql_file}")
 
         logger.info(f"Tracking tables created successfully in database: {db_name}")
@@ -167,7 +161,7 @@ TRACKING_DB_PASSWORD={password}
         # Create .env file
         logger.debug(f"Creating .env file at: {env_file_path}")
         command = f"echo {env_content_escaped} > {env_file_path_escaped}"
-        self.provisioner.run_command(command, check=True)
+        self.wordops.run_command(command, check=True)
 
         logger.info(f".env file created successfully at: {env_file_path}")
 
@@ -204,7 +198,7 @@ TRACKING_DB_PASSWORD={password}
                 f"wp plugin install {plugin_escaped} --activate --allow-root"
             )
 
-            self.provisioner.run_command(command, check=True)
+            self.wordops.run_command(command, check=True)
             logger.debug(f"Plugin installed and activated: {plugin}")
 
         logger.info(f"All tracking plugins installed successfully for {domain}")
@@ -319,7 +313,7 @@ return [
 
         logger.debug(f"Writing track_config.php: {config_file_path}")
         command = f"echo {php_config_escaped} > {config_file_escaped}"
-        self.provisioner.run_command(command, check=True)
+        self.wordops.run_command(command, check=True)
 
         logger.info(f"track_config.php updated successfully for {domain}")
 

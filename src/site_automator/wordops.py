@@ -38,7 +38,7 @@ class WordOpsProvisioner:
 
     @classmethod
     def from_env(cls) -> "WordOpsProvisioner":
-        """Create provisioner from .env file.
+        """Create WordOpsProvisioner instance from .env file.
 
         Expects environment variables:
             - SERVER_HOST: Server hostname or IP

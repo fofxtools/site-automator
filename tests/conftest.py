@@ -1,17 +1,17 @@
-"""Shared pytest fixtures for WordOps Provisioner tests."""
+"""Shared pytest fixtures for Site Automator tests."""
 
 import pytest
 from unittest.mock import Mock, patch
 
-from wordops_provisioner.provisioner import WordOpsProvisioner
-from wordops_provisioner.deployer import WordPressDeployer
-from wordops_provisioner.tracking import PageviewTrackingSetup
+from site_automator.wordops import WordOpsProvisioner
+from site_automator.wordpress import WordPressDeployer
+from site_automator.tracking import PageviewTrackingSetup
 
 
 @pytest.fixture
 def mock_ssh_client():
     """Mock paramiko SSHClient with default success behavior."""
-    with patch("wordops_provisioner.provisioner.paramiko.SSHClient") as mock_class:
+    with patch("site_automator.wordops.paramiko.SSHClient") as mock_class:
         mock_instance = Mock()
         mock_class.return_value = mock_instance
 
@@ -35,18 +35,18 @@ def mock_ssh_client():
 
 
 @pytest.fixture
-def provisioner(mock_ssh_client):
+def wordops(mock_ssh_client):
     """Create a WordOpsProvisioner with mocked SSH."""
     return WordOpsProvisioner(host="example.com", password="pass")
 
 
 @pytest.fixture
-def deployer(provisioner):
-    """Create a WordPressDeployer wrapping the provisioner."""
-    return WordPressDeployer(provisioner)
+def wordpress(wordops):
+    """Create a WordPressDeployer using a WordOpsProvisioner instance."""
+    return WordPressDeployer(wordops)
 
 
 @pytest.fixture
-def tracking(provisioner):
-    """Create a PageviewTrackingSetup wrapping the provisioner."""
-    return PageviewTrackingSetup(provisioner)
+def tracking(wordops):
+    """Create a PageviewTrackingSetup using a WordOpsProvisioner instance."""
+    return PageviewTrackingSetup(wordops)

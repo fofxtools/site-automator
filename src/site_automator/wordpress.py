@@ -2,7 +2,7 @@
 
 import logging
 
-from wordops_provisioner.provisioner import WordOpsProvisioner
+from site_automator.wordops import WordOpsProvisioner
 
 logger = logging.getLogger(__name__)
 
@@ -10,15 +10,15 @@ logger = logging.getLogger(__name__)
 class WordPressDeployer:
     """Deploy WordPress sites using WP-CLI."""
 
-    provisioner: WordOpsProvisioner
+    wordops: WordOpsProvisioner
 
-    def __init__(self, provisioner: WordOpsProvisioner) -> None:
+    def __init__(self, wordops: WordOpsProvisioner) -> None:
         """Initialize WordPressDeployer.
 
         Args:
-            provisioner: WordOpsProvisioner instance
+            wordops: WordOpsProvisioner instance
         """
-        self.provisioner = provisioner
+        self.wordops = wordops
 
     def wp(
         self,
@@ -40,7 +40,7 @@ class WordPressDeployer:
             RuntimeError: If check=True and command returns non-zero exit code
         """
         command = f"cd /var/www/{domain}/htdocs && wp {wp_command} --allow-root"
-        return self.provisioner.run_command(command, check=check)
+        return self.wordops.run_command(command, check=check)
 
     def site_exists(self, domain: str) -> bool:
         """Check if WordPress is installed for the domain.
