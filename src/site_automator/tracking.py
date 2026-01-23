@@ -23,23 +23,86 @@ class PageviewTrackingSetup:
         """
         self.wordops = wordops
 
-    def _create_db_user(self, username: str) -> str:
-        """Create MySQL user with random password and grant all privileges.
+    def _upload_tracking_resources(self, remote_folder: str = "/shared") -> None:
+        """Upload tracking plugin and SQL files to remote server.
+
+        Uploads the following files from local /resources/ folder if they
+        don't already exist on the remote server:
+        - pageview-tracking-core.zip
+        - pageview-tracking-daily.zip
+        - pageview-tracking.zip
+        - tracking_pageviews_daily.sql
+        - tracking_pageviews.sql
+
+        Args:
+            remote_folder: Remote folder path (default: "/shared")
+
+        Raises:
+            RuntimeError: If file upload fails
+            FileNotFoundError: If local file is missing
+        """
+        from pathlib import Path
+
+        logger.info(f"Uploading tracking resources to {remote_folder}")
+
+        # Define files to upload
+        files = [
+            "pageview-tracking-core.zip",
+            "pageview-tracking-daily.zip",
+            "pageview-tracking.zip",
+            "tracking_pageviews_daily.sql",
+            "tracking_pageviews.sql",
+        ]
+
+        # Get local resources directory
+        resources_dir = Path(__file__).parent.parent.parent / "resources"
+
+        # Ensure remote folder exists
+        logger.debug(f"Ensuring remote folder exists: {remote_folder}")
+        self.wordops.run_command(f"mkdir -p {shlex.quote(remote_folder)}", check=True)
+
+        for filename in files:
+            local_path = resources_dir / filename
+            remote_path = f"{remote_folder}/{filename}"
+
+            # Check if file exists locally
+            if not local_path.exists():
+                raise FileNotFoundError(f"Local file not found: {local_path}")
+
+            # Check if file exists remotely
+            logger.debug(f"Checking if {remote_path} exists on remote server")
+            check_command = f"test -f {shlex.quote(remote_path)}"
+            _, exit_code = self.wordops.run_command(check_command, check=False)
+
+            if exit_code == 0:
+                logger.debug(f"File already exists remotely: {remote_path}")
+            else:
+                logger.info(f"Uploading {filename} to {remote_path}")
+
+                # Upload file using SFTP
+                if not self.wordops._client:
+                    raise RuntimeError("SSH client not connected")
+
+                sftp = self.wordops._client.open_sftp()
+                try:
+                    sftp.put(str(local_path), remote_path)
+                    logger.debug(f"Upload completed: {remote_path}")
+                finally:
+                    sftp.close()
+
+        logger.info("Tracking resources upload completed")
+
+    def _create_db_user(self, username: str, password: str) -> None:
+        """Create MySQL user with provided password and grant all privileges.
 
         Args:
             username: MySQL username to create
-
-        Returns:
-            Generated password
+            password: MySQL password to set
 
         Raises:
             RuntimeError: If user creation fails
         """
         logger.info(f"Creating MySQL user: {username}")
-
-        # Generate random password (32 characters, alphanumeric only)
-        alphabet = string.ascii_letters + string.digits
-        password = "".join(secrets.choice(alphabet) for _ in range(32))
 
         # Create user if not exists, then alter to set password
         create_user_sql = f"CREATE USER IF NOT EXISTS '{username}'@'localhost';"
@@ -62,7 +125,6 @@ class PageviewTrackingSetup:
         self.wordops.run_command(f"mysql -e {shlex.quote(flush_sql)}", check=True)
 
         logger.info(f"MySQL user created successfully: {username}")
-        return password
 
     def _create_database(self, db_name: str) -> None:
         """Create MySQL database.
@@ -321,12 +383,18 @@ return [
         """Setup complete pageview tracking system for a domain.
 
         This method:
-        1. Creates MySQL database user 'db_admin' with random password
-        2. Creates 'tracking' database
-        3. Creates tracking tables from SQL files
-        4. Creates .env file in site parent directory
-        5. Installs and activates tracking plugins
-        6. Updates track_config.php with settings from .env
+        - Uploads tracking resources to /shared/ (plugins and SQL files)
+        - Creates MySQL database user (from env or default 'db_admin')
+        - Creates database (from env or default 'site_automator')
+        - Creates tracking tables from SQL files
+        - Creates .env file in site parent directory
+        - Installs and activates tracking plugins
+        - Updates track_config.php with settings from .env
+
+        Environment variables (optional):
+        - TRACKING_DB_NAME: Database name (default: 'site_automator')
+        - TRACKING_DB_USER: MySQL username (default: 'db_admin')
+        - TRACKING_DB_PASSWORD: MySQL password (default: random 32-char alphanumeric)
 
         Args:
             domain: Domain name of the site (e.g., "example.com")
@@ -334,26 +402,40 @@ return [
         Raises:
             RuntimeError: If setup fails
         """
+        import os
+
         logger.info(f"Setting up pageview tracking for {domain}")
 
-        # Step 1: Create MySQL user
-        username = "db_admin"
-        password = self._create_db_user(username)
+        # Upload tracking resources
+        self._upload_tracking_resources()
 
-        # Step 2: Create database
-        db_name = "tracking"
+        # Read configuration from environment with defaults
+        db_name = os.getenv("TRACKING_DB_NAME") or "site_automator"
+        username = os.getenv("TRACKING_DB_USER") or "db_admin"
+        password = os.getenv("TRACKING_DB_PASSWORD")
+
+        # Generate password if not provided
+        if not password:
+            logger.debug("Generating random password for database user")
+            alphabet = string.ascii_letters + string.digits
+            password = "".join(secrets.choice(alphabet) for _ in range(32))
+
+        # Create MySQL user
+        self._create_db_user(username, password)
+
+        # Create database
         self._create_database(db_name)
 
-        # Step 3: Create tables
+        # Create tables
         self._create_tables(db_name, username, password)
 
-        # Step 4: Create .env file
+        # Create .env file
         self._create_env_file(domain, db_name, username, password)
 
-        # Step 5: Install and activate plugins
+        # Install and activate plugins
         self._install_plugins(domain)
 
-        # Step 6: Update track_config.php
+        # Update track_config.php
         self._update_track_config(domain)
 
         logger.info(f"Pageview tracking setup completed successfully for {domain}")

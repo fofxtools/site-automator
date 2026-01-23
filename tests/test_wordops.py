@@ -48,7 +48,7 @@ class TestFromEnv:
         """Test from_env with all environment variables set."""
         mock_getenv.side_effect = lambda key, default=None: {
             "SERVER_HOST": "192.168.1.1",
-            "SSH_USER": "admin",
+            "SSH_USER": "root",
             "SSH_PASSWORD": "secret",
         }.get(key, default)
 
@@ -56,7 +56,7 @@ class TestFromEnv:
 
         mock_load_dotenv.assert_called_once()
         assert wordops.host == "192.168.1.1"
-        assert wordops.user == "admin"
+        assert wordops.user == "root"
         assert wordops.password == "secret"
 
     @patch("site_automator.wordops.os.getenv")

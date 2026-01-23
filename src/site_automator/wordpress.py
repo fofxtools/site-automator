@@ -621,7 +621,7 @@ class WordPressDeployer:
         logger.debug(f"Theme delete output:\n{output}")
 
     def disable_comments(self, domain: str) -> None:
-        """Disable comments site-wide on WordPress.
+        """Disable comments site-wide on WordPress. Comment boxes are NOT removed.
 
         This method:
         1. Disables comments on new posts/pages (default_comment_status)
@@ -668,7 +668,7 @@ class WordPressDeployer:
     def disable_comments_with_plugin(
         self, domain: str, plugin_path: str | None = None
     ) -> None:
-        """Disable comments using the Disable Comments plugin.
+        """Disable comments using the Disable Comments plugin. Comment boxes are removed.
 
         This method installs and configures the Disable Comments plugin to
         disable comments everywhere on the site.
@@ -692,3 +692,37 @@ class WordPressDeployer:
         self.wp(domain, "disable-comments settings --types=all", check=True)
 
         logger.info(f"Comments disabled with plugin successfully on {domain}")
+
+    def delete_widgets(
+        self,
+        domain: str,
+        widget_ids: list[str],
+    ) -> None:
+        """Delete WordPress widgets.
+
+        Args:
+            domain: Domain name of the site
+            widget_ids: List of widget IDs to delete (e.g., ["block-3", "block-4"])
+
+        Raises:
+            RuntimeError: If widget deletion fails
+        """
+        import shlex
+
+        if not widget_ids:
+            logger.warning("No widgets specified for deletion")
+            return
+
+        logger.info(f"Deleting {len(widget_ids)} widget(s) on {domain}")
+
+        # Escape each widget ID for shell safety
+        escaped_widgets = [shlex.quote(widget_id) for widget_id in widget_ids]
+        widgets_str = " ".join(escaped_widgets)
+
+        wp_command = f"widget delete {widgets_str}"
+
+        logger.debug(f"Widget delete command: {wp_command}")
+        output, _ = self.wp(domain, wp_command, check=True)
+        logger.info(f"Widgets deleted successfully: {', '.join(widget_ids)}")
+        logger.debug(f"Escaped widget args: {escaped_widgets}")
+        logger.debug(f"Widget delete output:\n{output}")

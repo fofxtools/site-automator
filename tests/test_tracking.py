@@ -1,7 +1,7 @@
 """Unit tests for PageviewTrackingSetup - Critical path only."""
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from site_automator.tracking import PageviewTrackingSetup
 
 
@@ -11,23 +11,56 @@ def tracking(wordops):
     return PageviewTrackingSetup(wordops)
 
 
+class TestUploadTrackingResources:
+    """Test _upload_tracking_resources method."""
+
+    def test_upload_files_that_dont_exist_remotely(self, tracking, mock_ssh_client):
+        """Test files are uploaded when they don't exist remotely."""
+        # Mock SFTP
+        mock_sftp = Mock()
+        mock_ssh_client.open_sftp.return_value = mock_sftp
+
+        # Mock exit codes: 0 for mkdir, 1 for file checks
+        exit_codes = [0] + [1] * 5  # mkdir succeeds, 5 file checks fail
+        mock_ssh_client._mock_channel.recv_exit_status.side_effect = exit_codes
+
+        tracking._upload_tracking_resources()
+
+        # Should create remote directory
+        calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
+        assert any("mkdir -p" in cmd and "/shared" in cmd for cmd in calls)
+
+        # Should upload 5 files
+        assert mock_sftp.put.call_count == 5
+
+    def test_skip_files_that_exist_remotely(self, tracking, mock_ssh_client):
+        """Test files are skipped when they already exist remotely."""
+        # Mock SFTP
+        mock_sftp = Mock()
+        mock_ssh_client.open_sftp.return_value = mock_sftp
+
+        # Mock exit codes: all succeed (mkdir + 5 file checks)
+        mock_ssh_client._mock_channel.recv_exit_status.return_value = 0
+
+        tracking._upload_tracking_resources()
+
+        # Should not upload any files
+        assert mock_sftp.put.call_count == 0
+
+
 class TestCreateDbUser:
     """Test _create_db_user method."""
 
     def test_create_db_user_success(self, tracking, mock_ssh_client):
-        """Test _create_db_user creates user and returns password."""
-        password = tracking._create_db_user("db_admin")
-
-        # Password should be 32 characters, alphanumeric only
-        assert len(password) == 32
-        assert password.isalnum()
+        """Test _create_db_user creates user with provided password."""
+        tracking._create_db_user("db_admin", "test_password_123")
 
         # Should execute 4 commands: CREATE USER, ALTER USER, GRANT, FLUSH
         assert mock_ssh_client.exec_command.call_count == 4
         calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
 
         assert any("CREATE USER IF NOT EXISTS" in cmd for cmd in calls)
-        assert any("ALTER USER" in cmd for cmd in calls)
+        assert any("ALTER USER" in cmd and "test_password_123" in cmd for cmd in calls)
         assert any("GRANT ALL PRIVILEGES" in cmd for cmd in calls)
         assert any("FLUSH PRIVILEGES" in cmd for cmd in calls)
 
@@ -130,6 +163,7 @@ class TestUpdateTrackConfig:
 class TestSetupTracking:
     """Test setup_tracking method."""
 
+    @patch("site_automator.tracking.PageviewTrackingSetup._upload_tracking_resources")
     @patch.dict(
         "os.environ",
         {
@@ -139,20 +173,56 @@ class TestSetupTracking:
             "TRACKING_EXCLUDE_USER_AGENTS_EXACT": "",
             "TRACKING_EXCLUDE_USER_AGENTS_SUBSTRING": "",
         },
+        clear=True,
     )
-    def test_setup_tracking_success(self, tracking, mock_ssh_client):
-        """Test setup_tracking executes all steps."""
+    def test_setup_tracking_with_defaults(self, mock_upload, tracking, mock_ssh_client):
+        """Test setup_tracking uses default values when env vars not set."""
         tracking.setup_tracking("example.com")
+
+        # Should call upload resources
+        mock_upload.assert_called_once()
 
         # Should execute multiple commands for all steps
         assert mock_ssh_client.exec_command.call_count > 5
 
         calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
 
-        # Verify key steps were executed
-        assert any("CREATE USER" in cmd for cmd in calls)
-        assert any("CREATE DATABASE" in cmd for cmd in calls)
+        # Verify key steps were executed with defaults
+        assert any("CREATE USER" in cmd and "db_admin" in cmd for cmd in calls)
+        assert any(
+            "CREATE DATABASE" in cmd and "site_automator" in cmd for cmd in calls
+        )
         assert any("mysql" in cmd and "/shared/" in cmd for cmd in calls)
         assert any(".env" in cmd for cmd in calls)
         assert any("wp plugin install" in cmd for cmd in calls)
         assert any("track_config.php" in cmd for cmd in calls)
+
+    @patch("site_automator.tracking.PageviewTrackingSetup._upload_tracking_resources")
+    @patch.dict(
+        "os.environ",
+        {
+            "TRACKING_DB_NAME": "custom_db",
+            "TRACKING_DB_USER": "custom_user",
+            "TRACKING_DB_PASSWORD": "custom_pass_123",
+            "TRACKING_DB_CONFIG_FILE": "auto",
+            "TRACKING_EXCLUDE_IPS": "",
+            "TRACKING_EXCLUDE_IPS_CIDR": "",
+            "TRACKING_EXCLUDE_USER_AGENTS_EXACT": "",
+            "TRACKING_EXCLUDE_USER_AGENTS_SUBSTRING": "",
+        },
+    )
+    def test_setup_tracking_with_custom_env_vars(
+        self, mock_upload, tracking, mock_ssh_client
+    ):
+        """Test setup_tracking uses custom values from env vars."""
+        tracking.setup_tracking("example.com")
+
+        # Should call upload resources
+        mock_upload.assert_called_once()
+
+        calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
+
+        # Verify custom values were used
+        assert any("CREATE USER" in cmd and "custom_user" in cmd for cmd in calls)
+        assert any("ALTER USER" in cmd and "custom_pass_123" in cmd for cmd in calls)
+        assert any("CREATE DATABASE" in cmd and "custom_db" in cmd for cmd in calls)

@@ -611,3 +611,30 @@ class TestDisableCommentsWithPlugin:
         assert any(
             "disable-comments settings --types=all" in cmd for cmd in call_commands
         )
+
+
+class TestDeleteWidgets:
+    """Test delete_widgets method."""
+
+    def test_delete_single_widget(self, wordpress, mock_ssh_client):
+        """Test deleting a single widget."""
+        wordpress.delete_widgets("test.com", ["block-3"])
+
+        call_args = mock_ssh_client.exec_command.call_args[0][0]
+        assert "widget delete" in call_args
+        assert "block-3" in call_args
+
+    def test_delete_multiple_widgets(self, wordpress, mock_ssh_client):
+        """Test deleting multiple widgets."""
+        wordpress.delete_widgets("test.com", ["block-3", "block-4"])
+
+        call_args = mock_ssh_client.exec_command.call_args[0][0]
+        assert "widget delete" in call_args
+        assert "block-3" in call_args
+        assert "block-4" in call_args
+
+    def test_delete_empty_list_returns_early(self, wordpress, mock_ssh_client):
+        """Test that empty widget list returns without calling wp."""
+        wordpress.delete_widgets("test.com", [])
+
+        assert mock_ssh_client.exec_command.call_count == 0
