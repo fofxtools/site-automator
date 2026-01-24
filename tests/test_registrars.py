@@ -1,10 +1,8 @@
-"""Unit tests for RegistrarNameserverManager - Critical path only."""
-
 import pytest
 import responses
 from unittest.mock import patch
 
-from site_automator import RegistrarNameserverManager
+from site_automator.registrars import RegistrarNameserverManager
 
 
 class TestInit:

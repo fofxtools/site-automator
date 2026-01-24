@@ -726,3 +726,25 @@ class WordPressDeployer:
         logger.info(f"Widgets deleted successfully: {', '.join(widget_ids)}")
         logger.debug(f"Escaped widget args: {escaped_widgets}")
         logger.debug(f"Widget delete output:\n{output}")
+
+    def wipe_site(self, domain: str, *, confirm: bool = False) -> None:
+        """Wipe WordPress site (database and all files).
+
+        This is a destructive operation that deletes ALL content, uploads,
+        plugins, themes, and database tables.
+
+        Args:
+            domain: Domain name of the site
+            confirm: Must be True to proceed. Prevents accidental wipes.
+
+        Raises:
+            ValueError: If confirm is not True
+            RuntimeError: If any step fails
+        """
+        if not confirm:
+            raise ValueError(
+                "wipe_site() requires confirm=True. This destroys all site data."
+            )
+        logger.info(f"Wiping WordPress site for {domain}")
+        self.wp(domain, "db reset --yes")
+        self.wordops.run_command(f"rm -rf /var/www/{domain}/htdocs/*", check=True)

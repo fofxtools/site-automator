@@ -1,9 +1,7 @@
-"""Unit tests for DigitalOceanDNSManager - Critical path only."""
-
 import pytest
 from unittest.mock import Mock, patch
 
-from site_automator import DigitalOceanDNSManager
+from site_automator.digitalocean import DigitalOceanDNSManager
 
 
 class TestInit:

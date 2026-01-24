@@ -1,5 +1,3 @@
-"""Unit tests for PageviewTrackingSetup - Critical path only."""
-
 import pytest
 from unittest.mock import patch, Mock
 from site_automator.tracking import PageviewTrackingSetup

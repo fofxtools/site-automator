@@ -1,5 +1,3 @@
-"""Unit tests for WordPressDeployer - Critical path only."""
-
 import pytest
 
 
@@ -638,3 +636,25 @@ class TestDeleteWidgets:
         wordpress.delete_widgets("test.com", [])
 
         assert mock_ssh_client.exec_command.call_count == 0
+
+
+class TestWipeSite:
+    """Test wipe_site method."""
+
+    def test_wipe_site_without_confirm_raises(self, wordpress, mock_ssh_client):
+        """Test wipe_site raises ValueError when confirm is not True."""
+        with pytest.raises(ValueError, match="confirm=True"):
+            wordpress.wipe_site("test.com")
+
+        assert mock_ssh_client.exec_command.call_count == 0
+
+    def test_wipe_site_with_confirm(self, wordpress, mock_ssh_client):
+        """Test wipe_site executes db reset and rm."""
+        wordpress.wipe_site("test.com", confirm=True)
+
+        calls = mock_ssh_client.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+
+        assert len(call_commands) == 2
+        assert "db reset --yes" in call_commands[0]
+        assert "rm -rf /var/www/test.com/htdocs/*" in call_commands[1]

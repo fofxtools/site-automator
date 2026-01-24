@@ -1,5 +1,3 @@
-"""Unit tests for LLM clients - Critical path only."""
-
 import pytest
 from unittest.mock import Mock, patch
 

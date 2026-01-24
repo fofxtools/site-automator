@@ -1,9 +1,7 @@
-"""Unit tests for WordOpsProvisioner - Critical path only."""
-
 import pytest
 from unittest.mock import Mock, patch
 
-from site_automator import WordOpsProvisioner
+from site_automator.wordops import WordOpsProvisioner
 
 
 class TestInit:

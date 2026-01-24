@@ -35,16 +35,6 @@ if log_file:
 logging.getLogger("paramiko").setLevel(logging.WARNING)
 
 
-def reset_wordpress(
-    wordpress: WordPressDeployer, wordops: WordOpsProvisioner, domain: str
-) -> None:
-    """Reset WordPress installation (wipe database and files)."""
-    logging.info(f"Resetting WordPress installation for {domain}")
-    wordpress.wp(domain, "db reset --yes")
-    wordops.run_command(f"rm -rf /var/www/{domain}/htdocs/*", check=True)
-    wordpress.wp(domain, "core download")
-
-
 def install_with_fake_data(wordpress: WordPressDeployer, domain: str) -> dict[str, str]:
     """Install WordPress with fake metadata.
 
@@ -249,7 +239,8 @@ def main() -> None:
     wordpress = WordPressDeployer(wordops)
 
     try:
-        reset_wordpress(wordpress, wordops, domain)
+        wordpress.wipe_site(domain, confirm=True)
+        wordpress.wp(domain, "core download")
         credentials = install_with_fake_data(wordpress, domain)
         deploy_and_configure(wordpress, wordops, domain, credentials)
         taxonomy = create_fake_taxonomy(wordpress, domain)

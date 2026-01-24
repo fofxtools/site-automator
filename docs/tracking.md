@@ -33,7 +33,8 @@ TRACKING_EXCLUDE_USER_AGENTS_SUBSTRING=bot,scraper
 ## Basic Usage
 
 ```python
-from site_automator import WordOpsProvisioner, PageviewTrackingSetup
+from site_automator.wordops import WordOpsProvisioner
+from site_automator.tracking import PageviewTrackingSetup
 
 wordops = WordOpsProvisioner.from_env()
 tracking = PageviewTrackingSetup(wordops)
@@ -92,7 +93,8 @@ These files are automatically uploaded to `/shared/` on the server during setup.
 ## Complete Example
 
 ```python
-from site_automator import WordOpsProvisioner, PageviewTrackingSetup
+from site_automator.wordops import WordOpsProvisioner
+from site_automator.tracking import PageviewTrackingSetup
 
 wordops = WordOpsProvisioner.from_env()
 tracking = PageviewTrackingSetup(wordops)

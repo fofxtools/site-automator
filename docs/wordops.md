@@ -27,7 +27,7 @@ SSH_PASSWORD=your_password
 ## Basic Usage
 
 ```python
-from site_automator import WordOpsProvisioner
+from site_automator.wordops import WordOpsProvisioner
 
 # Connect using .env credentials
 wordops = WordOpsProvisioner.from_env()
@@ -92,7 +92,7 @@ wordops.ensure_swap(size_gb=4)
 ## Complete Example
 
 ```python
-from site_automator import WordOpsProvisioner
+from site_automator.wordops import WordOpsProvisioner
 
 wordops = WordOpsProvisioner.from_env()
 

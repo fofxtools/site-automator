@@ -16,7 +16,8 @@ Manage WordPress sites using WP-CLI commands over SSH.
 Requires a `WordOpsProvisioner` instance:
 
 ```python
-from site_automator import WordOpsProvisioner, WordPressDeployer
+from site_automator.wordops import WordOpsProvisioner
+from site_automator.wordpress import WordPressDeployer
 
 wordops = WordOpsProvisioner.from_env()
 wordpress = WordPressDeployer(wordops)
@@ -183,7 +184,8 @@ output, exit_code = wordpress.wp("example.com", "post get 999", check=False)
 ## Complete Example
 
 ```python
-from site_automator import WordOpsProvisioner, WordPressDeployer
+from site_automator.wordops import WordOpsProvisioner
+from site_automator.wordpress import WordPressDeployer
 
 wordops = WordOpsProvisioner.from_env()
 wordpress = WordPressDeployer(wordops)

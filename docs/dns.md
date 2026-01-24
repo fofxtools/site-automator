@@ -27,7 +27,8 @@ GODADDY_API_SECRET=your_secret
 ## Basic Usage
 
 ```python
-from site_automator import RegistrarNameserverManager, DigitalOceanDNSManager
+from site_automator.registrars import RegistrarNameserverManager
+from site_automator.digitalocean import DigitalOceanDNSManager
 
 domain = "example.com"
 server_ip = "203.0.113.10"
