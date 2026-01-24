@@ -5,6 +5,7 @@ from .wordpress import WordPressDeployer
 from .registrars import RegistrarNameserverManager
 from .digitalocean import DigitalOceanDNSManager
 from .tracking import PageviewTrackingSetup
+from .llm import OpenAIClient, OllamaClient, get_llm_client
 
 __all__ = [
     "WordOpsProvisioner",
@@ -12,4 +13,7 @@ __all__ = [
     "RegistrarNameserverManager",
     "DigitalOceanDNSManager",
     "PageviewTrackingSetup",
+    "OpenAIClient",
+    "OllamaClient",
+    "get_llm_client",
 ]
