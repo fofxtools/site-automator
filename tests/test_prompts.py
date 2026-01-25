@@ -64,3 +64,78 @@ class TestLoadPrompt:
                 assert result == "Test content"
             finally:
                 os.chdir(original_cwd)
+
+    def test_loads_list_prompt_returns_one_item(self, tmp_path):
+        """Test that list-based prompts return one of the items."""
+        yaml_content = (
+            "topic_generation:\n"
+            "  - Generate topics for {seed_topic}\n"
+            "  - Create topics for {seed_topic}\n"
+            "  - Write topics for {seed_topic}\n"
+        )
+        prompts_dir = _write_prompts_yaml(tmp_path, yaml_content)
+
+        with patch.dict("os.environ", {"SITES_PROMPTS_PATH": prompts_dir}):
+            result = load_prompt("prompts.yaml", "topic_generation")
+
+        # Should return one of the three options
+        assert result in [
+            "Generate topics for {seed_topic}",
+            "Create topics for {seed_topic}",
+            "Write topics for {seed_topic}",
+        ]
+
+    def test_loads_list_prompt_with_multiline(self, tmp_path):
+        """Test that list-based prompts work with multiline strings."""
+        yaml_content = (
+            "article:\n"
+            "  - |\n"
+            "    Line 1\n"
+            "    Line 2\n"
+            "  - |\n"
+            "    Line A\n"
+            "    Line B\n"
+        )
+        prompts_dir = _write_prompts_yaml(tmp_path, yaml_content)
+
+        with patch.dict("os.environ", {"SITES_PROMPTS_PATH": prompts_dir}):
+            result = load_prompt("prompts.yaml", "article")
+
+        # Should return one of the two multiline options
+        assert "Line 1" in result or "Line A" in result
+
+    def test_empty_list_raises_error(self, tmp_path):
+        """Test that empty list raises ValueError."""
+        yaml_content = "topic_generation: []\n"
+        prompts_dir = _write_prompts_yaml(tmp_path, yaml_content)
+
+        with patch.dict("os.environ", {"SITES_PROMPTS_PATH": prompts_dir}):
+            with pytest.raises(ValueError, match="is an empty list"):
+                load_prompt("prompts.yaml", "topic_generation")
+
+    def test_list_randomization_varies(self, tmp_path):
+        """Test that random selection actually varies across calls."""
+        yaml_content = (
+            "topic_generation:\n" "  - Option A\n" "  - Option B\n" "  - Option C\n"
+        )
+        prompts_dir = _write_prompts_yaml(tmp_path, yaml_content)
+
+        results = set()
+        with patch.dict("os.environ", {"SITES_PROMPTS_PATH": prompts_dir}):
+            # Call multiple times to check for variation
+            for _ in range(50):
+                result = load_prompt("prompts.yaml", "topic_generation")
+                results.add(result)
+
+        # With many calls and 3 options, we should get at least 2 different results
+        assert len(results) >= 2
+
+    def test_backward_compatibility_string_still_works(self, tmp_path):
+        """Test that old string-based prompts still work (backward compatibility)."""
+        yaml_content = "topic_generation: Generate topics for {seed_topic}\n"
+        prompts_dir = _write_prompts_yaml(tmp_path, yaml_content)
+
+        with patch.dict("os.environ", {"SITES_PROMPTS_PATH": prompts_dir}):
+            result = load_prompt("prompts.yaml", "topic_generation")
+
+        assert result == "Generate topics for {seed_topic}"

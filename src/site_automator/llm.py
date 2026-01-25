@@ -8,6 +8,8 @@ import ollama
 from dotenv import load_dotenv
 from openai import OpenAI
 
+from site_automator.utils import clean_llm_text
+
 # Load environment variables once at module import
 load_dotenv()
 
@@ -37,19 +39,28 @@ class OpenAIClient:
     api_key: str
     model: str
     max_tokens: int | None
+    base_url: str | None
     _client: OpenAI | None
 
-    def __init__(self, api_key: str, model: str, max_tokens: int | None = None) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        max_tokens: int | None = None,
+        base_url: str | None = None,
+    ) -> None:
         """Initialize OpenAI client.
 
         Args:
             api_key: OpenAI API key
             model: Model name (e.g., "gpt-4.1-nano")
             max_tokens: Maximum tokens to generate (None for backend default)
+            base_url: Base URL for API (None for OpenAI default)
         """
         self.api_key = api_key
         self.model = model
         self.max_tokens = max_tokens
+        self.base_url = base_url
         self._client: OpenAI | None = None
 
     @classmethod
@@ -57,9 +68,10 @@ class OpenAIClient:
         """Create OpenAI client from environment variables.
 
         Expects environment variables:
-            - OPENAI_API_KEY: OpenAI API key
+            - LLM_API_KEY: OpenAI API key
             - LLM_MODEL: Model name (e.g., "gpt-4.1-nano")
             - LLM_MAX_TOKENS: Max tokens (optional, empty or 0 = unset)
+            - LLM_BASE_URL: Base URL for API (optional)
 
         Returns:
             OpenAIClient instance
@@ -67,17 +79,20 @@ class OpenAIClient:
         Raises:
             ValueError: If required environment variables are missing
         """
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = os.getenv("LLM_API_KEY")
         if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required")
+            raise ValueError("LLM_API_KEY environment variable is required")
 
         model = os.getenv("LLM_MODEL")
         if not model:
             raise ValueError("LLM_MODEL environment variable is required")
 
         max_tokens = _parse_max_tokens()
+        base_url = os.getenv("LLM_BASE_URL") or None
 
-        return cls(api_key=api_key, model=model, max_tokens=max_tokens)
+        return cls(
+            api_key=api_key, model=model, max_tokens=max_tokens, base_url=base_url
+        )
 
     def _get_client(self) -> OpenAI:
         """Get or create OpenAI client instance.
@@ -86,7 +101,10 @@ class OpenAIClient:
             OpenAI client instance
         """
         if self._client is None:
-            self._client = OpenAI(api_key=self.api_key)
+            if self.base_url is not None:
+                self._client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+            else:
+                self._client = OpenAI(api_key=self.api_key)
 
         return self._client
 
@@ -269,3 +287,17 @@ def get_llm_client() -> OpenAIClient | OllamaClient:
         raise ValueError(
             f"Invalid LLM_PROVIDER: {provider}. Must be 'openai' or 'ollama'"
         )
+
+
+def generate_completion_clean(prompt: str) -> str:
+    """Generate text completion from prompt and clean the output."""
+    client = get_llm_client()
+    raw = client.generate_completion(prompt)
+    return clean_llm_text(raw)
+
+
+def generate_chat_clean(messages: list[dict[str, Any]]) -> str:
+    """Generate chat response from messages and clean the output."""
+    client = get_llm_client()
+    raw = client.generate_chat(messages)
+    return clean_llm_text(raw)

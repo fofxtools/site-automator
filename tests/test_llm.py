@@ -6,6 +6,8 @@ from site_automator.llm import (
     OllamaClient,
     get_llm_client,
     _parse_max_tokens,
+    generate_completion_clean,
+    generate_chat_clean,
 )
 
 
@@ -48,6 +50,18 @@ class TestOpenAIClientInit:
         assert client.api_key == "test_key"
         assert client.model == "gpt-4"
         assert client.max_tokens == 100
+        assert client.base_url is None
+        assert client._client is None
+
+    def test_init_stores_base_url(self):
+        """Test that base_url parameter is stored correctly."""
+        client = OpenAIClient(
+            api_key="test_key", model="gpt-4", base_url="https://api.openrouter.ai/v1"
+        )
+
+        assert client.api_key == "test_key"
+        assert client.model == "gpt-4"
+        assert client.base_url == "https://api.openrouter.ai/v1"
         assert client._client is None
 
 
@@ -59,7 +73,7 @@ class TestOpenAIClientFromEnv:
     def test_from_env_success(self, mock_getenv, mock_parse):
         """Test from_env with all required vars."""
         mock_getenv.side_effect = lambda key: {
-            "OPENAI_API_KEY": "test_key",
+            "LLM_API_KEY": "test_key",
             "LLM_MODEL": "gpt-4",
         }.get(key)
         mock_parse.return_value = 50
@@ -69,20 +83,54 @@ class TestOpenAIClientFromEnv:
         assert client.api_key == "test_key"
         assert client.model == "gpt-4"
         assert client.max_tokens == 50
+        assert client.base_url is None
+
+    @patch("site_automator.llm._parse_max_tokens")
+    @patch("site_automator.llm.os.getenv")
+    def test_from_env_with_base_url(self, mock_getenv, mock_parse):
+        """Test from_env with LLM_BASE_URL set."""
+        mock_getenv.side_effect = lambda key: {
+            "LLM_API_KEY": "test_key",
+            "LLM_MODEL": "gpt-4",
+            "LLM_BASE_URL": "https://api.openrouter.ai/v1",
+        }.get(key)
+        mock_parse.return_value = 50
+
+        client = OpenAIClient.from_env()
+
+        assert client.api_key == "test_key"
+        assert client.model == "gpt-4"
+        assert client.max_tokens == 50
+        assert client.base_url == "https://api.openrouter.ai/v1"
+
+    @patch("site_automator.llm._parse_max_tokens")
+    @patch("site_automator.llm.os.getenv")
+    def test_from_env_with_empty_base_url(self, mock_getenv, mock_parse):
+        """Test from_env with empty LLM_BASE_URL."""
+        mock_getenv.side_effect = lambda key: {
+            "LLM_API_KEY": "test_key",
+            "LLM_MODEL": "gpt-4",
+            "LLM_BASE_URL": "",
+        }.get(key)
+        mock_parse.return_value = 50
+
+        client = OpenAIClient.from_env()
+
+        assert client.base_url is None
 
     @patch("site_automator.llm.os.getenv")
     def test_from_env_missing_api_key(self, mock_getenv):
-        """Test from_env raises when OPENAI_API_KEY missing."""
+        """Test from_env raises when LLM_API_KEY missing."""
         mock_getenv.return_value = None
 
-        with pytest.raises(ValueError, match="OPENAI_API_KEY"):
+        with pytest.raises(ValueError, match="LLM_API_KEY"):
             OpenAIClient.from_env()
 
     @patch("site_automator.llm.os.getenv")
     def test_from_env_missing_model(self, mock_getenv):
         """Test from_env raises when LLM_MODEL missing."""
         mock_getenv.side_effect = lambda key: {
-            "OPENAI_API_KEY": "test_key",
+            "LLM_API_KEY": "test_key",
             "LLM_MODEL": None,
         }.get(key)
 
@@ -143,6 +191,40 @@ class TestOpenAIClientGenerateCompletion:
         result = client.generate_completion("test")
 
         assert result == ""
+
+    @patch("site_automator.llm.OpenAI")
+    def test_generate_completion_with_base_url(self, mock_openai_class):
+        """Test that base_url is passed to OpenAI client when set."""
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        mock_response = Mock()
+        mock_response.output_text = "Hello"
+        mock_client.responses.create.return_value = mock_response
+
+        client = OpenAIClient(
+            api_key="key", model="gpt-4", base_url="https://api.openrouter.ai/v1"
+        )
+        result = client.generate_completion("test")
+
+        assert result == "Hello"
+        mock_openai_class.assert_called_once_with(
+            api_key="key", base_url="https://api.openrouter.ai/v1"
+        )
+
+    @patch("site_automator.llm.OpenAI")
+    def test_generate_completion_without_base_url(self, mock_openai_class):
+        """Test that base_url is not passed to OpenAI client when None."""
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        mock_response = Mock()
+        mock_response.output_text = "Hello"
+        mock_client.responses.create.return_value = mock_response
+
+        client = OpenAIClient(api_key="key", model="gpt-4", base_url=None)
+        result = client.generate_completion("test")
+
+        assert result == "Hello"
+        mock_openai_class.assert_called_once_with(api_key="key")
 
 
 class TestOpenAIClientGenerateChat:
@@ -356,3 +438,71 @@ class TestGetLlmClient:
 
         with pytest.raises(ValueError, match="Invalid LLM_PROVIDER"):
             get_llm_client()
+
+
+class TestGenerateCompletionClean:
+    """Test generate_completion_clean function."""
+
+    @patch("site_automator.llm.get_llm_client")
+    @patch("site_automator.llm.clean_llm_text")
+    def test_calls_client_and_cleans(self, mock_clean, mock_get_client):
+        """Test that it calls client and applies cleaning."""
+        mock_client = Mock()
+        mock_client.generate_completion.return_value = "raw\u2019text"
+        mock_get_client.return_value = mock_client
+        mock_clean.return_value = "raw'text"
+
+        result = generate_completion_clean("test prompt")
+
+        assert result == "raw'text"
+        mock_get_client.assert_called_once()
+        mock_client.generate_completion.assert_called_once_with("test prompt")
+        mock_clean.assert_called_once_with("raw\u2019text")
+
+    @patch("site_automator.llm.get_llm_client")
+    def test_cleaning_applied(self, mock_get_client):
+        """Test that cleaning is actually applied to output."""
+        mock_client = Mock()
+        # Return text with Unicode characters that should be cleaned
+        mock_client.generate_completion.return_value = "It\u2019s a \u201ctest\u201d"
+        mock_get_client.return_value = mock_client
+
+        result = generate_completion_clean("test")
+
+        # Verify cleaning was applied (smart quotes -> ASCII)
+        assert result == 'It\'s a "test"'
+
+
+class TestGenerateChatClean:
+    """Test generate_chat_clean function."""
+
+    @patch("site_automator.llm.get_llm_client")
+    @patch("site_automator.llm.clean_llm_text")
+    def test_calls_client_and_cleans(self, mock_clean, mock_get_client):
+        """Test that it calls client and applies cleaning."""
+        mock_client = Mock()
+        mock_client.generate_chat.return_value = "raw\u2014text"
+        mock_get_client.return_value = mock_client
+        mock_clean.return_value = "raw-text"
+
+        messages = [{"role": "user", "content": "test"}]
+        result = generate_chat_clean(messages)
+
+        assert result == "raw-text"
+        mock_get_client.assert_called_once()
+        mock_client.generate_chat.assert_called_once_with(messages)
+        mock_clean.assert_called_once_with("raw\u2014text")
+
+    @patch("site_automator.llm.get_llm_client")
+    def test_cleaning_applied(self, mock_get_client):
+        """Test that cleaning is actually applied to output."""
+        mock_client = Mock()
+        # Return text with Unicode characters that should be cleaned
+        mock_client.generate_chat.return_value = "Hello\u2026 it\u2019s working"
+        mock_get_client.return_value = mock_client
+
+        messages = [{"role": "user", "content": "test"}]
+        result = generate_chat_clean(messages)
+
+        # Verify cleaning was applied (ellipsis and smart quote -> ASCII)
+        assert result == "Hello... it's working"
