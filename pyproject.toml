@@ -16,7 +16,9 @@ dependencies = [
   "paramiko",
   "pydo",
   "python-dotenv",
+  "python-slugify",
   "requests",
+  "types-PyYAML",
 ]
 
 [project.optional-dependencies]

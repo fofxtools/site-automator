@@ -90,12 +90,12 @@ class TestOpenAIClientFromEnv:
             OpenAIClient.from_env()
 
 
-class TestOpenAIClientGenerate:
-    """Test OpenAIClient.generate."""
+class TestOpenAIClientGenerateCompletion:
+    """Test OpenAIClient.generate_completion."""
 
     @patch("site_automator.llm.OpenAI")
-    def test_generate_without_max_tokens(self, mock_openai_class):
-        """Test generate without max_tokens."""
+    def test_generate_completion_without_max_tokens(self, mock_openai_class):
+        """Test generate_completion without max_tokens."""
         mock_client = Mock()
         mock_openai_class.return_value = mock_client
         mock_response = Mock()
@@ -103,7 +103,7 @@ class TestOpenAIClientGenerate:
         mock_client.responses.create.return_value = mock_response
 
         client = OpenAIClient(api_key="key", model="gpt-4", max_tokens=None)
-        result = client.generate("test prompt")
+        result = client.generate_completion("test prompt")
 
         assert result == "Hello"
         mock_client.responses.create.assert_called_once_with(
@@ -112,8 +112,8 @@ class TestOpenAIClientGenerate:
         )
 
     @patch("site_automator.llm.OpenAI")
-    def test_generate_with_max_tokens(self, mock_openai_class):
-        """Test generate with max_tokens."""
+    def test_generate_completion_with_max_tokens(self, mock_openai_class):
+        """Test generate_completion with max_tokens."""
         mock_client = Mock()
         mock_openai_class.return_value = mock_client
         mock_response = Mock()
@@ -121,7 +121,7 @@ class TestOpenAIClientGenerate:
         mock_client.responses.create.return_value = mock_response
 
         client = OpenAIClient(api_key="key", model="gpt-4", max_tokens=50)
-        result = client.generate("test prompt")
+        result = client.generate_completion("test prompt")
 
         assert result == "Hello"
         mock_client.responses.create.assert_called_once_with(
@@ -131,8 +131,8 @@ class TestOpenAIClientGenerate:
         )
 
     @patch("site_automator.llm.OpenAI")
-    def test_generate_empty_response(self, mock_openai_class):
-        """Test generate returns empty string when output_text is None."""
+    def test_generate_completion_empty_response(self, mock_openai_class):
+        """Test generate_completion returns empty string when output_text is None."""
         mock_client = Mock()
         mock_openai_class.return_value = mock_client
         mock_response = Mock()
@@ -140,9 +140,52 @@ class TestOpenAIClientGenerate:
         mock_client.responses.create.return_value = mock_response
 
         client = OpenAIClient(api_key="key", model="gpt-4")
-        result = client.generate("test")
+        result = client.generate_completion("test")
 
         assert result == ""
+
+
+class TestOpenAIClientGenerateChat:
+    """Test OpenAIClient.generate_chat."""
+
+    @patch("site_automator.llm.OpenAI")
+    def test_generate_chat_without_max_tokens(self, mock_openai_class):
+        """Test generate_chat without max_tokens."""
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        mock_response = Mock()
+        mock_response.output_text = "Hello from chat"
+        mock_client.responses.create.return_value = mock_response
+
+        client = OpenAIClient(api_key="key", model="gpt-4", max_tokens=None)
+        messages = [{"role": "user", "content": "test message"}]
+        result = client.generate_chat(messages)
+
+        assert result == "Hello from chat"
+        mock_client.responses.create.assert_called_once_with(
+            model="gpt-4",
+            input=messages,
+        )
+
+    @patch("site_automator.llm.OpenAI")
+    def test_generate_chat_with_max_tokens(self, mock_openai_class):
+        """Test generate_chat with max_tokens."""
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        mock_response = Mock()
+        mock_response.output_text = "Hello"
+        mock_client.responses.create.return_value = mock_response
+
+        client = OpenAIClient(api_key="key", model="gpt-4", max_tokens=50)
+        messages = [{"role": "user", "content": "test"}]
+        result = client.generate_chat(messages)
+
+        assert result == "Hello"
+        mock_client.responses.create.assert_called_once_with(
+            model="gpt-4",
+            input=messages,
+            max_output_tokens=50,
+        )
 
 
 class TestOllamaClientInit:
@@ -180,45 +223,91 @@ class TestOllamaClientFromEnv:
             OllamaClient.from_env()
 
 
-class TestOllamaClientGenerate:
-    """Test OllamaClient.generate."""
+class TestOllamaClientGenerateCompletion:
+    """Test OllamaClient.generate_completion."""
 
-    @patch("site_automator.llm.ollama.chat")
-    def test_generate_without_max_tokens(self, mock_chat):
-        """Test generate without max_tokens."""
-        mock_chat.return_value = {"message": {"content": "Hello from Ollama"}}
+    @patch("site_automator.llm.ollama.generate")
+    def test_generate_completion_without_max_tokens(self, mock_generate):
+        """Test generate_completion without max_tokens."""
+        mock_generate.return_value = {"response": "Hello from Ollama"}
 
         client = OllamaClient(model="llama3.1:8b", max_tokens=None)
-        result = client.generate("test prompt")
+        result = client.generate_completion("test prompt")
 
         assert result == "Hello from Ollama"
+        mock_generate.assert_called_once_with(
+            model="llama3.1:8b",
+            prompt="test prompt",
+        )
+
+    @patch("site_automator.llm.ollama.generate")
+    def test_generate_completion_with_max_tokens(self, mock_generate):
+        """Test generate_completion with max_tokens."""
+        mock_generate.return_value = {"response": "Hello"}
+
+        client = OllamaClient(model="llama3.1:8b", max_tokens=50)
+        result = client.generate_completion("test prompt")
+
+        assert result == "Hello"
+        mock_generate.assert_called_once_with(
+            model="llama3.1:8b",
+            prompt="test prompt",
+            options={"num_predict": 50},
+        )
+
+    @patch("site_automator.llm.ollama.generate")
+    def test_generate_completion_empty_response(self, mock_generate):
+        """Test generate_completion returns empty string when response is None."""
+        mock_generate.return_value = {"response": None}
+
+        client = OllamaClient(model="llama3.1:8b")
+        result = client.generate_completion("test")
+
+        assert result == ""
+
+
+class TestOllamaClientGenerateChat:
+    """Test OllamaClient.generate_chat."""
+
+    @patch("site_automator.llm.ollama.chat")
+    def test_generate_chat_without_max_tokens(self, mock_chat):
+        """Test generate_chat without max_tokens."""
+        mock_chat.return_value = {"message": {"content": "Hello from chat"}}
+
+        client = OllamaClient(model="llama3.1:8b", max_tokens=None)
+        messages = [{"role": "user", "content": "test message"}]
+        result = client.generate_chat(messages)
+
+        assert result == "Hello from chat"
         mock_chat.assert_called_once_with(
             model="llama3.1:8b",
-            messages=[{"role": "user", "content": "test prompt"}],
+            messages=messages,
         )
 
     @patch("site_automator.llm.ollama.chat")
-    def test_generate_with_max_tokens(self, mock_chat):
-        """Test generate with max_tokens."""
+    def test_generate_chat_with_max_tokens(self, mock_chat):
+        """Test generate_chat with max_tokens."""
         mock_chat.return_value = {"message": {"content": "Hello"}}
 
         client = OllamaClient(model="llama3.1:8b", max_tokens=50)
-        result = client.generate("test prompt")
+        messages = [{"role": "user", "content": "test"}]
+        result = client.generate_chat(messages)
 
         assert result == "Hello"
         mock_chat.assert_called_once_with(
             model="llama3.1:8b",
-            messages=[{"role": "user", "content": "test prompt"}],
+            messages=messages,
             options={"num_predict": 50},
         )
 
     @patch("site_automator.llm.ollama.chat")
-    def test_generate_empty_response(self, mock_chat):
-        """Test generate returns empty string when content is None."""
+    def test_generate_chat_empty_response(self, mock_chat):
+        """Test generate_chat returns empty string when content is None."""
         mock_chat.return_value = {"message": {"content": None}}
 
         client = OllamaClient(model="llama3.1:8b")
-        result = client.generate("test")
+        messages = [{"role": "user", "content": "test"}]
+        result = client.generate_chat(messages)
 
         assert result == ""
 

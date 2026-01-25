@@ -6,8 +6,8 @@ import pytest
 
 from site_automator.sites import load_all_sites, load_site_config, initialize_site
 
-VALID_HEADERS = "site_id,domain,seed_topic,cms,pages_per_site,posts_per_day,llm_provider,llm_batch_mode\n"
-VALID_ROW = "site1,example.com,gardening,wordpress,10,2,openai,true\n"
+VALID_HEADERS = "site_id,domain,seed_topic,prompts_file,cms,pages_per_site,posts_per_day,llm_provider,llm_batch_mode\n"
+VALID_ROW = "site1,example.com,gardening,prompts.yaml,wordpress,10,2,openai,true\n"
 
 
 def _write_csv(tmp_path: Path, content: str) -> str:
@@ -60,10 +60,8 @@ class TestLoadSiteConfig:
                 load_site_config("nonexistentsite")
 
     def test_missing_boolean_column_defaults_false(self, tmp_path):
-        headers = (
-            "site_id,domain,seed_topic,cms,pages_per_site,posts_per_day,llm_provider\n"
-        )
-        row = "site1,example.com,gardening,wordpress,10,2,openai\n"
+        headers = "site_id,domain,seed_topic,prompts_file,cms,pages_per_site,posts_per_day,llm_provider\n"
+        row = "site1,example.com,gardening,prompts.yaml,wordpress,10,2,openai\n"
         path = _write_csv(tmp_path, headers + row)
         with patch.dict("os.environ", {"SITES_CONFIG_PATH": path}):
             config = load_site_config("site1")

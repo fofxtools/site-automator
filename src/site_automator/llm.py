@@ -2,6 +2,7 @@
 
 import logging
 import os
+from typing import Any
 
 import ollama
 from dotenv import load_dotenv
@@ -89,8 +90,8 @@ class OpenAIClient:
 
         return self._client
 
-    def generate(self, prompt: str) -> str:
-        """Generate text from prompt using OpenAI Responses API.
+    def generate_completion(self, prompt: str) -> str:
+        """Generate text completion from prompt using OpenAI Responses API.
 
         Args:
             prompt: Input prompt
@@ -111,6 +112,35 @@ class OpenAIClient:
                 response = client.responses.create(
                     model=self.model,
                     input=prompt,
+                )
+
+            return response.output_text or ""
+        except Exception:
+            logger.exception("OpenAI API error")
+            raise
+
+    def generate_chat(self, messages: list[dict[str, Any]]) -> str:
+        """Generate chat response from messages using OpenAI Responses API.
+
+        Args:
+            messages: List of message dicts with 'role' and 'content' keys
+
+        Returns:
+            Generated text
+        """
+        client = self._get_client()
+
+        try:
+            if self.max_tokens is not None:
+                response = client.responses.create(
+                    model=self.model,
+                    input=messages,  # type: ignore[arg-type]
+                    max_output_tokens=self.max_tokens,
+                )
+            else:
+                response = client.responses.create(
+                    model=self.model,
+                    input=messages,  # type: ignore[arg-type]
                 )
 
             return response.output_text or ""
@@ -157,8 +187,8 @@ class OllamaClient:
 
         return cls(model=model, max_tokens=max_tokens)
 
-    def generate(self, prompt: str) -> str:
-        """Generate text from prompt using ollama.chat.
+    def generate_completion(self, prompt: str) -> str:
+        """Generate text completion from prompt using ollama.generate.
 
         Args:
             prompt: Input prompt
@@ -168,15 +198,42 @@ class OllamaClient:
         """
         try:
             if self.max_tokens is not None:
+                response = ollama.generate(
+                    model=self.model,
+                    prompt=prompt,
+                    options={"num_predict": self.max_tokens},
+                )
+            else:
+                response = ollama.generate(
+                    model=self.model,
+                    prompt=prompt,
+                )
+
+            return response["response"] or ""
+        except Exception:
+            logger.exception("Ollama API error")
+            raise
+
+    def generate_chat(self, messages: list[dict[str, Any]]) -> str:
+        """Generate chat response from messages using ollama.chat.
+
+        Args:
+            messages: List of message dicts with 'role' and 'content' keys
+
+        Returns:
+            Generated text
+        """
+        try:
+            if self.max_tokens is not None:
                 response = ollama.chat(
                     model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
+                    messages=messages,
                     options={"num_predict": self.max_tokens},
                 )
             else:
                 response = ollama.chat(
                     model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
+                    messages=messages,
                 )
 
             return response["message"]["content"] or ""

@@ -13,6 +13,7 @@ CSV_REQUIRED_HEADERS = {
     "site_id",
     "domain",
     "seed_topic",
+    "prompts_file",
     "cms",
     "pages_per_site",
     "posts_per_day",
