@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-MAX_TOPIC_BATCHES_PER_RUN = 20
+MAX_TOPIC_GENERATIONS_PER_LOOP = 20
 
 
 def _topics_path(site_id: str) -> Path:
@@ -90,7 +90,7 @@ def generate_topics_llm(site_id: str) -> list[dict[str, Any]]:
 
     iteration = 0
 
-    while len(all_topics) < target_count and iteration < MAX_TOPIC_BATCHES_PER_RUN:
+    while len(all_topics) < target_count and iteration < MAX_TOPIC_GENERATIONS_PER_LOOP:
         iteration += 1
 
         # Generate prompt
