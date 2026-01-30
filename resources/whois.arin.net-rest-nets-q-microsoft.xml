@@ -1,0 +1,1723 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type='text/xsl' href='https://whois.arin.net/xsl/website.xsl' ?>
+<nets xmlns="https://www.arin.net/whoisrws/core/v1" xmlns:ns2="https://www.arin.net/whoisrws/rdns/v1" xmlns:ns3="https://www.arin.net/whoisrws/netref/v2" copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+  <limitExceeded limit="256">false</limitExceeded>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>1988-11-11T00:00:00-05:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/131.107.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-131-107-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="107.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/107.131.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>131.107.255.255</endAddress>
+    <handle>NET-131-107-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>16</cidrLength>
+        <endAddress>131.107.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.107.0.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT" name="Microsoft Corporation">https://whois.arin.net/rest/org/MSFT</orgRef>
+    <parentNetRef handle="NET-131-0-0-0-0" name="NET131">https://whois.arin.net/rest/net/NET-131-0-0-0-0</parentNetRef>
+    <startAddress>131.107.0.0</startAddress>
+    <updateDate>2021-12-14T20:28:40-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/131.253.1.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-131-253-1-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="1.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/1.253.131.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>131.253.1.255</endAddress>
+    <handle>NET-131-253-1-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>131.253.1.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.1.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-131-0-0-0-0" name="NET131">https://whois.arin.net/rest/net/NET-131-0-0-0-0</parentNetRef>
+    <startAddress>131.253.1.0</startAddress>
+    <updateDate>2021-12-14T20:28:25-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/131.253.12.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-131-253-12-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="17.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/17.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="13.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/13.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="14.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/14.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="15.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/15.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="16.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/16.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="18.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/18.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="12.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/12.253.131.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>131.253.18.255</endAddress>
+    <handle>NET-131-253-12-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>131.253.18.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.18.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>22</cidrLength>
+        <endAddress>131.253.15.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.12.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>23</cidrLength>
+        <endAddress>131.253.17.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.16.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-131-0-0-0-0" name="NET131">https://whois.arin.net/rest/net/NET-131-0-0-0-0</parentNetRef>
+    <startAddress>131.253.12.0</startAddress>
+    <updateDate>2021-12-14T20:28:36-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/131.253.21.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-131-253-21-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="36.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/36.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="31.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/31.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="44.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/44.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="24.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/24.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="43.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/43.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="35.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/35.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="45.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/45.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="28.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/28.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="40.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/40.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="46.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/46.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="22.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/22.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="26.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/26.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="27.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/27.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="33.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/33.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="21.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/21.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="23.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/23.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="29.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/29.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="25.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/25.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="30.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/30.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="38.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/38.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="32.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/32.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="41.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/41.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="39.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/39.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="37.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/37.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="34.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/34.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="42.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/42.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="47.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/47.253.131.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>131.253.47.255</endAddress>
+    <handle>NET-131-253-21-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>23</cidrLength>
+        <endAddress>131.253.23.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.22.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>131.253.21.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.21.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>20</cidrLength>
+        <endAddress>131.253.47.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.32.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>21</cidrLength>
+        <endAddress>131.253.31.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.24.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-131-0-0-0-0" name="NET131">https://whois.arin.net/rest/net/NET-131-0-0-0-0</parentNetRef>
+    <startAddress>131.253.21.0</startAddress>
+    <updateDate>2021-12-14T20:28:35-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/131.253.3.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-131-253-3-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="3.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/3.253.131.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>131.253.3.255</endAddress>
+    <handle>NET-131-253-3-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>131.253.3.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.3.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-131-0-0-0-0" name="NET131">https://whois.arin.net/rest/net/NET-131-0-0-0-0</parentNetRef>
+    <startAddress>131.253.3.0</startAddress>
+    <updateDate>2021-12-14T20:28:43-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/131.253.5.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-131-253-5-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="5.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/5.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="6.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/6.253.131.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>131.253.6.255</endAddress>
+    <handle>NET-131-253-5-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>131.253.5.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.5.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>131.253.6.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.6.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-131-0-0-0-0" name="NET131">https://whois.arin.net/rest/net/NET-131-0-0-0-0</parentNetRef>
+    <startAddress>131.253.5.0</startAddress>
+    <updateDate>2021-12-14T20:28:40-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/131.253.61.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-131-253-61-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="69.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/69.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="148.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/148.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="247.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/247.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="216.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/216.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="118.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/118.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="182.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/182.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="155.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/155.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="169.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/169.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="171.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/171.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="100.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/100.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="137.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/137.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="129.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/129.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="117.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/117.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="168.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/168.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="255.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/255.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="234.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/234.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="108.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/108.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="206.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/206.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="173.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/173.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="123.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/123.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="237.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/237.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="207.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/207.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="94.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/94.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="63.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/63.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="143.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/143.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="159.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/159.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="213.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/213.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="219.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/219.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="154.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/154.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="111.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/111.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="176.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/176.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="147.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/147.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="70.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/70.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="192.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/192.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="158.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/158.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="93.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/93.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="179.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/179.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="217.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/217.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="177.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/177.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="253.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/253.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="124.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/124.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="202.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/202.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="157.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/157.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="112.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/112.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="103.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/103.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="243.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/243.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="156.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/156.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="222.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/222.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="120.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/120.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="221.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/221.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="96.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/96.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="110.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/110.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="80.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/80.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="199.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/199.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="205.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/205.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="226.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/226.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="61.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/61.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="203.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/203.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="92.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/92.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="166.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/166.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="113.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/113.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="134.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/134.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="84.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/84.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="170.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/170.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="95.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/95.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="183.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/183.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="250.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/250.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="251.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/251.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="140.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/140.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="190.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/190.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="241.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/241.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="97.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/97.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="72.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/72.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="152.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/152.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="131.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/131.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="229.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/229.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="125.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/125.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="209.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/209.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="68.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/68.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="201.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/201.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="142.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/142.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="116.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/116.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="189.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/189.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="165.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/165.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="162.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/162.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="141.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/141.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="236.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/236.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="204.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/204.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="228.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/228.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="86.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/86.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="67.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/67.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="220.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/220.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="90.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/90.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="212.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/212.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="105.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/105.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="87.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/87.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="88.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/88.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="180.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/180.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="135.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/135.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="181.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/181.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="136.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/136.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="144.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/144.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="197.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/197.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="178.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/178.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="194.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/194.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="91.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/91.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="246.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/246.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="130.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/130.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="163.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/163.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="106.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/106.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="146.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/146.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="81.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/81.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="145.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/145.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="252.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/252.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="233.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/233.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="232.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/232.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="149.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/149.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="160.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/160.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="249.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/249.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="218.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/218.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="254.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/254.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="185.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/185.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="76.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/76.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="198.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/198.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="186.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/186.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="240.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/240.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="225.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/225.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="71.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/71.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="64.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/64.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="224.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/224.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="66.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/66.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="114.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/114.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="82.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/82.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="121.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/121.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="242.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/242.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="214.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/214.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="75.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/75.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="235.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/235.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="153.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/153.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="107.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/107.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="215.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/215.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="83.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/83.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="223.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/223.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="167.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/167.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="164.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/164.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="172.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/172.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="85.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/85.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="195.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/195.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="62.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/62.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="115.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/115.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="119.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/119.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="128.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/128.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="74.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/74.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="184.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/184.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="89.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/89.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="102.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/102.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="175.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/175.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="208.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/208.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="210.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/210.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="150.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/150.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="99.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/99.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="132.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/132.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="211.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/211.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="191.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/191.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="196.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/196.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="193.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/193.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="187.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/187.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="161.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/161.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="174.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/174.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="138.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/138.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="109.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/109.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="151.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/151.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="133.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/133.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="126.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/126.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="245.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/245.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="73.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/73.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="77.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/77.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="139.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/139.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="104.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/104.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="79.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/79.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="239.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/239.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="188.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/188.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="98.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/98.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="101.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/101.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="122.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/122.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="238.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/238.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="230.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/230.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="200.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/200.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="227.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/227.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="78.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/78.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="127.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/127.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="248.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/248.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="231.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/231.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="65.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/65.253.131.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="244.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/244.253.131.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>131.253.255.255</endAddress>
+    <handle>NET-131-253-61-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>23</cidrLength>
+        <endAddress>131.253.63.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.62.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>18</cidrLength>
+        <endAddress>131.253.127.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.64.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>17</cidrLength>
+        <endAddress>131.253.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.128.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>131.253.61.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.61.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-131-0-0-0-0" name="NET131">https://whois.arin.net/rest/net/NET-131-0-0-0-0</parentNetRef>
+    <startAddress>131.253.61.0</startAddress>
+    <updateDate>2021-12-14T20:28:38-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/131.253.8.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-131-253-8-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="8.253.131.in-addr.arpa.">https://whois.arin.net/rest/rdns/8.253.131.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>131.253.8.255</endAddress>
+    <handle>NET-131-253-8-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>131.253.8.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>131.253.8.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-131-0-0-0-0" name="NET131">https://whois.arin.net/rest/net/NET-131-0-0-0-0</parentNetRef>
+    <startAddress>131.253.8.0</startAddress>
+    <updateDate>2021-12-14T20:28:37-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/132.245.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-132-245-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="245.132.in-addr.arpa.">https://whois.arin.net/rest/rdns/245.132.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>132.245.255.255</endAddress>
+    <handle>NET-132-245-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>16</cidrLength>
+        <endAddress>132.245.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>132.245.0.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-132-0-0-0-0" name="NET132">https://whois.arin.net/rest/net/NET-132-0-0-0-0</parentNetRef>
+    <startAddress>132.245.0.0</startAddress>
+    <updateDate>2021-12-14T20:28:52-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/134.170.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-134-170-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="170.134.in-addr.arpa.">https://whois.arin.net/rest/rdns/170.134.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>134.170.255.255</endAddress>
+    <handle>NET-134-170-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>16</cidrLength>
+        <endAddress>134.170.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>134.170.0.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-134-0-0-0-0" name="NET134">https://whois.arin.net/rest/net/NET-134-0-0-0-0</parentNetRef>
+    <startAddress>134.170.0.0</startAddress>
+    <updateDate>2021-12-14T20:28:33-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-08-02T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/134.177.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-134-177-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="177.134.in-addr.arpa.">https://whois.arin.net/rest/rdns/177.134.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>134.177.255.255</endAddress>
+    <handle>NET-134-177-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>16</cidrLength>
+        <endAddress>134.177.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>134.177.0.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-134-0-0-0-0" name="NET134">https://whois.arin.net/rest/net/NET-134-0-0-0-0</parentNetRef>
+    <startAddress>134.177.0.0</startAddress>
+    <updateDate>2021-12-14T20:28:42-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-08-02T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/137.116.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-137-116-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="116.137.in-addr.arpa.">https://whois.arin.net/rest/rdns/116.137.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>137.116.255.255</endAddress>
+    <handle>NET-137-116-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>16</cidrLength>
+        <endAddress>137.116.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>137.116.0.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-137-0-0-0-0" name="NET137">https://whois.arin.net/rest/net/NET-137-0-0-0-0</parentNetRef>
+    <startAddress>137.116.0.0</startAddress>
+    <updateDate>2021-12-14T20:28:51-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-08-02T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/137.117.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-137-117-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="117.137.in-addr.arpa.">https://whois.arin.net/rest/rdns/117.137.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>137.117.255.255</endAddress>
+    <handle>NET-137-117-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>16</cidrLength>
+        <endAddress>137.117.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>137.117.0.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-137-0-0-0-0" name="NET137">https://whois.arin.net/rest/net/NET-137-0-0-0-0</parentNetRef>
+    <startAddress>137.117.0.0</startAddress>
+    <updateDate>2021-12-14T20:28:32-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/137.135.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-137-135-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="135.137.in-addr.arpa.">https://whois.arin.net/rest/rdns/135.137.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>137.135.255.255</endAddress>
+    <handle>NET-137-135-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>16</cidrLength>
+        <endAddress>137.135.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>137.135.0.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-137-0-0-0-0" name="NET137">https://whois.arin.net/rest/net/NET-137-0-0-0-0</parentNetRef>
+    <startAddress>137.135.0.0</startAddress>
+    <updateDate>2021-12-14T20:28:30-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/138.91.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-138-91-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="91.138.in-addr.arpa.">https://whois.arin.net/rest/rdns/91.138.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>138.91.255.255</endAddress>
+    <handle>NET-138-91-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>16</cidrLength>
+        <endAddress>138.91.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>138.91.0.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-138-0-0-0-0" name="NET138">https://whois.arin.net/rest/net/NET-138-0-0-0-0</parentNetRef>
+    <startAddress>138.91.0.0</startAddress>
+    <updateDate>2021-12-14T20:28:27-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/168.61.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-168-61-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="63.168.in-addr.arpa.">https://whois.arin.net/rest/rdns/63.168.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="61.168.in-addr.arpa.">https://whois.arin.net/rest/rdns/61.168.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="62.168.in-addr.arpa.">https://whois.arin.net/rest/rdns/62.168.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>168.63.255.255</endAddress>
+    <handle>NET-168-61-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>16</cidrLength>
+        <endAddress>168.61.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>168.61.0.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>15</cidrLength>
+        <endAddress>168.63.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>168.62.0.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-168-0-0-0-0" name="NET168">https://whois.arin.net/rest/net/NET-168-0-0-0-0</parentNetRef>
+    <startAddress>168.61.0.0</startAddress>
+    <updateDate>2021-12-14T20:28:48-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-08-02T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/192.32.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-192-32-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="32.192.in-addr.arpa.">https://whois.arin.net/rest/rdns/32.192.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>192.32.255.255</endAddress>
+    <handle>NET-192-32-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>16</cidrLength>
+        <endAddress>192.32.255.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>192.32.0.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-192-0-0-0-0" name="NET192">https://whois.arin.net/rest/net/NET-192-0-0-0-0</parentNetRef>
+    <startAddress>192.32.0.0</startAddress>
+    <updateDate>2017-01-13T11:34:57-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-08-02T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/192.48.225.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-192-48-225-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="225.48.192.in-addr.arpa.">https://whois.arin.net/rest/rdns/225.48.192.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>192.48.225.255</endAddress>
+    <handle>NET-192-48-225-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>192.48.225.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>192.48.225.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-192-0-0-0-0" name="NET192">https://whois.arin.net/rest/net/NET-192-0-0-0-0</parentNetRef>
+    <startAddress>192.48.225.0</startAddress>
+    <updateDate>2021-12-14T20:28:31-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-08-02T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/192.84.159.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-192-84-159-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="159.84.192.in-addr.arpa.">https://whois.arin.net/rest/rdns/159.84.192.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>192.84.159.255</endAddress>
+    <handle>NET-192-84-159-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>192.84.159.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>192.84.159.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-192-0-0-0-0" name="NET192">https://whois.arin.net/rest/net/NET-192-0-0-0-0</parentNetRef>
+    <comment>
+      <line number="0">-----BEGIN CERTIFICATE-----MIIDXTCCAkWgAwIBAgIJAMpK25KLSzx3MA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNVBAYTAlVTMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwHhcNMTkwMTI1MDI0ODIxWhcNMTkwODMwMDI0ODIxWjBFMQswCQYDVQQGEwJVUzETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzYGI3ecVYuAZwF3Ng9Kek2GTi53rB3GsS8CR4w9IAadGwv+Kac0fHJINvVDObgyZvKolShZpTC+DfukZan7DxGa9nYqZxYyMbkzm+Ya2+C6/9Os91q15ylc8gZShL0V8TCRORX3gWzLPO22CKayC/90V8pmTMuD1FMCW3vl3uPI0TPSq+EmbKRhclrEqGdy24C32RQmSWbhvmswm48e61THiCsOtBZnWgdeIpss4tyPIa8uHN454CcrTQwPSUU5QcleEYcXClN3pUEqy7L5G8e6p0CdhOqOfLbehUbYjvN1Azw5HxKZ9SjNMh7qKfMFTs6dRFcjVK4seQs3Cta2tsQIDAQABo1AwTjAdBgNVHQ4EFgQU6EHfEtl1qdZbFEZLJSeP69umDZ4wHwYDVR0jBBgwFoAU6EHfEtl1qdZbFEZLJSeP69umDZ4wDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAsXV9hrNF/KB3+0+RvZTAMibthSEDKMHsnQYbMW7bhY7/Bx5BwPRfdKuXy8xWO7SOvH8AXJA0W1ULWn+cPsccPTUn83+AB8sqD36Xow+erc4quDMFnTfCciJimXXrmq+WsvmXt0pPvudCpBM49qdn6hM6GLienDak4jfIS0ZnLHv3I4Mh1KZBAz8MzQ3KQhrlsi6zSz5gj/p1NRd9uf+rh9c5CNZwrqEhBM2R7gvWzwCwuakVDmPnWQQ8O0q+hMvwZoiQWTTsvvKn3K4bTDeBpFkE4s2xZqEcdCYkEkq92RW7qtZ3y4G0z1EaX3pxgrw5b0T3rDii/SQQOS2fnNLAYA==-----END CERTIFICATE-----</line>
+    </comment>
+    <startAddress>192.84.159.0</startAddress>
+    <updateDate>2021-12-14T20:28:22-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/192.84.160.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-192-84-160-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="160.84.192.in-addr.arpa.">https://whois.arin.net/rest/rdns/160.84.192.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>192.84.160.255</endAddress>
+    <handle>NET-192-84-160-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>192.84.160.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>192.84.160.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-192-0-0-0-0" name="NET192">https://whois.arin.net/rest/net/NET-192-0-0-0-0</parentNetRef>
+    <startAddress>192.84.160.0</startAddress>
+    <updateDate>2021-12-14T20:28:42-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/192.84.161.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-192-84-161-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="161.84.192.in-addr.arpa.">https://whois.arin.net/rest/rdns/161.84.192.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>192.84.161.255</endAddress>
+    <handle>NET-192-84-161-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>192.84.161.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>192.84.161.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-192-0-0-0-0" name="NET192">https://whois.arin.net/rest/net/NET-192-0-0-0-0</parentNetRef>
+    <startAddress>192.84.161.0</startAddress>
+    <updateDate>2021-12-14T20:28:35-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/198.200.130.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-198-200-130-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="130.200.198.in-addr.arpa.">https://whois.arin.net/rest/rdns/130.200.198.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>198.200.130.255</endAddress>
+    <handle>NET-198-200-130-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>198.200.130.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>198.200.130.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-198-0-0-0-0" name="NET198">https://whois.arin.net/rest/net/NET-198-0-0-0-0</parentNetRef>
+    <startAddress>198.200.130.0</startAddress>
+    <updateDate>2021-12-14T20:28:54-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-08-02T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/198.206.164.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-198-206-164-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="164.206.198.in-addr.arpa.">https://whois.arin.net/rest/rdns/164.206.198.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>198.206.164.255</endAddress>
+    <handle>NET-198-206-164-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>198.206.164.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>198.206.164.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-198-0-0-0-0" name="NET198">https://whois.arin.net/rest/net/NET-198-0-0-0-0</parentNetRef>
+    <startAddress>198.206.164.0</startAddress>
+    <updateDate>2021-12-14T20:28:27-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/198.49.8.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-198-49-8-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="8.49.198.in-addr.arpa.">https://whois.arin.net/rest/rdns/8.49.198.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>198.49.8.255</endAddress>
+    <handle>NET-198-49-8-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>198.49.8.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>198.49.8.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-198-0-0-0-0" name="NET198">https://whois.arin.net/rest/net/NET-198-0-0-0-0</parentNetRef>
+    <startAddress>198.49.8.0</startAddress>
+    <updateDate>2021-12-14T20:28:29-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/199.242.32.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-199-242-32-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="47.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/47.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="46.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/46.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="32.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/32.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="45.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/45.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="49.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/49.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="41.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/41.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="38.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/38.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="34.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/34.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="55.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/55.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="53.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/53.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="51.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/51.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="39.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/39.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="50.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/50.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="48.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/48.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="33.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/33.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="42.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/42.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="35.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/35.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="37.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/37.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="43.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/43.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="40.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/40.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="36.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/36.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="52.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/52.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="44.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/44.242.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="54.242.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/54.242.199.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>199.242.55.255</endAddress>
+    <handle>NET-199-242-32-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>20</cidrLength>
+        <endAddress>199.242.47.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>199.242.32.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>21</cidrLength>
+        <endAddress>199.242.55.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>199.242.48.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-199-0-0-0-0" name="NET199">https://whois.arin.net/rest/net/NET-199-0-0-0-0</parentNetRef>
+    <startAddress>199.242.32.0</startAddress>
+    <updateDate>2021-12-14T20:28:38-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/199.30.16.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-199-30-16-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="24.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/24.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="25.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/25.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="18.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/18.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="28.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/28.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="22.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/22.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="23.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/23.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="21.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/21.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="19.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/19.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="31.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/31.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="30.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/30.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="20.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/20.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="17.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/17.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="26.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/26.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="27.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/27.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="29.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/29.30.199.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="16.30.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/16.30.199.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>199.30.31.255</endAddress>
+    <handle>NET-199-30-16-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>20</cidrLength>
+        <endAddress>199.30.31.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>199.30.16.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-199-0-0-0-0" name="NET199">https://whois.arin.net/rest/net/NET-199-0-0-0-0</parentNetRef>
+    <startAddress>199.30.16.0</startAddress>
+    <updateDate>2021-12-14T20:28:42-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/199.74.210.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-199-74-210-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="210.74.199.in-addr.arpa.">https://whois.arin.net/rest/rdns/210.74.199.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>199.74.210.255</endAddress>
+    <handle>NET-199-74-210-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>24</cidrLength>
+        <endAddress>199.74.210.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>199.74.210.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-199-0-0-0-0" name="NET199">https://whois.arin.net/rest/net/NET-199-0-0-0-0</parentNetRef>
+    <startAddress>199.74.210.0</startAddress>
+    <updateDate>2021-12-14T20:28:27-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/204.152.140.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-204-152-140-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="141.152.204.in-addr.arpa.">https://whois.arin.net/rest/rdns/141.152.204.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="140.152.204.in-addr.arpa.">https://whois.arin.net/rest/rdns/140.152.204.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>204.152.141.255</endAddress>
+    <handle>NET-204-152-140-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>23</cidrLength>
+        <endAddress>204.152.141.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>204.152.140.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-204-0-0-0-0" name="NET204">https://whois.arin.net/rest/net/NET-204-0-0-0-0</parentNetRef>
+    <startAddress>204.152.140.0</startAddress>
+    <updateDate>2021-12-14T20:28:53-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2011-06-22T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/205.174.224.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-205-174-224-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="237.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/237.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="226.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/226.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="232.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/232.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="227.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/227.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="224.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/224.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="233.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/233.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="228.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/228.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="230.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/230.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="235.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/235.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="225.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/225.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="239.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/239.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="229.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/229.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="234.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/234.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="236.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/236.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="231.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/231.174.205.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="238.174.205.in-addr.arpa.">https://whois.arin.net/rest/rdns/238.174.205.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>205.174.239.255</endAddress>
+    <handle>NET-205-174-224-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>20</cidrLength>
+        <endAddress>205.174.239.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>205.174.224.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT-Z" name="Microsoft Corp">https://whois.arin.net/rest/org/MSFT-Z</orgRef>
+    <parentNetRef handle="NET-205-0-0-0-0" name="NET205">https://whois.arin.net/rest/net/NET-205-0-0-0-0</parentNetRef>
+    <startAddress>205.174.224.0</startAddress>
+    <updateDate>2021-12-14T20:28:51-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>1998-06-18T00:00:00-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/209.240.192.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-209-240-192-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="219.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/219.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="201.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/201.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="214.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/214.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="193.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/193.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="199.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/199.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="221.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/221.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="207.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/207.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="195.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/195.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="220.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/220.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="223.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/223.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="216.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/216.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="217.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/217.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="192.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/192.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="198.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/198.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="209.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/209.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="208.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/208.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="210.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/210.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="202.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/202.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="211.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/211.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="200.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/200.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="222.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/222.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="196.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/196.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="215.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/215.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="197.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/197.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="204.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/204.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="203.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/203.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="194.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/194.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="213.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/213.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="212.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/212.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="206.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/206.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="218.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/218.240.209.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="205.240.209.in-addr.arpa.">https://whois.arin.net/rest/rdns/205.240.209.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>209.240.223.255</endAddress>
+    <handle>NET-209-240-192-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>19</cidrLength>
+        <endAddress>209.240.223.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>209.240.192.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT" name="Microsoft Corporation">https://whois.arin.net/rest/org/MSFT</orgRef>
+    <parentNetRef handle="NET-209-0-0-0-0" name="NET209">https://whois.arin.net/rest/net/NET-209-0-0-0-0</parentNetRef>
+    <startAddress>209.240.192.0</startAddress>
+    <updateDate>2013-08-23T14:14:00-04:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2012-12-18T18:36:40-05:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/23.25.198.144</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-23-25-198-144-1</ref>
+    <customerRef handle="C03235556" name="MICROSOFT">https://whois.arin.net/rest/customer/C03235556</customerRef>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <endAddress>23.25.198.159</endAddress>
+    <handle>NET-23-25-198-144-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>28</cidrLength>
+        <endAddress>23.25.198.159</endAddress>
+        <description>Reassigned</description>
+        <type>S</type>
+        <startAddress>23.25.198.144</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <parentNetRef handle="NET-23-25-192-0-1" name="BOSTON-CBC-61">https://whois.arin.net/rest/net/NET-23-25-192-0-1</parentNetRef>
+    <startAddress>23.25.198.144</startAddress>
+    <updateDate>2013-12-05T11:13:17-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2012-06-12T04:48:57-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/50.73.118.152</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-50-73-118-152-1</ref>
+    <customerRef handle="C03058171" name="MICROSOFT">https://whois.arin.net/rest/customer/C03058171</customerRef>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <endAddress>50.73.118.159</endAddress>
+    <handle>NET-50-73-118-152-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>29</cidrLength>
+        <endAddress>50.73.118.159</endAddress>
+        <description>Reassigned</description>
+        <type>S</type>
+        <startAddress>50.73.118.152</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <parentNetRef handle="NET-50-73-96-0-1" name="CHICAGO-CBC-49">https://whois.arin.net/rest/net/NET-50-73-96-0-1</parentNetRef>
+    <startAddress>50.73.118.152</startAddress>
+    <updateDate>2013-12-07T18:22:34-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2012-06-12T05:49:41-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/50.77.143.56</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-50-77-143-56-1</ref>
+    <customerRef handle="C03060431" name="MICROSOFT">https://whois.arin.net/rest/customer/C03060431</customerRef>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <endAddress>50.77.143.63</endAddress>
+    <handle>NET-50-77-143-56-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>29</cidrLength>
+        <endAddress>50.77.143.63</endAddress>
+        <description>Reassigned</description>
+        <type>S</type>
+        <startAddress>50.77.143.56</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <parentNetRef handle="NET-50-77-128-0-1" name="CHICAGO-CBC-52">https://whois.arin.net/rest/net/NET-50-77-128-0-1</parentNetRef>
+    <startAddress>50.77.143.56</startAddress>
+    <updateDate>2013-12-07T16:11:51-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>1999-11-24T00:00:00-05:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/64.4.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-64-4-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="37.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/37.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="51.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/51.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="6.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/6.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="14.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/14.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="11.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/11.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="55.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/55.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="32.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/32.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="13.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/13.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="21.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/21.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="30.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/30.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="33.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/33.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="34.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/34.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="0.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/0.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="12.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/12.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="29.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/29.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="60.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/60.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="45.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/45.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="49.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/49.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="15.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/15.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="39.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/39.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="19.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/19.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="20.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/20.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="63.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/63.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="16.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/16.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="27.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/27.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="58.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/58.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="22.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/22.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="41.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/41.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="47.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/47.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="36.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/36.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="42.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/42.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="35.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/35.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="24.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/24.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="18.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/18.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="53.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/53.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="28.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/28.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="2.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/2.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="46.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/46.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="50.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/50.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="54.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/54.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="25.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/25.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="9.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/9.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="61.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/61.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="3.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/3.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="57.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/57.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="8.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/8.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="26.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/26.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="38.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/38.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="48.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/48.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="62.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/62.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="56.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/56.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="40.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/40.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="23.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/23.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="59.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/59.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="7.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/7.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="31.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/31.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="43.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/43.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="44.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/44.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="4.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/4.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="17.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/17.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="5.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/5.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="10.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/10.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="52.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/52.4.64.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="1.4.64.in-addr.arpa.">https://whois.arin.net/rest/rdns/1.4.64.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>64.4.63.255</endAddress>
+    <handle>NET-64-4-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>18</cidrLength>
+        <endAddress>64.4.63.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>64.4.0.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT" name="Microsoft Corporation">https://whois.arin.net/rest/org/MSFT</orgRef>
+    <parentNetRef handle="NET-64-0-0-0-0" name="NET64">https://whois.arin.net/rest/net/NET-64-0-0-0-0</parentNetRef>
+    <startAddress>64.4.0.0</startAddress>
+    <updateDate>2021-12-14T20:28:46-05:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2008-09-10T14:29:14-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/70.37.0.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-70-37-0-0-1</ref>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <ns2:delegationRef name="31.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/31.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="152.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/152.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="155.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/155.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="3.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/3.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="6.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/6.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="127.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/127.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="182.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/182.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="28.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/28.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="158.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/158.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="145.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/145.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="100.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/100.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="104.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/104.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="49.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/49.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="89.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/89.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="171.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/171.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="96.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/96.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="37.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/37.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="80.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/80.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="36.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/36.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="10.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/10.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="79.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/79.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="108.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/108.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="29.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/29.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="184.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/184.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="143.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/143.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="130.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/130.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="53.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/53.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="57.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/57.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="77.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/77.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="148.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/148.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="181.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/181.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="95.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/95.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="157.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/157.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="68.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/68.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="39.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/39.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="98.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/98.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="63.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/63.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="61.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/61.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="165.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/165.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="138.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/138.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="113.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/113.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="90.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/90.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="186.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/186.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="160.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/160.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="73.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/73.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="161.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/161.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="76.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/76.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="170.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/170.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="178.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/178.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="164.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/164.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="149.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/149.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="105.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/105.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="30.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/30.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="125.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/125.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="187.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/187.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="153.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/153.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="191.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/191.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="112.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/112.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="64.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/64.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="69.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/69.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="32.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/32.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="8.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/8.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="190.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/190.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="9.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/9.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="23.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/23.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="168.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/168.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="156.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/156.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="92.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/92.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="159.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/159.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="2.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/2.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="62.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/62.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="174.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/174.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="7.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/7.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="150.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/150.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="4.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/4.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="0.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/0.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="139.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/139.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="88.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/88.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="129.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/129.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="99.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/99.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="163.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/163.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="22.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/22.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="132.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/132.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="86.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/86.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="111.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/111.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="71.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/71.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="188.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/188.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="115.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/115.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="75.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/75.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="5.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/5.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="144.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/144.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="47.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/47.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="55.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/55.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="136.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/136.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="172.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/172.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="20.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/20.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="123.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/123.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="46.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/46.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="33.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/33.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="13.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/13.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="14.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/14.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="175.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/175.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="169.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/169.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="146.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/146.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="87.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/87.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="59.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/59.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="166.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/166.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="58.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/58.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="107.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/107.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="93.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/93.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="41.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/41.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="25.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/25.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="42.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/42.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="179.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/179.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="15.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/15.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="56.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/56.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="162.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/162.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="81.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/81.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="78.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/78.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="50.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/50.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="43.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/43.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="24.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/24.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="91.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/91.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="141.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/141.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="180.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/180.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="26.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/26.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="74.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/74.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="102.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/102.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="11.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/11.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="85.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/85.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="176.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/176.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="126.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/126.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="94.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/94.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="109.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/109.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="140.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/140.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="142.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/142.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="18.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/18.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="177.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/177.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="183.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/183.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="120.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/120.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="106.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/106.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="72.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/72.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="173.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/173.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="35.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/35.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="167.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/167.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="19.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/19.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="124.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/124.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="118.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/118.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="16.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/16.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="135.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/135.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="52.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/52.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="12.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/12.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="103.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/103.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="27.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/27.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="116.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/116.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="48.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/48.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="17.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/17.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="147.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/147.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="122.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/122.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="44.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/44.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="134.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/134.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="38.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/38.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="119.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/119.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="121.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/121.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="1.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/1.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="67.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/67.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="117.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/117.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="110.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/110.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="65.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/65.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="137.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/137.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="60.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/60.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="154.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/154.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="34.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/34.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="70.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/70.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="83.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/83.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="133.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/133.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="114.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/114.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="101.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/101.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="51.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/51.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="97.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/97.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="54.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/54.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="66.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/66.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="21.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/21.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="45.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/45.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="189.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/189.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="82.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/82.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="84.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/84.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="40.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/40.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="128.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/128.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="131.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/131.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="185.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/185.37.70.in-addr.arpa.</ns2:delegationRef>
+      <ns2:delegationRef name="151.37.70.in-addr.arpa.">https://whois.arin.net/rest/rdns/151.37.70.in-addr.arpa.</ns2:delegationRef>
+    </ns2:delegations>
+    <endAddress>70.37.191.255</endAddress>
+    <handle>NET-70-37-0-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>17</cidrLength>
+        <endAddress>70.37.127.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>70.37.0.0</startAddress>
+      </netBlock>
+      <netBlock>
+        <cidrLength>18</cidrLength>
+        <endAddress>70.37.191.255</endAddress>
+        <description>Direct Allocation</description>
+        <type>DA</type>
+        <startAddress>70.37.128.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <orgRef handle="MSFT" name="Microsoft Corporation">https://whois.arin.net/rest/org/MSFT</orgRef>
+    <parentNetRef handle="NET-70-0-0-0-0" name="NET70">https://whois.arin.net/rest/net/NET-70-0-0-0-0</parentNetRef>
+    <startAddress>70.37.0.0</startAddress>
+    <updateDate>2013-08-23T14:14:19-04:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2019-07-05T16:46:25-04:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/74.113.218.96</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-74-113-218-96-1</ref>
+    <customerRef handle="C07381619" name="Microsoft">https://whois.arin.net/rest/customer/C07381619</customerRef>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <endAddress>74.113.218.127</endAddress>
+    <handle>NET-74-113-218-96-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>27</cidrLength>
+        <endAddress>74.113.218.127</endAddress>
+        <description>Reassigned</description>
+        <type>S</type>
+        <startAddress>74.113.218.96</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <parentNetRef handle="NET-74-113-216-0-1" name="TWRS">https://whois.arin.net/rest/net/NET-74-113-216-0-1</parentNetRef>
+    <startAddress>74.113.218.96</startAddress>
+    <updateDate>2019-07-05T16:46:25-04:00</updateDate>
+    <version>4</version>
+  </net>
+  <net copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+    <registrationDate>2019-02-26T17:38:21-05:00</registrationDate>
+    <rdapRef>https://rdap.arin.net/registry/ip/74.113.220.0</rdapRef>
+    <ref>https://whois.arin.net/rest/net/NET-74-113-220-0-1</ref>
+    <customerRef handle="C07301021" name="Microsoft">https://whois.arin.net/rest/customer/C07301021</customerRef>
+    <ns2:delegations copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <endAddress>74.113.220.15</endAddress>
+    <handle>NET-74-113-220-0-1</handle>
+    <name>MICROSOFT</name>
+    <netBlocks>
+      <netBlock>
+        <cidrLength>28</cidrLength>
+        <endAddress>74.113.220.15</endAddress>
+        <description>Reassigned</description>
+        <type>S</type>
+        <startAddress>74.113.220.0</startAddress>
+      </netBlock>
+    </netBlocks>
+    <pocs copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/"/>
+    <resources copyrightNotice="Copyright 1997-2026, American Registry for Internet Numbers, Ltd." inaccuracyReportUrl="https://www.arin.net/resources/registry/whois/inaccuracy_reporting/" termsOfUse="https://www.arin.net/resources/registry/whois/tou/">
+      <limitExceeded limit="256">false</limitExceeded>
+    </resources>
+    <parentNetRef handle="NET-74-113-216-0-1" name="TWRS">https://whois.arin.net/rest/net/NET-74-113-216-0-1</parentNetRef>
+    <startAddress>74.113.220.0</startAddress>
+    <updateDate>2019-02-26T17:38:21-05:00</updateDate>
+    <version>4</version>
+  </net>
+</nets>

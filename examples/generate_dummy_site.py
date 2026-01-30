@@ -216,12 +216,12 @@ def populate_fake_posts_and_pages(
 def setup_plugins(wordpress: WordPressDeployer, domain: str) -> None:
     """Install and activate plugins."""
     logging.info(f"Installing and activating plugins for {domain}")
-    plugin_paths = [
-        "/shared/nginx-helper.2.3.5.zip",
-        "/shared/seo-by-rank-math.1.0.262.zip",
-        "/shared/yet-another-related-posts-plugin.5.30.11.zip",
+    plugin_slugs = [
+        "nginx-helper",
+        "seo-by-rank-math",
+        "yet-another-related-posts-plugin",
     ]
-    wordpress.install_plugins(domain, plugin_paths, activate=True)
+    wordpress.install_plugins(domain, plugin_slugs, activate=True)
 
     # Visited /wp-admin to trigger Related Posts section from plugin (no need to login)
     requests.get(f"https://{domain}/wp-admin")

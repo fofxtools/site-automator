@@ -12,15 +12,14 @@ def tracking(wordops):
 class TestUploadTrackingResources:
     """Test _upload_tracking_resources method."""
 
-    def test_upload_files_that_dont_exist_remotely(self, tracking, mock_ssh_client):
-        """Test files are uploaded when they don't exist remotely."""
+    def test_upload_tracking_plugin(self, tracking, mock_ssh_client):
+        """Test plugin is always uploaded (overwrites if exists)."""
         # Mock SFTP
         mock_sftp = Mock()
         mock_ssh_client.open_sftp.return_value = mock_sftp
 
-        # Mock exit codes: 0 for mkdir, 1 for file checks
-        exit_codes = [0] + [1] * 5  # mkdir succeeds, 5 file checks fail
-        mock_ssh_client._mock_channel.recv_exit_status.side_effect = exit_codes
+        # Mock exit code: 0 for mkdir
+        mock_ssh_client._mock_channel.recv_exit_status.return_value = 0
 
         tracking._upload_tracking_resources()
 
@@ -28,69 +27,8 @@ class TestUploadTrackingResources:
         calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
         assert any("mkdir -p" in cmd and "/shared" in cmd for cmd in calls)
 
-        # Should upload 5 files
-        assert mock_sftp.put.call_count == 5
-
-    def test_skip_files_that_exist_remotely(self, tracking, mock_ssh_client):
-        """Test files are skipped when they already exist remotely."""
-        # Mock SFTP
-        mock_sftp = Mock()
-        mock_ssh_client.open_sftp.return_value = mock_sftp
-
-        # Mock exit codes: all succeed (mkdir + 5 file checks)
-        mock_ssh_client._mock_channel.recv_exit_status.return_value = 0
-
-        tracking._upload_tracking_resources()
-
-        # Should not upload any files
-        assert mock_sftp.put.call_count == 0
-
-
-class TestCreateDbUser:
-    """Test _create_db_user method."""
-
-    def test_create_db_user_success(self, tracking, mock_ssh_client):
-        """Test _create_db_user creates user with provided password."""
-        tracking._create_db_user("db_admin", "test_password_123")
-
-        # Should execute 4 commands: CREATE USER, ALTER USER, GRANT, FLUSH
-        assert mock_ssh_client.exec_command.call_count == 4
-        calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
-
-        assert any("CREATE USER IF NOT EXISTS" in cmd for cmd in calls)
-        assert any("ALTER USER" in cmd and "test_password_123" in cmd for cmd in calls)
-        assert any("GRANT ALL PRIVILEGES" in cmd for cmd in calls)
-        assert any("FLUSH PRIVILEGES" in cmd for cmd in calls)
-
-
-class TestCreateDatabase:
-    """Test _create_database method."""
-
-    def test_create_database_success(self, tracking, mock_ssh_client):
-        """Test _create_database creates database."""
-        tracking._create_database("tracking")
-
-        mock_ssh_client.exec_command.assert_called_once()
-        call_cmd = mock_ssh_client.exec_command.call_args[0][0]
-
-        assert "CREATE DATABASE IF NOT EXISTS" in call_cmd
-        assert "tracking" in call_cmd
-
-
-class TestCreateTables:
-    """Test _create_tables method."""
-
-    def test_create_tables_success(self, tracking, mock_ssh_client):
-        """Test _create_tables executes SQL files."""
-        tracking._create_tables("tracking", "db_admin", "password123")
-
-        # Should execute 2 SQL files
-        calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
-        mysql_calls = [cmd for cmd in calls if "mysql" in cmd and "/shared/" in cmd]
-
-        assert len(mysql_calls) == 2
-        assert any("tracking_pageviews.sql" in cmd for cmd in mysql_calls)
-        assert any("tracking_pageviews_daily.sql" in cmd for cmd in mysql_calls)
+        # Should always upload 1 file (overwrites if exists)
+        assert mock_sftp.put.call_count == 1
 
 
 class TestCreateEnvFile:
@@ -98,7 +36,7 @@ class TestCreateEnvFile:
 
     def test_create_env_file_success(self, tracking, mock_ssh_client):
         """Test _create_env_file creates .env with correct content."""
-        tracking._create_env_file("example.com", "tracking", "db_admin", "pass123")
+        tracking._create_env_file("example.com")
 
         mock_ssh_client.exec_command.assert_called_once()
         call_cmd = mock_ssh_client.exec_command.call_args[0][0]
@@ -106,26 +44,21 @@ class TestCreateEnvFile:
         assert "echo" in call_cmd
         assert "/var/www/example.com/.env" in call_cmd
         assert "TRACKING_ENABLED=true" in call_cmd
-        assert "TRACKING_DB_NAME=tracking" in call_cmd
-        assert "TRACKING_DB_USER=db_admin" in call_cmd
-        assert "TRACKING_DB_PASSWORD=pass123" in call_cmd
 
 
 class TestInstallPlugins:
     """Test _install_plugins method."""
 
     def test_install_plugins_success(self, tracking, mock_ssh_client):
-        """Test _install_plugins installs all three plugins."""
+        """Test _install_plugins installs the plugin."""
         tracking._install_plugins("example.com")
 
-        # Should install 3 plugins
+        # Should install 1 plugin
         calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
         plugin_calls = [cmd for cmd in calls if "wp plugin install" in cmd]
 
-        assert len(plugin_calls) == 3
-        assert any("pageview-tracking-core.zip" in cmd for cmd in plugin_calls)
+        assert len(plugin_calls) == 1
         assert any("pageview-tracking.zip" in cmd for cmd in plugin_calls)
-        assert any("pageview-tracking-daily.zip" in cmd for cmd in plugin_calls)
 
 
 class TestUpdateTrackConfig:
@@ -134,7 +67,8 @@ class TestUpdateTrackConfig:
     @patch.dict(
         "os.environ",
         {
-            "TRACKING_DB_CONFIG_FILE": "../../../.env",
+            "TRACKING_ENV_FILE": "../../../../.env",
+            "TRACKING_DATA_ROOT": "/var/lib/pageview-tracking",
             "TRACKING_EXCLUDE_IPS": "127.0.0.1,192.168.1.1",
             "TRACKING_EXCLUDE_IPS_CIDR": "10.0.0.0/8",
             "TRACKING_EXCLUDE_USER_AGENTS_EXACT": "BadBot",
@@ -150,7 +84,8 @@ class TestUpdateTrackConfig:
 
         assert "echo" in call_cmd
         assert "track_config.php" in call_cmd
-        assert "../../../.env" in call_cmd
+        assert "../../../../.env" in call_cmd
+        assert "/var/lib/pageview-tracking" in call_cmd
         assert "127.0.0.1" in call_cmd
         assert "192.168.1.1" in call_cmd
         assert "10.0.0.0/8" in call_cmd
@@ -158,14 +93,65 @@ class TestUpdateTrackConfig:
         assert "bot" in call_cmd
 
 
+class TestCreateDataDirectory:
+    """Test _create_data_directory method."""
+
+    def test_create_data_directory_success(self, tracking, mock_ssh_client):
+        """Test _create_data_directory creates directory with proper permissions."""
+        # Mock exit codes: 0 for all commands (mkdir -p is idempotent)
+        exit_codes = [
+            0,  # mkdir raw
+            0,  # mkdir agg/daily
+            0,  # mkdir scripts
+            0,  # chown
+            0,  # chmod
+            0,  # chmod g+s
+        ]
+        mock_ssh_client._mock_channel.recv_exit_status.side_effect = exit_codes
+
+        tracking._create_data_directory()
+
+        # Should execute 6 commands: 3x mkdir, chown, chmod, chmod g+s
+        assert mock_ssh_client.exec_command.call_count == 6
+        calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
+
+        assert any(
+            "sudo mkdir -p /var/lib/pageview-tracking/raw" in cmd for cmd in calls
+        )
+        assert any(
+            "sudo mkdir -p /var/lib/pageview-tracking/agg/daily" in cmd for cmd in calls
+        )
+        assert any(
+            "sudo mkdir -p /var/lib/pageview-tracking/scripts" in cmd for cmd in calls
+        )
+        assert any("sudo chown" in cmd and "www-data:www-data" in cmd for cmd in calls)
+        assert any("sudo chmod -R 775" in cmd for cmd in calls)
+        assert any("sudo chmod g+s" in cmd for cmd in calls)
+
+    def test_create_data_directory_idempotent(self, tracking, mock_ssh_client):
+        """Test _create_data_directory is idempotent (can run multiple times)."""
+        # Mock exit code: 0 for all commands (mkdir -p succeeds even if exists)
+        mock_ssh_client._mock_channel.recv_exit_status.return_value = 0
+
+        # Run twice
+        tracking._create_data_directory()
+        tracking._create_data_directory()
+
+        # Should execute 6 commands each time (12 total)
+        assert mock_ssh_client.exec_command.call_count == 12
+
+
 class TestSetupTracking:
     """Test setup_tracking method."""
 
+    @patch("site_automator.tracking.PageviewTrackingSetup._setup_cron_job")
+    @patch("site_automator.tracking.PageviewTrackingSetup._upload_processing_scripts")
     @patch("site_automator.tracking.PageviewTrackingSetup._upload_tracking_resources")
     @patch.dict(
         "os.environ",
         {
-            "TRACKING_DB_CONFIG_FILE": "auto",
+            "TRACKING_ENV_FILE": "../../../../.env",
+            "TRACKING_DATA_ROOT": "/var/lib/pageview-tracking",
             "TRACKING_EXCLUDE_IPS": "",
             "TRACKING_EXCLUDE_IPS_CIDR": "",
             "TRACKING_EXCLUDE_USER_AGENTS_EXACT": "",
@@ -173,54 +159,26 @@ class TestSetupTracking:
         },
         clear=True,
     )
-    def test_setup_tracking_with_defaults(self, mock_upload, tracking, mock_ssh_client):
-        """Test setup_tracking uses default values when env vars not set."""
+    def test_setup_tracking_with_defaults(
+        self, mock_upload, mock_upload_scripts, mock_cron, tracking, mock_ssh_client
+    ):
+        """Test setup_tracking executes all steps."""
+        # Mock exit codes for all commands to succeed
+        # .env creation, plugin install, track_config, 3x mkdir, chown, chmod, chmod g+s
+        exit_codes = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        mock_ssh_client._mock_channel.recv_exit_status.side_effect = exit_codes
+
         tracking.setup_tracking("example.com")
 
-        # Should call upload resources
+        # Should call all mocked methods
         mock_upload.assert_called_once()
-
-        # Should execute multiple commands for all steps
-        assert mock_ssh_client.exec_command.call_count > 5
+        mock_upload_scripts.assert_called_once()
+        mock_cron.assert_called_once()
 
         calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
 
-        # Verify key steps were executed with defaults
-        assert any("CREATE USER" in cmd and "db_admin" in cmd for cmd in calls)
-        assert any(
-            "CREATE DATABASE" in cmd and "site_automator" in cmd for cmd in calls
-        )
-        assert any("mysql" in cmd and "/shared/" in cmd for cmd in calls)
+        # Verify key steps were executed
         assert any(".env" in cmd for cmd in calls)
         assert any("wp plugin install" in cmd for cmd in calls)
         assert any("track_config.php" in cmd for cmd in calls)
-
-    @patch("site_automator.tracking.PageviewTrackingSetup._upload_tracking_resources")
-    @patch.dict(
-        "os.environ",
-        {
-            "TRACKING_DB_NAME": "custom_db",
-            "TRACKING_DB_USER": "custom_user",
-            "TRACKING_DB_PASSWORD": "custom_pass_123",
-            "TRACKING_DB_CONFIG_FILE": "auto",
-            "TRACKING_EXCLUDE_IPS": "",
-            "TRACKING_EXCLUDE_IPS_CIDR": "",
-            "TRACKING_EXCLUDE_USER_AGENTS_EXACT": "",
-            "TRACKING_EXCLUDE_USER_AGENTS_SUBSTRING": "",
-        },
-    )
-    def test_setup_tracking_with_custom_env_vars(
-        self, mock_upload, tracking, mock_ssh_client
-    ):
-        """Test setup_tracking uses custom values from env vars."""
-        tracking.setup_tracking("example.com")
-
-        # Should call upload resources
-        mock_upload.assert_called_once()
-
-        calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
-
-        # Verify custom values were used
-        assert any("CREATE USER" in cmd and "custom_user" in cmd for cmd in calls)
-        assert any("ALTER USER" in cmd and "custom_pass_123" in cmd for cmd in calls)
-        assert any("CREATE DATABASE" in cmd and "custom_db" in cmd for cmd in calls)
+        assert any("sudo mkdir -p /var/lib/pageview-tracking" in cmd for cmd in calls)

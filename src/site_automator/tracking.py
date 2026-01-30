@@ -1,9 +1,8 @@
-"""Pageview Tracking Setup - Install and configure pageview tracking plugins."""
+"""Pageview Tracking Setup - Install and configure pageview tracking."""
 
 import logging
-import secrets
 import shlex
-import string
+from pathlib import Path
 
 from site_automator.wordops import WordOpsProvisioner
 
@@ -11,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class PageviewTrackingSetup:
-    """Setup pageview tracking plugins and database."""
+    """Setup pageview tracking plugin with flat file storage."""
 
     wordops: WordOpsProvisioner
 
@@ -24,15 +23,11 @@ class PageviewTrackingSetup:
         self.wordops = wordops
 
     def _upload_tracking_resources(self, remote_folder: str = "/shared") -> None:
-        """Upload tracking plugin and SQL files to remote server.
+        """Upload tracking plugin to remote server.
 
-        Uploads the following files from local /resources/ folder if they
-        don't already exist on the remote server:
-        - pageview-tracking-core.zip
-        - pageview-tracking-daily.zip
+        Uploads the following file from local /resources/ folder if it
+        doesn't already exist on the remote server:
         - pageview-tracking.zip
-        - tracking_pageviews_daily.sql
-        - tracking_pageviews.sql
 
         Args:
             remote_folder: Remote folder path (default: "/shared")
@@ -47,11 +42,7 @@ class PageviewTrackingSetup:
 
         # Define files to upload
         files = [
-            "pageview-tracking-core.zip",
-            "pageview-tracking-daily.zip",
             "pageview-tracking.zip",
-            "tracking_pageviews_daily.sql",
-            "tracking_pageviews.sql",
         ]
 
         # Get local resources directory
@@ -69,136 +60,27 @@ class PageviewTrackingSetup:
             if not local_path.exists():
                 raise FileNotFoundError(f"Local file not found: {local_path}")
 
-            # Check if file exists remotely
-            logger.debug(f"Checking if {remote_path} exists on remote server")
-            check_command = f"test -f {shlex.quote(remote_path)}"
-            _, exit_code = self.wordops.run_command(check_command, check=False)
+            # Always upload (overwrite if exists)
+            logger.info(f"Uploading {filename} to {remote_path}")
 
-            if exit_code == 0:
-                logger.debug(f"File already exists remotely: {remote_path}")
-            else:
-                logger.info(f"Uploading {filename} to {remote_path}")
+            # Upload file using SFTP
+            if not self.wordops._client:
+                raise RuntimeError("SSH client not connected")
 
-                # Upload file using SFTP
-                if not self.wordops._client:
-                    raise RuntimeError("SSH client not connected")
-
-                sftp = self.wordops._client.open_sftp()
-                try:
-                    sftp.put(str(local_path), remote_path)
-                    logger.debug(f"Upload completed: {remote_path}")
-                finally:
-                    sftp.close()
+            sftp = self.wordops._client.open_sftp()
+            try:
+                sftp.put(str(local_path), remote_path)
+                logger.debug(f"Upload completed: {remote_path}")
+            finally:
+                sftp.close()
 
         logger.info("Tracking resources upload completed")
 
-    def _create_db_user(self, username: str, password: str) -> None:
-        """Create MySQL user with provided password and grant all privileges.
-
-        Args:
-            username: MySQL username to create
-            password: MySQL password to set
-
-        Raises:
-            RuntimeError: If user creation fails
-        """
-        logger.info(f"Creating MySQL user: {username}")
-
-        # Create user if not exists, then alter to set password
-        create_user_sql = f"CREATE USER IF NOT EXISTS '{username}'@'localhost';"
-        alter_user_sql = (
-            f"ALTER USER '{username}'@'localhost' IDENTIFIED BY '{password}';"
-        )
-        grant_sql = f"GRANT ALL PRIVILEGES ON *.* TO '{username}'@'localhost';"
-        flush_sql = "FLUSH PRIVILEGES;"
-
-        logger.debug(f"Creating MySQL user if not exists: {username}")
-        self.wordops.run_command(f"mysql -e {shlex.quote(create_user_sql)}", check=True)
-
-        logger.debug(f"Setting password for MySQL user: {username}")
-        self.wordops.run_command(f"mysql -e {shlex.quote(alter_user_sql)}", check=True)
-
-        logger.debug(f"Granting all privileges to: {username}")
-        self.wordops.run_command(f"mysql -e {shlex.quote(grant_sql)}", check=True)
-
-        logger.debug("Flushing privileges")
-        self.wordops.run_command(f"mysql -e {shlex.quote(flush_sql)}", check=True)
-
-        logger.info(f"MySQL user created successfully: {username}")
-
-    def _create_database(self, db_name: str) -> None:
-        """Create MySQL database.
-
-        Args:
-            db_name: Database name to create
-
-        Raises:
-            RuntimeError: If database creation fails
-        """
-        logger.info(f"Creating database: {db_name}")
-
-        # Escape for shell
-        db_name_escaped = shlex.quote(db_name)
-
-        # Create database
-        create_db_sql = (
-            f"CREATE DATABASE IF NOT EXISTS {db_name_escaped} "
-            f"CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-        )
-
-        logger.debug(f"Creating database: {db_name}")
-        self.wordops.run_command(f"mysql -e {shlex.quote(create_db_sql)}", check=True)
-
-        logger.info(f"Database created successfully: {db_name}")
-
-    def _create_tables(self, db_name: str, username: str, password: str) -> None:
-        """Create tracking tables from SQL files.
-
-        Args:
-            db_name: Database name
-            username: MySQL username
-            password: MySQL password
-
-        Raises:
-            RuntimeError: If table creation fails
-        """
-        logger.info(f"Creating tracking tables in database: {db_name}")
-
-        # SQL files on server in /shared/
-        sql_files = [
-            "/shared/tracking_pageviews.sql",
-            "/shared/tracking_pageviews_daily.sql",
-        ]
-
-        for sql_file in sql_files:
-            logger.debug(f"Executing SQL file: {sql_file}")
-
-            sql_file_escaped = shlex.quote(sql_file)
-            db_name_escaped = shlex.quote(db_name)
-            username_escaped = shlex.quote(username)
-            password_escaped = shlex.quote(password)
-
-            # Execute SQL file using mysql command
-            command = (
-                f"mysql -u {username_escaped} -p{password_escaped} "
-                f"{db_name_escaped} < {sql_file_escaped}"
-            )
-
-            self.wordops.run_command(command, check=True)
-            logger.debug(f"SQL file executed successfully: {sql_file}")
-
-        logger.info(f"Tracking tables created successfully in database: {db_name}")
-
-    def _create_env_file(
-        self, domain: str, db_name: str, username: str, password: str
-    ) -> None:
+    def _create_env_file(self, domain: str) -> None:
         """Create .env file in site parent directory.
 
         Args:
             domain: Domain name (e.g., "example.com")
-            db_name: Database name
-            username: MySQL username
-            password: MySQL password
 
         Raises:
             RuntimeError: If .env file creation fails
@@ -209,12 +91,7 @@ class PageviewTrackingSetup:
         env_file_path = f"/var/www/{domain}/.env"
 
         # .env file content
-        env_content = f"""TRACKING_ENABLED=true
-TRACKING_DB_HOST=localhost
-TRACKING_DB_NAME={db_name}
-TRACKING_DB_USER={username}
-TRACKING_DB_PASSWORD={password}
-"""
+        env_content = "TRACKING_ENABLED=true\n"
 
         # Escape for shell
         env_file_path_escaped = shlex.quote(env_file_path)
@@ -228,12 +105,10 @@ TRACKING_DB_PASSWORD={password}
         logger.info(f".env file created successfully at: {env_file_path}")
 
     def _install_plugins(self, domain: str) -> None:
-        """Install and activate tracking plugins.
+        """Install and activate tracking plugin.
 
         Installs:
-        - /shared/pageview-tracking-core.zip
         - /shared/pageview-tracking.zip
-        - /shared/pageview-tracking-daily.zip
 
         Args:
             domain: Domain name
@@ -241,38 +116,33 @@ TRACKING_DB_PASSWORD={password}
         Raises:
             RuntimeError: If plugin installation fails
         """
-        logger.info(f"Installing tracking plugins for {domain}")
+        logger.info(f"Installing tracking plugin for {domain}")
 
-        # Plugin paths
-        plugins = [
-            "/shared/pageview-tracking-core.zip",
-            "/shared/pageview-tracking.zip",
-            "/shared/pageview-tracking-daily.zip",
-        ]
+        # Plugin path
+        plugin = "/shared/pageview-tracking.zip"
+        plugin_escaped = shlex.quote(plugin)
 
-        # Install and activate each plugin
-        for plugin in plugins:
-            plugin_escaped = shlex.quote(plugin)
-            logger.debug(f"Installing plugin: {plugin}")
+        logger.debug(f"Installing plugin: {plugin}")
 
-            command = (
-                f"cd /var/www/{domain}/htdocs && "
-                f"wp plugin install {plugin_escaped} --activate --allow-root"
-            )
+        command = (
+            f"cd /var/www/{domain}/htdocs && "
+            f"wp plugin install {plugin_escaped} --activate --force --allow-root"
+        )
 
-            self.wordops.run_command(command, check=True)
-            logger.debug(f"Plugin installed and activated: {plugin}")
+        self.wordops.run_command(command, check=True)
+        logger.debug(f"Plugin installed and activated: {plugin}")
 
-        logger.info(f"All tracking plugins installed successfully for {domain}")
+        logger.info(f"Tracking plugin installed successfully for {domain}")
 
     def _update_track_config(self, domain: str) -> None:
         """Update track_config.php with settings from .env file.
 
         Reads configuration from .env file and updates the track_config.php
-        file in the pageview-tracking-core plugin.
+        file in the pageview-tracking plugin.
 
         Environment variables:
-        - TRACKING_DB_CONFIG_FILE: Database config file path (string)
+        - TRACKING_ENV_FILE: Path to .env file (default: '../../../../.env')
+        - TRACKING_DATA_ROOT: Data root directory (default: '/var/lib/pageview-tracking')
         - TRACKING_EXCLUDE_IPS: Comma-delimited IP addresses (becomes array)
         - TRACKING_EXCLUDE_IPS_CIDR: Comma-delimited CIDR ranges (becomes array)
         - TRACKING_EXCLUDE_USER_AGENTS_EXACT: Comma-delimited exact matches (becomes array)
@@ -292,7 +162,8 @@ TRACKING_DB_PASSWORD={password}
         logger.debug("Reading local .env file for tracking configuration")
 
         # Get config values from local environment (with defaults)
-        db_config_file = os.getenv("TRACKING_DB_CONFIG_FILE", "auto")
+        env_file = os.getenv("TRACKING_ENV_FILE", "../../../../.env")
+        data_root = os.getenv("TRACKING_DATA_ROOT", "/var/lib/pageview-tracking")
         exclude_ips = os.getenv("TRACKING_EXCLUDE_IPS", "")
         exclude_ips_cidr = os.getenv("TRACKING_EXCLUDE_IPS_CIDR", "")
         exclude_user_agents_exact = os.getenv("TRACKING_EXCLUDE_USER_AGENTS_EXACT", "")
@@ -317,21 +188,25 @@ declare(strict_types=1);
 /**
  * Tracking Configuration
  *
- * Database configuration and exclude IP and user agent settings.
+ * Data storage and exclude IP and user agent settings.
  */
 
 return [
     /**
-     * Database configuration file path.
+     * Path to .env file for loading environment variables.
      *
-     * Options:
-     * - 'auto' (default): Auto-detect WordPress wp-config.php, then fallback to .env
-     * - Relative path to wp-config.php: '../../../wp-config.php' (WordPress plugin context)
-     * - Relative path to .env file: '../../../.env'
-     *
-     * Paths are resolved relative to this config file's directory.
+     * Example:
+     * - '../../../../.env' (site root, one level above document root)
      */
-    'db_config_file' => '{db_config_file}',
+    'env_file' => '{env_file}',
+
+    /**
+     * Data root directory for flat file storage.
+     *
+     * Example:
+     * - '/var/lib/pageview-tracking'
+     */
+    'data_root' => '{data_root}',
 
     /**
      * Individual IP addresses to exclude (IPv4 or IPv6).
@@ -368,7 +243,7 @@ return [
         # Write to track_config.php
         config_file_path = (
             f"/var/www/{domain}/htdocs/wp-content/plugins/"
-            f"pageview-tracking-core/track_config.php"
+            f"pageview-tracking/track_config.php"
         )
         config_file_escaped = shlex.quote(config_file_path)
         php_config_escaped = shlex.quote(php_config)
@@ -379,22 +254,137 @@ return [
 
         logger.info(f"track_config.php updated successfully for {domain}")
 
+    def _create_data_directory(self) -> None:
+        """Create flat file storage directory with proper permissions.
+
+        Creates /var/lib/pageview-tracking directory with subdirectories:
+        - raw/          - Raw JSONL logs by domain/date
+        - agg/daily/    - Aggregated daily statistics
+        - scripts/      - Python processing scripts
+
+        Permissions:
+        - Owner: www-data
+        - Group: www-data
+        - Permissions: 775 (rwxrwxr-x)
+        - Setgid bit: Ensures new files inherit group ownership
+
+        This method is idempotent - ensures subdirectories exist even if base directory exists.
+
+        Raises:
+            RuntimeError: If directory creation fails
+        """
+        logger.info("Setting up flat file storage directory")
+
+        # Always ensure subdirectories exist (mkdir -p is idempotent)
+        logger.debug("Creating directory structure with subdirectories")
+
+        commands = [
+            "sudo mkdir -p /var/lib/pageview-tracking/raw",
+            "sudo mkdir -p /var/lib/pageview-tracking/agg/daily",
+            "sudo mkdir -p /var/lib/pageview-tracking/scripts",
+            "sudo chown -R www-data:www-data /var/lib/pageview-tracking",
+            "sudo chmod -R 775 /var/lib/pageview-tracking",
+            "sudo chmod g+s /var/lib/pageview-tracking",
+        ]
+
+        for command in commands:
+            logger.debug(f"Executing: {command}")
+            self.wordops.run_command(command, check=True)
+
+        logger.info("Flat file storage directory created successfully")
+
+    def _upload_processing_scripts(self) -> None:
+        """Upload Python log processing scripts to server.
+
+        Uploads:
+        - process_daily_logs.py (required for stats generation)
+        - generate_dummy_logs.py (optional, for testing)
+
+        Destination: /var/lib/pageview-tracking/scripts/
+
+        Raises:
+            RuntimeError: If script upload fails
+        """
+        logger.info("Uploading Python processing scripts")
+
+        scripts = [
+            "process_daily_logs.py",  # Required
+            "generate_dummy_logs.py",  # Optional (testing)
+        ]
+
+        for script in scripts:
+            # Path: src/site_automator/tracking.py -> src/ -> project_root/ -> pageview-tracking/
+            local_path = (
+                Path(__file__).parent.parent.parent
+                / "pageview-tracking"
+                / "python"
+                / script
+            )
+            remote_path = f"/var/lib/pageview-tracking/scripts/{script}"
+
+            if not local_path.exists():
+                raise FileNotFoundError(f"Local script not found: {local_path}")
+
+            logger.info(f"Uploading {script} to {remote_path}")
+
+            # Upload via SFTP
+            if not self.wordops._client:
+                raise RuntimeError("SSH client not connected")
+
+            sftp = self.wordops._client.open_sftp()
+            try:
+                sftp.put(str(local_path), remote_path)
+                logger.debug(f"Upload completed: {remote_path}")
+            finally:
+                sftp.close()
+
+            # Make executable
+            command = f"chmod +x {shlex.quote(remote_path)}"
+            self.wordops.run_command(command, check=True)
+
+        logger.info("Python processing scripts uploaded successfully")
+
+    def _setup_cron_job(self) -> None:
+        """Setup daily cron job to process pageview logs.
+
+        Adds cron job to run process_daily_logs.py daily at 1 AM.
+        This method is idempotent - won't add duplicate entries.
+
+        Raises:
+            RuntimeError: If cron setup fails
+        """
+        logger.info("Setting up cron job for log processing")
+
+        cron_line = "0 1 * * * /usr/bin/python3 /var/lib/pageview-tracking/scripts/process_daily_logs.py"
+
+        # Add to crontab if not already present
+        command = (
+            f"(crontab -l 2>/dev/null | grep -q 'process_daily_logs.py') || "
+            f"(crontab -l 2>/dev/null; echo {shlex.quote(cron_line)}) | crontab -"
+        )
+
+        self.wordops.run_command(command, check=True)
+        logger.info("Cron job setup completed")
+
     def setup_tracking(self, domain: str) -> None:
         """Setup complete pageview tracking system for a domain.
 
         This method:
-        - Uploads tracking resources to /shared/ (plugins and SQL files)
-        - Creates MySQL database user (from env or default 'db_admin')
-        - Creates database (from env or default 'site_automator')
-        - Creates tracking tables from SQL files
+        - Uploads tracking plugin to /shared/
         - Creates .env file in site parent directory
-        - Installs and activates tracking plugins
+        - Installs and activates tracking plugin
         - Updates track_config.php with settings from .env
+        - Creates flat file storage directory (/var/lib/pageview-tracking)
+        - Uploads Python processing scripts
+        - Sets up cron job for daily log processing
 
         Environment variables (optional):
-        - TRACKING_DB_NAME: Database name (default: 'site_automator')
-        - TRACKING_DB_USER: MySQL username (default: 'db_admin')
-        - TRACKING_DB_PASSWORD: MySQL password (default: random 32-char alphanumeric)
+        - TRACKING_ENV_FILE: Path to .env file (default: '../../../../.env')
+        - TRACKING_DATA_ROOT: Data root directory (default: '/var/lib/pageview-tracking')
+        - TRACKING_EXCLUDE_IPS: Comma-delimited IP addresses to exclude
+        - TRACKING_EXCLUDE_IPS_CIDR: Comma-delimited CIDR ranges to exclude
+        - TRACKING_EXCLUDE_USER_AGENTS_EXACT: Comma-delimited exact user agents to exclude
+        - TRACKING_EXCLUDE_USER_AGENTS_SUBSTRING: Comma-delimited user agent substrings to exclude
 
         Args:
             domain: Domain name of the site (e.g., "example.com")
@@ -402,40 +392,27 @@ return [
         Raises:
             RuntimeError: If setup fails
         """
-        import os
-
         logger.info(f"Setting up pageview tracking for {domain}")
 
         # Upload tracking resources
         self._upload_tracking_resources()
 
-        # Read configuration from environment with defaults
-        db_name = os.getenv("TRACKING_DB_NAME") or "site_automator"
-        username = os.getenv("TRACKING_DB_USER") or "db_admin"
-        password = os.getenv("TRACKING_DB_PASSWORD")
-
-        # Generate password if not provided
-        if not password:
-            logger.debug("Generating random password for database user")
-            alphabet = string.ascii_letters + string.digits
-            password = "".join(secrets.choice(alphabet) for _ in range(32))
-
-        # Create MySQL user
-        self._create_db_user(username, password)
-
-        # Create database
-        self._create_database(db_name)
-
-        # Create tables
-        self._create_tables(db_name, username, password)
-
         # Create .env file
-        self._create_env_file(domain, db_name, username, password)
+        self._create_env_file(domain)
 
-        # Install and activate plugins
+        # Install and activate plugin
         self._install_plugins(domain)
 
         # Update track_config.php
         self._update_track_config(domain)
+
+        # Create flat file storage directory
+        self._create_data_directory()
+
+        # Upload Python processing scripts
+        self._upload_processing_scripts()
+
+        # Setup cron job for daily log processing
+        self._setup_cron_job()
 
         logger.info(f"Pageview tracking setup completed successfully for {domain}")
