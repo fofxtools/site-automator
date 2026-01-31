@@ -139,6 +139,21 @@ class TestSyncAdminPasswordToDb:
         assert "--skip-email" in call_commands[1]
 
 
+class TestCreateRobotsTxt:
+    """Test create_robots_txt method."""
+
+    def test_create_robots_txt(self, wordpress, mock_ssh_client):
+        """Test create_robots_txt writes correct content."""
+        wordpress.create_robots_txt("test.com")
+
+        call_args = mock_ssh_client.exec_command.call_args[0][0]
+        assert "/var/www/test.com/htdocs/robots.txt" in call_args
+        assert "User-agent: *" in call_args
+        assert "Disallow: /wp-admin/" in call_args
+        assert "Allow: /wp-admin/admin-ajax.php" in call_args
+        assert "Sitemap: https://test.com/wp-sitemap.xml" in call_args
+
+
 class TestDeleteDemoContent:
     """Test delete_demo_content method."""
 

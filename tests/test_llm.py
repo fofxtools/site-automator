@@ -1,13 +1,16 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from site_automator.llm import (
     OpenAIClient,
     OllamaClient,
     get_llm_client,
     _parse_max_tokens,
+    _parse_max_concurrency,
     generate_completion_clean,
     generate_chat_clean,
+    generate_completion_bulk_clean,
+    generate_chat_bulk_clean,
 )
 
 
@@ -38,6 +41,38 @@ class TestParseMaxTokens:
         mock_getenv.return_value = "not_a_number"
         with pytest.raises(ValueError):
             _parse_max_tokens()
+
+
+class TestParseMaxConcurrency:
+    """Test _parse_max_concurrency helper."""
+
+    @patch("site_automator.llm.os.getenv")
+    def test_empty_returns_default(self, mock_getenv):
+        mock_getenv.return_value = ""
+        assert _parse_max_concurrency() == 10
+
+    @patch("site_automator.llm.os.getenv")
+    def test_valid_integer(self, mock_getenv):
+        mock_getenv.return_value = "5"
+        assert _parse_max_concurrency() == 5
+
+    @patch("site_automator.llm.os.getenv")
+    def test_zero_raises(self, mock_getenv):
+        mock_getenv.return_value = "0"
+        with pytest.raises(ValueError, match="must be >= 1"):
+            _parse_max_concurrency()
+
+    @patch("site_automator.llm.os.getenv")
+    def test_negative_raises(self, mock_getenv):
+        mock_getenv.return_value = "-1"
+        with pytest.raises(ValueError, match="must be >= 1"):
+            _parse_max_concurrency()
+
+    @patch("site_automator.llm.os.getenv")
+    def test_invalid_raises(self, mock_getenv):
+        mock_getenv.return_value = "abc"
+        with pytest.raises(ValueError):
+            _parse_max_concurrency()
 
 
 class TestOpenAIClientInit:
@@ -270,6 +305,92 @@ class TestOpenAIClientGenerateChat:
         )
 
 
+class TestOpenAIClientGenerateCompletionBulk:
+    """Test OpenAIClient.generate_completion_bulk."""
+
+    @patch("site_automator.llm._parse_max_concurrency", return_value=10)
+    @patch("site_automator.llm.AsyncOpenAI")
+    def test_returns_results_in_order(self, mock_async_class, _mock_conc):
+        mock_client = AsyncMock()
+        mock_async_class.return_value = mock_client
+
+        resp1 = Mock(output_text="Result 1")
+        resp2 = Mock(output_text="Result 2")
+        resp3 = Mock(output_text="Result 3")
+        mock_client.responses.create = AsyncMock(side_effect=[resp1, resp2, resp3])
+
+        client = OpenAIClient(api_key="key", model="gpt-4")
+        results = client.generate_completion_bulk(["p1", "p2", "p3"])
+
+        assert results == ["Result 1", "Result 2", "Result 3"]
+        assert mock_client.responses.create.call_count == 3
+
+    @patch("site_automator.llm._parse_max_concurrency", return_value=10)
+    @patch("site_automator.llm.AsyncOpenAI")
+    def test_empty_list(self, mock_async_class, _mock_conc):
+        client = OpenAIClient(api_key="key", model="gpt-4")
+        assert client.generate_completion_bulk([]) == []
+
+    @patch("site_automator.llm._parse_max_concurrency", return_value=10)
+    @patch("site_automator.llm.AsyncOpenAI")
+    def test_partial_failure_returns_none(self, mock_async_class, _mock_conc):
+        mock_client = AsyncMock()
+        mock_async_class.return_value = mock_client
+
+        resp1 = Mock(output_text="Result 1")
+        mock_client.responses.create = AsyncMock(
+            side_effect=[resp1, RuntimeError("API down"), Mock(output_text="Result 3")]
+        )
+
+        client = OpenAIClient(api_key="key", model="gpt-4")
+        results = client.generate_completion_bulk(["p1", "p2", "p3"])
+
+        assert results == ["Result 1", None, "Result 3"]
+
+
+class TestOpenAIClientGenerateChatBulk:
+    """Test OpenAIClient.generate_chat_bulk."""
+
+    @patch("site_automator.llm._parse_max_concurrency", return_value=10)
+    @patch("site_automator.llm.AsyncOpenAI")
+    def test_returns_results_in_order(self, mock_async_class, _mock_conc):
+        mock_client = AsyncMock()
+        mock_async_class.return_value = mock_client
+
+        resp1 = Mock(output_text="Chat 1")
+        resp2 = Mock(output_text="Chat 2")
+        mock_client.responses.create = AsyncMock(side_effect=[resp1, resp2])
+
+        client = OpenAIClient(api_key="key", model="gpt-4")
+        msgs = [
+            [{"role": "user", "content": "a"}],
+            [{"role": "user", "content": "b"}],
+        ]
+        results = client.generate_chat_bulk(msgs)
+
+        assert results == ["Chat 1", "Chat 2"]
+        assert mock_client.responses.create.call_count == 2
+
+    @patch("site_automator.llm._parse_max_concurrency", return_value=10)
+    @patch("site_automator.llm.AsyncOpenAI")
+    def test_partial_failure_returns_none(self, mock_async_class, _mock_conc):
+        mock_client = AsyncMock()
+        mock_async_class.return_value = mock_client
+
+        mock_client.responses.create = AsyncMock(
+            side_effect=[Mock(output_text="Chat 1"), RuntimeError("fail")]
+        )
+
+        client = OpenAIClient(api_key="key", model="gpt-4")
+        msgs = [
+            [{"role": "user", "content": "a"}],
+            [{"role": "user", "content": "b"}],
+        ]
+        results = client.generate_chat_bulk(msgs)
+
+        assert results == ["Chat 1", None]
+
+
 class TestOllamaClientInit:
     """Test OllamaClient.__init__."""
 
@@ -394,6 +515,79 @@ class TestOllamaClientGenerateChat:
         assert result == ""
 
 
+class TestOllamaClientGenerateCompletionBulk:
+    """Test OllamaClient.generate_completion_bulk."""
+
+    @patch("site_automator.llm.ollama.generate")
+    def test_returns_results_in_order(self, mock_generate):
+        mock_generate.side_effect = [
+            {"response": "Ollama 1"},
+            {"response": "Ollama 2"},
+        ]
+
+        client = OllamaClient(model="llama3.1:8b")
+        results = client.generate_completion_bulk(["p1", "p2"])
+
+        assert results == ["Ollama 1", "Ollama 2"]
+        assert mock_generate.call_count == 2
+
+    @patch("site_automator.llm.ollama.generate")
+    def test_empty_list(self, mock_generate):
+        client = OllamaClient(model="llama3.1:8b")
+        assert client.generate_completion_bulk([]) == []
+        mock_generate.assert_not_called()
+
+    @patch("site_automator.llm.ollama.generate")
+    def test_partial_failure_returns_none(self, mock_generate):
+        mock_generate.side_effect = [
+            {"response": "Ollama 1"},
+            RuntimeError("fail"),
+            {"response": "Ollama 3"},
+        ]
+
+        client = OllamaClient(model="llama3.1:8b")
+        results = client.generate_completion_bulk(["p1", "p2", "p3"])
+
+        assert results == ["Ollama 1", None, "Ollama 3"]
+
+
+class TestOllamaClientGenerateChatBulk:
+    """Test OllamaClient.generate_chat_bulk."""
+
+    @patch("site_automator.llm.ollama.chat")
+    def test_returns_results_in_order(self, mock_chat):
+        mock_chat.side_effect = [
+            {"message": {"content": "Chat A"}},
+            {"message": {"content": "Chat B"}},
+        ]
+
+        client = OllamaClient(model="llama3.1:8b")
+        msgs = [
+            [{"role": "user", "content": "a"}],
+            [{"role": "user", "content": "b"}],
+        ]
+        results = client.generate_chat_bulk(msgs)
+
+        assert results == ["Chat A", "Chat B"]
+        assert mock_chat.call_count == 2
+
+    @patch("site_automator.llm.ollama.chat")
+    def test_partial_failure_returns_none(self, mock_chat):
+        mock_chat.side_effect = [
+            RuntimeError("fail"),
+            {"message": {"content": "Chat B"}},
+        ]
+
+        client = OllamaClient(model="llama3.1:8b")
+        msgs = [
+            [{"role": "user", "content": "a"}],
+            [{"role": "user", "content": "b"}],
+        ]
+        results = client.generate_chat_bulk(msgs)
+
+        assert results == [None, "Chat B"]
+
+
 class TestGetLlmClient:
     """Test get_llm_client factory."""
 
@@ -506,3 +700,67 @@ class TestGenerateChatClean:
 
         # Verify cleaning was applied (ellipsis and smart quote -> ASCII)
         assert result == "Hello... it's working"
+
+
+class TestGenerateCompletionBulkClean:
+    """Test generate_completion_bulk_clean function."""
+
+    @patch("site_automator.llm.get_llm_client")
+    @patch("site_automator.llm.clean_llm_text")
+    def test_calls_bulk_and_cleans_each(self, mock_clean, mock_get_client):
+        mock_client = Mock()
+        mock_client.generate_completion_bulk.return_value = ["raw1", "raw2"]
+        mock_get_client.return_value = mock_client
+        mock_clean.side_effect = ["clean1", "clean2"]
+
+        results = generate_completion_bulk_clean(["p1", "p2"])
+
+        assert results == ["clean1", "clean2"]
+        mock_client.generate_completion_bulk.assert_called_once_with(["p1", "p2"])
+        assert mock_clean.call_count == 2
+
+    @patch("site_automator.llm.get_llm_client")
+    @patch("site_automator.llm.clean_llm_text")
+    def test_none_passthrough(self, mock_clean, mock_get_client):
+        mock_client = Mock()
+        mock_client.generate_completion_bulk.return_value = ["raw1", None, "raw3"]
+        mock_get_client.return_value = mock_client
+        mock_clean.side_effect = ["clean1", "clean3"]
+
+        results = generate_completion_bulk_clean(["p1", "p2", "p3"])
+
+        assert results == ["clean1", None, "clean3"]
+        assert mock_clean.call_count == 2
+
+
+class TestGenerateChatBulkClean:
+    """Test generate_chat_bulk_clean function."""
+
+    @patch("site_automator.llm.get_llm_client")
+    @patch("site_automator.llm.clean_llm_text")
+    def test_calls_bulk_and_cleans_each(self, mock_clean, mock_get_client):
+        mock_client = Mock()
+        mock_client.generate_chat_bulk.return_value = ["raw1", "raw2"]
+        mock_get_client.return_value = mock_client
+        mock_clean.side_effect = ["clean1", "clean2"]
+
+        msgs = [[{"role": "user", "content": "a"}], [{"role": "user", "content": "b"}]]
+        results = generate_chat_bulk_clean(msgs)
+
+        assert results == ["clean1", "clean2"]
+        mock_client.generate_chat_bulk.assert_called_once_with(msgs)
+        assert mock_clean.call_count == 2
+
+    @patch("site_automator.llm.get_llm_client")
+    @patch("site_automator.llm.clean_llm_text")
+    def test_none_passthrough(self, mock_clean, mock_get_client):
+        mock_client = Mock()
+        mock_client.generate_chat_bulk.return_value = [None, "raw2"]
+        mock_get_client.return_value = mock_client
+        mock_clean.side_effect = ["clean2"]
+
+        msgs = [[{"role": "user", "content": "a"}], [{"role": "user", "content": "b"}]]
+        results = generate_chat_bulk_clean(msgs)
+
+        assert results == [None, "clean2"]
+        assert mock_clean.call_count == 1

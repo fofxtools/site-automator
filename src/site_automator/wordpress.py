@@ -136,6 +136,35 @@ class WordPressDeployer:
 
         logger.info(f"Admin password synced successfully for {domain}")
 
+    def create_robots_txt(self, domain: str) -> None:
+        """Create robots.txt in the WordPress webroot.
+
+        Writes a standard robots.txt that blocks wp-admin (except admin-ajax.php)
+        and includes the WordPress sitemap.
+
+        Args:
+            domain: Domain name of the site
+
+        Raises:
+            RuntimeError: If writing robots.txt fails
+        """
+        logger.info(f"Creating robots.txt for {domain}")
+
+        content = (
+            "User-agent: *\n"
+            "Disallow: /wp-admin/\n"
+            "Allow: /wp-admin/admin-ajax.php\n"
+            "\n"
+            f"Sitemap: https://{domain}/wp-sitemap.xml\n"
+        )
+
+        self.wordops.run_command(
+            f"cat > /var/www/{domain}/htdocs/robots.txt << 'ROBOTS_EOF'\n{content}ROBOTS_EOF",
+            check=True,
+        )
+
+        logger.info(f"robots.txt created successfully for {domain}")
+
     def delete_demo_content(self, domain: str) -> None:
         """Delete default WordPress demo content.
 

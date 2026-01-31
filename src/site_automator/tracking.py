@@ -345,9 +345,9 @@ return [
         logger.info("Python processing scripts uploaded successfully")
 
     def _setup_cron_job(self) -> None:
-        """Setup daily cron job to process pageview logs.
+        """Setup cron job to process pageview logs.
 
-        Adds cron job to run process_daily_logs.py daily at 1 AM.
+        Adds cron job to run process_daily_logs.py.
         This method is idempotent - won't add duplicate entries.
 
         Raises:
@@ -355,7 +355,7 @@ return [
         """
         logger.info("Setting up cron job for log processing")
 
-        cron_line = "0 1 * * * /usr/bin/python3 /var/lib/pageview-tracking/scripts/process_daily_logs.py"
+        cron_line = "0 * * * * /usr/bin/python3 /var/lib/pageview-tracking/scripts/process_daily_logs.py"
 
         # Add to crontab if not already present
         command = (
@@ -376,7 +376,7 @@ return [
         - Updates track_config.php with settings from .env
         - Creates flat file storage directory (/var/lib/pageview-tracking)
         - Uploads Python processing scripts
-        - Sets up cron job for daily log processing
+        - Sets up cron job for log processing
 
         Environment variables (optional):
         - TRACKING_ENV_FILE: Path to .env file (default: '../../../../.env')
@@ -412,7 +412,7 @@ return [
         # Upload Python processing scripts
         self._upload_processing_scripts()
 
-        # Setup cron job for daily log processing
+        # Setup cron job for log processing
         self._setup_cron_job()
 
         logger.info(f"Pageview tracking setup completed successfully for {domain}")

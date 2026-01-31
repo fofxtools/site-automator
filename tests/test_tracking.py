@@ -141,6 +141,41 @@ class TestCreateDataDirectory:
         assert mock_ssh_client.exec_command.call_count == 12
 
 
+class TestUploadProcessingScripts:
+    """Test _upload_processing_scripts method."""
+
+    def test_upload_processing_scripts(self, tracking, mock_ssh_client):
+        """Test _upload_processing_scripts uploads scripts and makes them executable."""
+        mock_sftp = Mock()
+        mock_ssh_client.open_sftp.return_value = mock_sftp
+
+        tracking._upload_processing_scripts()
+
+        # Should upload 2 scripts
+        assert mock_sftp.put.call_count == 2
+
+        # Should make each script executable
+        calls = [call[0][0] for call in mock_ssh_client.exec_command.call_args_list]
+        assert any(
+            "chmod +x" in cmd and "process_daily_logs.py" in cmd for cmd in calls
+        )
+        assert any(
+            "chmod +x" in cmd and "generate_dummy_logs.py" in cmd for cmd in calls
+        )
+
+
+class TestSetupCronJob:
+    """Test _setup_cron_job method."""
+
+    def test_setup_cron_job(self, tracking, mock_ssh_client):
+        """Test _setup_cron_job adds cron entry idempotently."""
+        tracking._setup_cron_job()
+
+        call_args = mock_ssh_client.exec_command.call_args[0][0]
+        assert "process_daily_logs.py" in call_args
+        assert "crontab" in call_args
+
+
 class TestSetupTracking:
     """Test setup_tracking method."""
 

@@ -1,14 +1,17 @@
 """LLM client implementations for OpenAI and Ollama."""
 
+import asyncio
 import logging
 import os
 from typing import Any
 
 import ollama
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import AsyncOpenAI, OpenAI
 
 from site_automator.utils import clean_llm_text
+
+_DEFAULT_MAX_CONCURRENCY = 10
 
 # Load environment variables once at module import
 load_dotenv()
@@ -33,6 +36,25 @@ def _parse_max_tokens() -> int | None:
     return None if max_tokens == 0 else max_tokens
 
 
+def _parse_max_concurrency() -> int:
+    """Parse LLM_MAX_CONCURRENCY environment variable.
+
+    Returns:
+        Max concurrency as int (defaults to 10)
+
+    Raises:
+        ValueError: If LLM_MAX_CONCURRENCY is not a valid positive integer
+    """
+    val = os.getenv("LLM_MAX_CONCURRENCY", "").strip()
+    if not val:
+        return _DEFAULT_MAX_CONCURRENCY
+
+    n = int(val)
+    if n < 1:
+        raise ValueError(f"LLM_MAX_CONCURRENCY must be >= 1, got {n}")
+    return n
+
+
 class OpenAIClient:
     """OpenAI API client using the Responses API."""
 
@@ -41,6 +63,7 @@ class OpenAIClient:
     max_tokens: int | None
     base_url: str | None
     _client: OpenAI | None
+    _async_client: AsyncOpenAI | None
 
     def __init__(
         self,
@@ -62,6 +85,7 @@ class OpenAIClient:
         self.max_tokens = max_tokens
         self.base_url = base_url
         self._client: OpenAI | None = None
+        self._async_client: AsyncOpenAI | None = None
 
     @classmethod
     def from_env(cls) -> "OpenAIClient":
@@ -166,6 +190,107 @@ class OpenAIClient:
             logger.exception("OpenAI API error")
             raise
 
+    def _get_async_client(self) -> AsyncOpenAI:
+        """Get or create AsyncOpenAI client instance."""
+        if self._async_client is None:
+            if self.base_url is not None:
+                self._async_client = AsyncOpenAI(
+                    api_key=self.api_key, base_url=self.base_url
+                )
+            else:
+                self._async_client = AsyncOpenAI(api_key=self.api_key)
+        return self._async_client
+
+    async def _generate_completion_async(self, prompt: str) -> str:
+        """Async version of generate_completion."""
+        client = self._get_async_client()
+        try:
+            if self.max_tokens is not None:
+                response = await client.responses.create(
+                    model=self.model,
+                    input=prompt,
+                    max_output_tokens=self.max_tokens,
+                )
+            else:
+                response = await client.responses.create(
+                    model=self.model,
+                    input=prompt,
+                )
+            return response.output_text or ""
+        except Exception:
+            logger.exception("OpenAI API error")
+            raise
+
+    async def _generate_chat_async(self, messages: list[dict[str, Any]]) -> str:
+        """Async version of generate_chat."""
+        client = self._get_async_client()
+        try:
+            if self.max_tokens is not None:
+                response = await client.responses.create(
+                    model=self.model,
+                    input=messages,  # type: ignore[arg-type]
+                    max_output_tokens=self.max_tokens,
+                )
+            else:
+                response = await client.responses.create(
+                    model=self.model,
+                    input=messages,  # type: ignore[arg-type]
+                )
+            return response.output_text or ""
+        except Exception:
+            logger.exception("OpenAI API error")
+            raise
+
+    def generate_completion_bulk(self, prompts: list[str]) -> list[str | None]:
+        """Generate completions for multiple prompts concurrently.
+
+        Args:
+            prompts: List of input prompts
+
+        Returns:
+            List of generated texts (or None for failures), in the same order
+            as prompts. Failures are logged individually.
+        """
+        semaphore = asyncio.Semaphore(_parse_max_concurrency())
+
+        async def _limited(prompt: str) -> str:
+            async with semaphore:
+                return await self._generate_completion_async(prompt)
+
+        async def _run() -> list[str | None]:
+            raw = await asyncio.gather(
+                *[_limited(p) for p in prompts], return_exceptions=True
+            )
+            return [None if isinstance(r, BaseException) else r for r in raw]
+
+        return asyncio.run(_run())
+
+    def generate_chat_bulk(
+        self, message_lists: list[list[dict[str, Any]]]
+    ) -> list[str | None]:
+        """Generate chat responses for multiple message lists concurrently.
+
+        Args:
+            message_lists: List of message lists
+
+        Returns:
+            List of generated texts (or None for failures), in the same order
+            as message_lists. Failures are logged individually.
+        """
+        semaphore = asyncio.Semaphore(_parse_max_concurrency())
+
+        async def _limited(messages: list[dict[str, Any]]) -> str:
+            async with semaphore:
+                return await self._generate_chat_async(messages)
+
+        async def _run() -> list[str | None]:
+            raw = await asyncio.gather(
+                *[_limited(m) for m in message_lists], return_exceptions=True
+            )
+            return [None if isinstance(r, BaseException) else r for r in raw]
+
+        return asyncio.run(_run())
+
 
 class OllamaClient:
     """Ollama client using ollama.chat."""
@@ -259,6 +384,50 @@ class OllamaClient:
             logger.exception("Ollama API error")
             raise
 
+    def generate_completion_bulk(self, prompts: list[str]) -> list[str | None]:
+        """Generate completions for multiple prompts sequentially.
+
+        Ollama runs locally on a single GPU and serializes requests,
+        so concurrent calls add overhead without benefit.
+
+        Args:
+            prompts: List of input prompts
+
+        Returns:
+            List of generated texts (or None for failures), in the same order
+            as prompts. Failures are logged individually.
+        """
+        results: list[str | None] = []
+        for p in prompts:
+            try:
+                results.append(self.generate_completion(p))
+            except Exception:
+                results.append(None)
+        return results
+
+    def generate_chat_bulk(
+        self, message_lists: list[list[dict[str, Any]]]
+    ) -> list[str | None]:
+        """Generate chat responses for multiple message lists sequentially.
+
+        Ollama runs locally on a single GPU and serializes requests,
+        so concurrent calls add overhead without benefit.
+
+        Args:
+            message_lists: List of message lists
+
+        Returns:
+            List of generated texts (or None for failures), in the same order
+            as message_lists. Failures are logged individually.
+        """
+        results: list[str | None] = []
+        for m in message_lists:
+            try:
+                results.append(self.generate_chat(m))
+            except Exception:
+                results.append(None)
+        return results
+
 
 def get_llm_client() -> OpenAIClient | OllamaClient:
     """Factory function to get LLM client based on LLM_PROVIDER.
@@ -301,3 +470,25 @@ def generate_chat_clean(messages: list[dict[str, Any]]) -> str:
     client = get_llm_client()
     raw = client.generate_chat(messages)
     return clean_llm_text(raw)
+
+
+def generate_completion_bulk_clean(prompts: list[str]) -> list[str | None]:
+    """Generate completions for multiple prompts and clean each output.
+
+    Returns None for any prompt that failed.
+    """
+    client = get_llm_client()
+    results = client.generate_completion_bulk(prompts)
+    return [clean_llm_text(r) if r is not None else None for r in results]
+
+
+def generate_chat_bulk_clean(
+    message_lists: list[list[dict[str, Any]]],
+) -> list[str | None]:
+    """Generate chat responses for multiple message lists and clean each output.
+
+    Returns None for any message list that failed.
+    """
+    client = get_llm_client()
+    results = client.generate_chat_bulk(message_lists)
+    return [clean_llm_text(r) if r is not None else None for r in results]

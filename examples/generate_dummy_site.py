@@ -87,11 +87,12 @@ def deploy_and_configure(
     )
 
     wordpress.sync_admin_password_to_db(domain)
+    wordpress.create_robots_txt(domain)
     wordpress.disable_comments_with_plugin(domain)
     wordpress.delete_widgets(domain, ["block-4"])
-    wordpress.install_theme(domain, "/shared/astra.zip", activate=False)
-    wordpress.install_theme(domain, "/shared/kadence.zip", activate=False)
-    wordpress.install_theme(domain, "/shared/generatepress.zip", activate=True)
+    wordpress.install_theme(domain, "astra", activate=False)
+    wordpress.install_theme(domain, "kadence", activate=False)
+    wordpress.install_theme(domain, "generatepress", activate=True)
     wordpress.delete_themes(domain, ["twentytwentythree", "twentytwentyfour"])
 
     tracking = PageviewTrackingSetup(wordops)
