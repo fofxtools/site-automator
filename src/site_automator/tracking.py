@@ -212,6 +212,8 @@ return [
      * Individual IP addresses to exclude (IPv4 or IPv6).
      *
      * e.g. admin IP, banned IPs, etc.
+     * 
+     * Only applies to pageview tracking (track_pageview.php), not bot tracking (track_bots.php).
      *
      * Example: ['127.0.0.1', '192.168.1.100', '2001:db8::1']
      */
@@ -219,6 +221,8 @@ return [
 
     /**
      * CIDR ranges to exclude (IPv4 or IPv6).
+     * 
+     * Only applies to pageview tracking (track_pageview.php), not bot tracking (track_bots.php).
      *
      * Example: ['192.168.1.0/24', '2001:db8::/32']
      */
@@ -226,6 +230,8 @@ return [
 
     /**
      * User agent strings to exclude (exact match, case-insensitive).
+     * 
+     * Only applies to pageview tracking (track_pageview.php), not bot tracking (track_bots.php).
      *
      * Example: ['BadBot/1.0', 'Scraper/2.0']
      */
@@ -233,6 +239,8 @@ return [
 
     /**
      * User agent substrings to exclude (substring match, case-insensitive).
+     * 
+     * Only applies to pageview tracking (track_pageview.php), not bot tracking (track_bots.php).
      *
      * Example: ['badbot', 'scraper']
      */

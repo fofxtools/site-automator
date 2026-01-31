@@ -36,6 +36,21 @@ def _parse_max_tokens() -> int | None:
     return None if max_tokens == 0 else max_tokens
 
 
+def _parse_temperature() -> float | None:
+    """Parse LLM_TEMPERATURE environment variable.
+
+    Returns:
+        Temperature as float, or None if unset/empty
+
+    Raises:
+        ValueError: If LLM_TEMPERATURE is not a valid float
+    """
+    val = os.getenv("LLM_TEMPERATURE", "").strip()
+    if not val:
+        return None
+    return float(val)
+
+
 def _parse_max_concurrency() -> int:
     """Parse LLM_MAX_CONCURRENCY environment variable.
 
@@ -56,11 +71,12 @@ def _parse_max_concurrency() -> int:
 
 
 class OpenAIClient:
-    """OpenAI API client using the Responses API."""
+    """OpenAI API client using the Chat Completions API."""
 
     api_key: str
     model: str
     max_tokens: int | None
+    temperature: float | None
     base_url: str | None
     _client: OpenAI | None
     _async_client: AsyncOpenAI | None
@@ -70,6 +86,7 @@ class OpenAIClient:
         api_key: str,
         model: str,
         max_tokens: int | None = None,
+        temperature: float | None = None,
         base_url: str | None = None,
     ) -> None:
         """Initialize OpenAI client.
@@ -78,24 +95,26 @@ class OpenAIClient:
             api_key: OpenAI API key
             model: Model name (e.g., "gpt-4.1-nano")
             max_tokens: Maximum tokens to generate (None for backend default)
+            temperature: Sampling temperature (None for backend default)
             base_url: Base URL for API (None for OpenAI default)
         """
         self.api_key = api_key
         self.model = model
         self.max_tokens = max_tokens
+        self.temperature = temperature
         self.base_url = base_url
         self._client: OpenAI | None = None
         self._async_client: AsyncOpenAI | None = None
 
     @classmethod
-    def from_env(cls) -> "OpenAIClient":
-        """Create OpenAI client from environment variables.
+    def from_env(cls, provider: str) -> "OpenAIClient":
+        """Create OpenAI client from environment variables using provider prefix.
 
-        Expects environment variables:
-            - LLM_API_KEY: OpenAI API key
-            - LLM_MODEL: Model name (e.g., "gpt-4.1-nano")
-            - LLM_MAX_TOKENS: Max tokens (optional, empty or 0 = unset)
-            - LLM_BASE_URL: Base URL for API (optional)
+        Reads {PROVIDER}_API_KEY, {PROVIDER}_MODEL, and optionally
+        {PROVIDER}_BASE_URL based on the provider name.
+
+        Args:
+            provider: Provider name (e.g., "openai", "groq", "deepinfra")
 
         Returns:
             OpenAIClient instance
@@ -103,19 +122,26 @@ class OpenAIClient:
         Raises:
             ValueError: If required environment variables are missing
         """
-        api_key = os.getenv("LLM_API_KEY")
-        if not api_key:
-            raise ValueError("LLM_API_KEY environment variable is required")
+        prefix = provider.upper()
 
-        model = os.getenv("LLM_MODEL")
+        api_key = os.getenv(f"{prefix}_API_KEY")
+        if not api_key:
+            raise ValueError(f"{prefix}_API_KEY environment variable is required")
+
+        model = os.getenv(f"{prefix}_MODEL")
         if not model:
-            raise ValueError("LLM_MODEL environment variable is required")
+            raise ValueError(f"{prefix}_MODEL environment variable is required")
 
         max_tokens = _parse_max_tokens()
-        base_url = os.getenv("LLM_BASE_URL") or None
+        temperature = _parse_temperature()
+        base_url = os.getenv(f"{prefix}_BASE_URL") or None
 
         return cls(
-            api_key=api_key, model=model, max_tokens=max_tokens, base_url=base_url
+            api_key=api_key,
+            model=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            base_url=base_url,
         )
 
     def _get_client(self) -> OpenAI:
@@ -132,8 +158,17 @@ class OpenAIClient:
 
         return self._client
 
+    def _build_kwargs(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        """Build kwargs dict for chat.completions.create."""
+        kwargs: dict[str, Any] = {"model": self.model, "messages": messages}
+        if self.max_tokens is not None:
+            kwargs["max_tokens"] = self.max_tokens
+        if self.temperature is not None:
+            kwargs["temperature"] = self.temperature
+        return kwargs
+
     def generate_completion(self, prompt: str) -> str:
-        """Generate text completion from prompt using OpenAI Responses API.
+        """Generate text completion from prompt using OpenAI Chat Completions API.
 
         Args:
             prompt: Input prompt
@@ -142,27 +177,17 @@ class OpenAIClient:
             Generated text
         """
         client = self._get_client()
+        kwargs = self._build_kwargs([{"role": "user", "content": prompt}])
 
         try:
-            if self.max_tokens is not None:
-                response = client.responses.create(
-                    model=self.model,
-                    input=prompt,
-                    max_output_tokens=self.max_tokens,
-                )
-            else:
-                response = client.responses.create(
-                    model=self.model,
-                    input=prompt,
-                )
-
-            return response.output_text or ""
+            response = client.chat.completions.create(**kwargs)
+            return response.choices[0].message.content or ""
         except Exception:
             logger.exception("OpenAI API error")
             raise
 
     def generate_chat(self, messages: list[dict[str, Any]]) -> str:
-        """Generate chat response from messages using OpenAI Responses API.
+        """Generate chat response from messages using OpenAI Chat Completions API.
 
         Args:
             messages: List of message dicts with 'role' and 'content' keys
@@ -171,21 +196,11 @@ class OpenAIClient:
             Generated text
         """
         client = self._get_client()
+        kwargs = self._build_kwargs(messages)
 
         try:
-            if self.max_tokens is not None:
-                response = client.responses.create(
-                    model=self.model,
-                    input=messages,  # type: ignore[arg-type]
-                    max_output_tokens=self.max_tokens,
-                )
-            else:
-                response = client.responses.create(
-                    model=self.model,
-                    input=messages,  # type: ignore[arg-type]
-                )
-
-            return response.output_text or ""
+            response = client.chat.completions.create(**kwargs)
+            return response.choices[0].message.content or ""
         except Exception:
             logger.exception("OpenAI API error")
             raise
@@ -204,19 +219,10 @@ class OpenAIClient:
     async def _generate_completion_async(self, prompt: str) -> str:
         """Async version of generate_completion."""
         client = self._get_async_client()
+        kwargs = self._build_kwargs([{"role": "user", "content": prompt}])
         try:
-            if self.max_tokens is not None:
-                response = await client.responses.create(
-                    model=self.model,
-                    input=prompt,
-                    max_output_tokens=self.max_tokens,
-                )
-            else:
-                response = await client.responses.create(
-                    model=self.model,
-                    input=prompt,
-                )
-            return response.output_text or ""
+            response = await client.chat.completions.create(**kwargs)
+            return response.choices[0].message.content or ""
         except Exception:
             logger.exception("OpenAI API error")
             raise
@@ -224,19 +230,10 @@ class OpenAIClient:
     async def _generate_chat_async(self, messages: list[dict[str, Any]]) -> str:
         """Async version of generate_chat."""
         client = self._get_async_client()
+        kwargs = self._build_kwargs(messages)
         try:
-            if self.max_tokens is not None:
-                response = await client.responses.create(
-                    model=self.model,
-                    input=messages,  # type: ignore[arg-type]
-                    max_output_tokens=self.max_tokens,
-                )
-            else:
-                response = await client.responses.create(
-                    model=self.model,
-                    input=messages,  # type: ignore[arg-type]
-                )
-            return response.output_text or ""
+            response = await client.chat.completions.create(**kwargs)
+            return response.choices[0].message.content or ""
         except Exception:
             logger.exception("OpenAI API error")
             raise
@@ -297,24 +294,30 @@ class OllamaClient:
 
     model: str
     max_tokens: int | None
+    temperature: float | None
 
-    def __init__(self, model: str, max_tokens: int | None = None) -> None:
+    def __init__(
+        self,
+        model: str,
+        max_tokens: int | None = None,
+        temperature: float | None = None,
+    ) -> None:
         """Initialize Ollama client.
 
         Args:
             model: Model name (e.g., "llama3.1:8b")
             max_tokens: Maximum tokens to generate (None for backend default)
+            temperature: Sampling temperature (None for backend default)
         """
         self.model = model
         self.max_tokens = max_tokens
+        self.temperature = temperature
 
     @classmethod
     def from_env(cls) -> "OllamaClient":
         """Create Ollama client from environment variables.
 
-        Expects environment variables:
-            - LLM_MODEL: Model name (e.g., "llama3.1:8b")
-            - LLM_MAX_TOKENS: Max tokens (optional, empty or 0 = unset)
+        Reads OLLAMA_MODEL for the model name.
 
         Returns:
             OllamaClient instance
@@ -322,13 +325,26 @@ class OllamaClient:
         Raises:
             ValueError: If required environment variables are missing
         """
-        model = os.getenv("LLM_MODEL")
+        model = os.getenv("OLLAMA_MODEL")
         if not model:
-            raise ValueError("LLM_MODEL environment variable is required")
+            raise ValueError("OLLAMA_MODEL environment variable is required")
 
         max_tokens = _parse_max_tokens()
+        temperature = _parse_temperature()
 
-        return cls(model=model, max_tokens=max_tokens)
+        return cls(model=model, max_tokens=max_tokens, temperature=temperature)
+
+    def _build_kwargs(self, **extra: Any) -> dict[str, Any]:
+        """Build kwargs dict for Ollama API calls."""
+        kwargs: dict[str, Any] = {"model": self.model, **extra}
+        options: dict[str, Any] = {}
+        if self.max_tokens is not None:
+            options["num_predict"] = self.max_tokens
+        if self.temperature is not None:
+            options["temperature"] = self.temperature
+        if options:
+            kwargs["options"] = options
+        return kwargs
 
     def generate_completion(self, prompt: str) -> str:
         """Generate text completion from prompt using ollama.generate.
@@ -340,18 +356,8 @@ class OllamaClient:
             Generated text
         """
         try:
-            if self.max_tokens is not None:
-                response = ollama.generate(
-                    model=self.model,
-                    prompt=prompt,
-                    options={"num_predict": self.max_tokens},
-                )
-            else:
-                response = ollama.generate(
-                    model=self.model,
-                    prompt=prompt,
-                )
-
+            kwargs = self._build_kwargs(prompt=prompt)
+            response = ollama.generate(**kwargs)
             return response["response"] or ""
         except Exception:
             logger.exception("Ollama API error")
@@ -367,18 +373,8 @@ class OllamaClient:
             Generated text
         """
         try:
-            if self.max_tokens is not None:
-                response = ollama.chat(
-                    model=self.model,
-                    messages=messages,
-                    options={"num_predict": self.max_tokens},
-                )
-            else:
-                response = ollama.chat(
-                    model=self.model,
-                    messages=messages,
-                )
-
+            kwargs = self._build_kwargs(messages=messages)
+            response = ollama.chat(**kwargs)
             return response["message"]["content"] or ""
         except Exception:
             logger.exception("Ollama API error")
@@ -433,7 +429,7 @@ def get_llm_client() -> OpenAIClient | OllamaClient:
     """Factory function to get LLM client based on LLM_PROVIDER.
 
     Expects environment variables:
-        - LLM_PROVIDER: "openai" or "ollama"
+        - LLM_PROVIDER: provider name (e.g. "openai", "groq", "deepinfra", "ollama")
         - Additional variables required by the selected provider
 
     Returns:
@@ -448,14 +444,10 @@ def get_llm_client() -> OpenAIClient | OllamaClient:
 
     provider = provider.lower()
 
-    if provider == "openai":
-        return OpenAIClient.from_env()
-    elif provider == "ollama":
+    if provider == "ollama":
         return OllamaClient.from_env()
     else:
-        raise ValueError(
-            f"Invalid LLM_PROVIDER: {provider}. Must be 'openai' or 'ollama'"
-        )
+        return OpenAIClient.from_env(provider)
 
 
 def generate_completion_clean(prompt: str) -> str:

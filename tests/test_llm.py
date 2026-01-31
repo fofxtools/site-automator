@@ -6,6 +6,7 @@ from site_automator.llm import (
     OllamaClient,
     get_llm_client,
     _parse_max_tokens,
+    _parse_temperature,
     _parse_max_concurrency,
     generate_completion_clean,
     generate_chat_clean,
@@ -41,6 +42,36 @@ class TestParseMaxTokens:
         mock_getenv.return_value = "not_a_number"
         with pytest.raises(ValueError):
             _parse_max_tokens()
+
+
+class TestParseTemperature:
+    """Test _parse_temperature helper."""
+
+    @patch("site_automator.llm.os.getenv")
+    def test_empty_string_returns_none(self, mock_getenv):
+        mock_getenv.return_value = ""
+        assert _parse_temperature() is None
+
+    @patch("site_automator.llm.os.getenv")
+    def test_valid_float(self, mock_getenv):
+        mock_getenv.return_value = "0.5"
+        assert _parse_temperature() == 0.5
+
+    @patch("site_automator.llm.os.getenv")
+    def test_zero_is_valid(self, mock_getenv):
+        mock_getenv.return_value = "0"
+        assert _parse_temperature() == 0.0
+
+    @patch("site_automator.llm.os.getenv")
+    def test_integer_string(self, mock_getenv):
+        mock_getenv.return_value = "1"
+        assert _parse_temperature() == 1.0
+
+    @patch("site_automator.llm.os.getenv")
+    def test_invalid_raises(self, mock_getenv):
+        mock_getenv.return_value = "not_a_number"
+        with pytest.raises(ValueError):
+            _parse_temperature()
 
 
 class TestParseMaxConcurrency:
@@ -80,13 +111,21 @@ class TestOpenAIClientInit:
 
     def test_init_stores_params(self):
         """Test that parameters are stored correctly."""
-        client = OpenAIClient(api_key="test_key", model="gpt-4", max_tokens=100)
+        client = OpenAIClient(
+            api_key="test_key", model="gpt-4", max_tokens=100, temperature=0.7
+        )
 
         assert client.api_key == "test_key"
         assert client.model == "gpt-4"
         assert client.max_tokens == 100
+        assert client.temperature == 0.7
         assert client.base_url is None
         assert client._client is None
+
+    def test_init_defaults_temperature_none(self):
+        """Test that temperature defaults to None."""
+        client = OpenAIClient(api_key="test_key", model="gpt-4")
+        assert client.temperature is None
 
     def test_init_stores_base_url(self):
         """Test that base_url parameter is stored correctly."""
@@ -101,97 +140,117 @@ class TestOpenAIClientInit:
 
 
 class TestOpenAIClientFromEnv:
-    """Test OpenAIClient.from_env."""
+    """Test OpenAIClient.from_env with prefix-based config."""
 
+    @patch("site_automator.llm._parse_temperature")
     @patch("site_automator.llm._parse_max_tokens")
     @patch("site_automator.llm.os.getenv")
-    def test_from_env_success(self, mock_getenv, mock_parse):
-        """Test from_env with all required vars."""
+    def test_from_env_openai(self, mock_getenv, mock_parse_tokens, mock_parse_temp):
+        """Test from_env with openai provider."""
         mock_getenv.side_effect = lambda key: {
-            "LLM_API_KEY": "test_key",
-            "LLM_MODEL": "gpt-4",
+            "OPENAI_API_KEY": "test_key",
+            "OPENAI_MODEL": "gpt-4",
         }.get(key)
-        mock_parse.return_value = 50
+        mock_parse_tokens.return_value = 50
+        mock_parse_temp.return_value = 0.7
 
-        client = OpenAIClient.from_env()
+        client = OpenAIClient.from_env("openai")
 
         assert client.api_key == "test_key"
         assert client.model == "gpt-4"
         assert client.max_tokens == 50
+        assert client.temperature == 0.7
         assert client.base_url is None
 
+    @patch("site_automator.llm._parse_temperature")
     @patch("site_automator.llm._parse_max_tokens")
     @patch("site_automator.llm.os.getenv")
-    def test_from_env_with_base_url(self, mock_getenv, mock_parse):
-        """Test from_env with LLM_BASE_URL set."""
+    def test_from_env_with_base_url(
+        self, mock_getenv, mock_parse_tokens, mock_parse_temp
+    ):
+        """Test from_env with provider that has BASE_URL."""
         mock_getenv.side_effect = lambda key: {
-            "LLM_API_KEY": "test_key",
-            "LLM_MODEL": "gpt-4",
-            "LLM_BASE_URL": "https://api.openrouter.ai/v1",
+            "GROQ_API_KEY": "test_key",
+            "GROQ_MODEL": "llama-3.1-8b-instant",
+            "GROQ_BASE_URL": "https://api.groq.com/openai/v1",
         }.get(key)
-        mock_parse.return_value = 50
+        mock_parse_tokens.return_value = None
+        mock_parse_temp.return_value = None
 
-        client = OpenAIClient.from_env()
+        client = OpenAIClient.from_env("groq")
 
         assert client.api_key == "test_key"
-        assert client.model == "gpt-4"
-        assert client.max_tokens == 50
-        assert client.base_url == "https://api.openrouter.ai/v1"
+        assert client.model == "llama-3.1-8b-instant"
+        assert client.base_url == "https://api.groq.com/openai/v1"
 
+    @patch("site_automator.llm._parse_temperature")
     @patch("site_automator.llm._parse_max_tokens")
     @patch("site_automator.llm.os.getenv")
-    def test_from_env_with_empty_base_url(self, mock_getenv, mock_parse):
-        """Test from_env with empty LLM_BASE_URL."""
+    def test_from_env_with_empty_base_url(
+        self, mock_getenv, mock_parse_tokens, mock_parse_temp
+    ):
+        """Test from_env with empty BASE_URL resolves to None."""
         mock_getenv.side_effect = lambda key: {
-            "LLM_API_KEY": "test_key",
-            "LLM_MODEL": "gpt-4",
-            "LLM_BASE_URL": "",
+            "OPENAI_API_KEY": "test_key",
+            "OPENAI_MODEL": "gpt-4",
+            "OPENAI_BASE_URL": "",
         }.get(key)
-        mock_parse.return_value = 50
+        mock_parse_tokens.return_value = None
+        mock_parse_temp.return_value = None
 
-        client = OpenAIClient.from_env()
+        client = OpenAIClient.from_env("openai")
 
         assert client.base_url is None
 
     @patch("site_automator.llm.os.getenv")
     def test_from_env_missing_api_key(self, mock_getenv):
-        """Test from_env raises when LLM_API_KEY missing."""
+        """Test from_env raises when API_KEY missing."""
         mock_getenv.return_value = None
 
-        with pytest.raises(ValueError, match="LLM_API_KEY"):
-            OpenAIClient.from_env()
+        with pytest.raises(ValueError, match="GROQ_API_KEY"):
+            OpenAIClient.from_env("groq")
 
     @patch("site_automator.llm.os.getenv")
     def test_from_env_missing_model(self, mock_getenv):
-        """Test from_env raises when LLM_MODEL missing."""
+        """Test from_env raises when MODEL missing."""
         mock_getenv.side_effect = lambda key: {
-            "LLM_API_KEY": "test_key",
-            "LLM_MODEL": None,
+            "OPENAI_API_KEY": "test_key",
         }.get(key)
 
-        with pytest.raises(ValueError, match="LLM_MODEL"):
-            OpenAIClient.from_env()
+        with pytest.raises(ValueError, match="OPENAI_MODEL"):
+            OpenAIClient.from_env("openai")
 
 
 class TestOpenAIClientGenerateCompletion:
     """Test OpenAIClient.generate_completion."""
+
+    @staticmethod
+    def _mock_chat_response(content: str | None) -> Mock:
+        """Build a mock chat.completions.create response."""
+        mock_message = Mock()
+        mock_message.content = content
+        mock_choice = Mock()
+        mock_choice.message = mock_message
+        mock_response = Mock()
+        mock_response.choices = [mock_choice]
+        return mock_response
 
     @patch("site_automator.llm.OpenAI")
     def test_generate_completion_without_max_tokens(self, mock_openai_class):
         """Test generate_completion without max_tokens."""
         mock_client = Mock()
         mock_openai_class.return_value = mock_client
-        mock_response = Mock()
-        mock_response.output_text = "Hello"
-        mock_client.responses.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = self._mock_chat_response(
+            "Hello"
+        )
 
         client = OpenAIClient(api_key="key", model="gpt-4", max_tokens=None)
         result = client.generate_completion("test prompt")
 
         assert result == "Hello"
-        mock_client.responses.create.assert_called_once_with(
+        mock_client.chat.completions.create.assert_called_once_with(
             model="gpt-4",
-            input="test prompt",
+            messages=[{"role": "user", "content": "test prompt"}],
         )
 
     @patch("site_automator.llm.OpenAI")
@@ -199,28 +258,47 @@ class TestOpenAIClientGenerateCompletion:
         """Test generate_completion with max_tokens."""
         mock_client = Mock()
         mock_openai_class.return_value = mock_client
-        mock_response = Mock()
-        mock_response.output_text = "Hello"
-        mock_client.responses.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = self._mock_chat_response(
+            "Hello"
+        )
 
         client = OpenAIClient(api_key="key", model="gpt-4", max_tokens=50)
         result = client.generate_completion("test prompt")
 
         assert result == "Hello"
-        mock_client.responses.create.assert_called_once_with(
+        mock_client.chat.completions.create.assert_called_once_with(
             model="gpt-4",
-            input="test prompt",
-            max_output_tokens=50,
+            messages=[{"role": "user", "content": "test prompt"}],
+            max_tokens=50,
+        )
+
+    @patch("site_automator.llm.OpenAI")
+    def test_generate_completion_with_temperature(self, mock_openai_class):
+        """Test generate_completion with temperature."""
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        mock_client.chat.completions.create.return_value = self._mock_chat_response(
+            "Hello"
+        )
+
+        client = OpenAIClient(api_key="key", model="gpt-4", temperature=0.5)
+        result = client.generate_completion("test prompt")
+
+        assert result == "Hello"
+        mock_client.chat.completions.create.assert_called_once_with(
+            model="gpt-4",
+            messages=[{"role": "user", "content": "test prompt"}],
+            temperature=0.5,
         )
 
     @patch("site_automator.llm.OpenAI")
     def test_generate_completion_empty_response(self, mock_openai_class):
-        """Test generate_completion returns empty string when output_text is None."""
+        """Test generate_completion returns empty string when content is None."""
         mock_client = Mock()
         mock_openai_class.return_value = mock_client
-        mock_response = Mock()
-        mock_response.output_text = None
-        mock_client.responses.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = self._mock_chat_response(
+            None
+        )
 
         client = OpenAIClient(api_key="key", model="gpt-4")
         result = client.generate_completion("test")
@@ -232,9 +310,9 @@ class TestOpenAIClientGenerateCompletion:
         """Test that base_url is passed to OpenAI client when set."""
         mock_client = Mock()
         mock_openai_class.return_value = mock_client
-        mock_response = Mock()
-        mock_response.output_text = "Hello"
-        mock_client.responses.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = self._mock_chat_response(
+            "Hello"
+        )
 
         client = OpenAIClient(
             api_key="key", model="gpt-4", base_url="https://api.openrouter.ai/v1"
@@ -251,9 +329,9 @@ class TestOpenAIClientGenerateCompletion:
         """Test that base_url is not passed to OpenAI client when None."""
         mock_client = Mock()
         mock_openai_class.return_value = mock_client
-        mock_response = Mock()
-        mock_response.output_text = "Hello"
-        mock_client.responses.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = self._mock_chat_response(
+            "Hello"
+        )
 
         client = OpenAIClient(api_key="key", model="gpt-4", base_url=None)
         result = client.generate_completion("test")
@@ -265,23 +343,34 @@ class TestOpenAIClientGenerateCompletion:
 class TestOpenAIClientGenerateChat:
     """Test OpenAIClient.generate_chat."""
 
+    @staticmethod
+    def _mock_chat_response(content: str | None) -> Mock:
+        """Build a mock chat.completions.create response."""
+        mock_message = Mock()
+        mock_message.content = content
+        mock_choice = Mock()
+        mock_choice.message = mock_message
+        mock_response = Mock()
+        mock_response.choices = [mock_choice]
+        return mock_response
+
     @patch("site_automator.llm.OpenAI")
     def test_generate_chat_without_max_tokens(self, mock_openai_class):
         """Test generate_chat without max_tokens."""
         mock_client = Mock()
         mock_openai_class.return_value = mock_client
-        mock_response = Mock()
-        mock_response.output_text = "Hello from chat"
-        mock_client.responses.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = self._mock_chat_response(
+            "Hello from chat"
+        )
 
         client = OpenAIClient(api_key="key", model="gpt-4", max_tokens=None)
         messages = [{"role": "user", "content": "test message"}]
         result = client.generate_chat(messages)
 
         assert result == "Hello from chat"
-        mock_client.responses.create.assert_called_once_with(
+        mock_client.chat.completions.create.assert_called_once_with(
             model="gpt-4",
-            input=messages,
+            messages=messages,
         )
 
     @patch("site_automator.llm.OpenAI")
@@ -289,24 +378,93 @@ class TestOpenAIClientGenerateChat:
         """Test generate_chat with max_tokens."""
         mock_client = Mock()
         mock_openai_class.return_value = mock_client
-        mock_response = Mock()
-        mock_response.output_text = "Hello"
-        mock_client.responses.create.return_value = mock_response
+        mock_client.chat.completions.create.return_value = self._mock_chat_response(
+            "Hello"
+        )
 
         client = OpenAIClient(api_key="key", model="gpt-4", max_tokens=50)
         messages = [{"role": "user", "content": "test"}]
         result = client.generate_chat(messages)
 
         assert result == "Hello"
-        mock_client.responses.create.assert_called_once_with(
+        mock_client.chat.completions.create.assert_called_once_with(
             model="gpt-4",
-            input=messages,
-            max_output_tokens=50,
+            messages=messages,
+            max_tokens=50,
         )
+
+    @patch("site_automator.llm.OpenAI")
+    def test_generate_chat_with_temperature(self, mock_openai_class):
+        """Test generate_chat with temperature."""
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        mock_client.chat.completions.create.return_value = self._mock_chat_response(
+            "Hello"
+        )
+
+        client = OpenAIClient(api_key="key", model="gpt-4", temperature=0.5)
+        messages = [{"role": "user", "content": "test"}]
+        result = client.generate_chat(messages)
+
+        assert result == "Hello"
+        mock_client.chat.completions.create.assert_called_once_with(
+            model="gpt-4",
+            messages=messages,
+            temperature=0.5,
+        )
+
+
+class TestOpenAIClientBuildKwargs:
+    """Test OpenAIClient._build_kwargs."""
+
+    def test_without_optional_params(self):
+        client = OpenAIClient(api_key="key", model="gpt-4")
+        messages = [{"role": "user", "content": "test"}]
+        kwargs = client._build_kwargs(messages)
+
+        assert kwargs == {"model": "gpt-4", "messages": messages}
+
+    def test_with_max_tokens(self):
+        client = OpenAIClient(api_key="key", model="gpt-4", max_tokens=100)
+        messages = [{"role": "user", "content": "test"}]
+        kwargs = client._build_kwargs(messages)
+
+        assert kwargs == {"model": "gpt-4", "messages": messages, "max_tokens": 100}
+
+    def test_with_temperature(self):
+        client = OpenAIClient(api_key="key", model="gpt-4", temperature=0.5)
+        messages = [{"role": "user", "content": "test"}]
+        kwargs = client._build_kwargs(messages)
+
+        assert kwargs == {"model": "gpt-4", "messages": messages, "temperature": 0.5}
+
+    def test_with_both(self):
+        client = OpenAIClient(
+            api_key="key", model="gpt-4", max_tokens=100, temperature=0.5
+        )
+        messages = [{"role": "user", "content": "test"}]
+        kwargs = client._build_kwargs(messages)
+
+        assert kwargs == {
+            "model": "gpt-4",
+            "messages": messages,
+            "max_tokens": 100,
+            "temperature": 0.5,
+        }
 
 
 class TestOpenAIClientGenerateCompletionBulk:
     """Test OpenAIClient.generate_completion_bulk."""
+
+    @staticmethod
+    def _mock_chat_response(content: str | None) -> Mock:
+        mock_message = Mock()
+        mock_message.content = content
+        mock_choice = Mock()
+        mock_choice.message = mock_message
+        mock_response = Mock()
+        mock_response.choices = [mock_choice]
+        return mock_response
 
     @patch("site_automator.llm._parse_max_concurrency", return_value=10)
     @patch("site_automator.llm.AsyncOpenAI")
@@ -314,16 +472,19 @@ class TestOpenAIClientGenerateCompletionBulk:
         mock_client = AsyncMock()
         mock_async_class.return_value = mock_client
 
-        resp1 = Mock(output_text="Result 1")
-        resp2 = Mock(output_text="Result 2")
-        resp3 = Mock(output_text="Result 3")
-        mock_client.responses.create = AsyncMock(side_effect=[resp1, resp2, resp3])
+        mock_client.chat.completions.create = AsyncMock(
+            side_effect=[
+                self._mock_chat_response("Result 1"),
+                self._mock_chat_response("Result 2"),
+                self._mock_chat_response("Result 3"),
+            ]
+        )
 
         client = OpenAIClient(api_key="key", model="gpt-4")
         results = client.generate_completion_bulk(["p1", "p2", "p3"])
 
         assert results == ["Result 1", "Result 2", "Result 3"]
-        assert mock_client.responses.create.call_count == 3
+        assert mock_client.chat.completions.create.call_count == 3
 
     @patch("site_automator.llm._parse_max_concurrency", return_value=10)
     @patch("site_automator.llm.AsyncOpenAI")
@@ -337,9 +498,12 @@ class TestOpenAIClientGenerateCompletionBulk:
         mock_client = AsyncMock()
         mock_async_class.return_value = mock_client
 
-        resp1 = Mock(output_text="Result 1")
-        mock_client.responses.create = AsyncMock(
-            side_effect=[resp1, RuntimeError("API down"), Mock(output_text="Result 3")]
+        mock_client.chat.completions.create = AsyncMock(
+            side_effect=[
+                self._mock_chat_response("Result 1"),
+                RuntimeError("API down"),
+                self._mock_chat_response("Result 3"),
+            ]
         )
 
         client = OpenAIClient(api_key="key", model="gpt-4")
@@ -351,15 +515,28 @@ class TestOpenAIClientGenerateCompletionBulk:
 class TestOpenAIClientGenerateChatBulk:
     """Test OpenAIClient.generate_chat_bulk."""
 
+    @staticmethod
+    def _mock_chat_response(content: str | None) -> Mock:
+        mock_message = Mock()
+        mock_message.content = content
+        mock_choice = Mock()
+        mock_choice.message = mock_message
+        mock_response = Mock()
+        mock_response.choices = [mock_choice]
+        return mock_response
+
     @patch("site_automator.llm._parse_max_concurrency", return_value=10)
     @patch("site_automator.llm.AsyncOpenAI")
     def test_returns_results_in_order(self, mock_async_class, _mock_conc):
         mock_client = AsyncMock()
         mock_async_class.return_value = mock_client
 
-        resp1 = Mock(output_text="Chat 1")
-        resp2 = Mock(output_text="Chat 2")
-        mock_client.responses.create = AsyncMock(side_effect=[resp1, resp2])
+        mock_client.chat.completions.create = AsyncMock(
+            side_effect=[
+                self._mock_chat_response("Chat 1"),
+                self._mock_chat_response("Chat 2"),
+            ]
+        )
 
         client = OpenAIClient(api_key="key", model="gpt-4")
         msgs = [
@@ -369,7 +546,7 @@ class TestOpenAIClientGenerateChatBulk:
         results = client.generate_chat_bulk(msgs)
 
         assert results == ["Chat 1", "Chat 2"]
-        assert mock_client.responses.create.call_count == 2
+        assert mock_client.chat.completions.create.call_count == 2
 
     @patch("site_automator.llm._parse_max_concurrency", return_value=10)
     @patch("site_automator.llm.AsyncOpenAI")
@@ -377,8 +554,8 @@ class TestOpenAIClientGenerateChatBulk:
         mock_client = AsyncMock()
         mock_async_class.return_value = mock_client
 
-        mock_client.responses.create = AsyncMock(
-            side_effect=[Mock(output_text="Chat 1"), RuntimeError("fail")]
+        mock_client.chat.completions.create = AsyncMock(
+            side_effect=[self._mock_chat_response("Chat 1"), RuntimeError("fail")]
         )
 
         client = OpenAIClient(api_key="key", model="gpt-4")
@@ -396,45 +573,94 @@ class TestOllamaClientInit:
 
     def test_init_stores_params(self):
         """Test that parameters are stored correctly."""
-        client = OllamaClient(model="llama3.1:8b", max_tokens=100)
+        client = OllamaClient(model="llama3.1:8b", max_tokens=100, temperature=0.7)
 
         assert client.model == "llama3.1:8b"
         assert client.max_tokens == 100
+        assert client.temperature == 0.7
+
+    def test_init_defaults_temperature_none(self):
+        """Test that temperature defaults to None."""
+        client = OllamaClient(model="llama3.1:8b")
+        assert client.temperature is None
 
 
 class TestOllamaClientFromEnv:
     """Test OllamaClient.from_env."""
 
+    @patch("site_automator.llm._parse_temperature")
     @patch("site_automator.llm._parse_max_tokens")
     @patch("site_automator.llm.os.getenv")
-    def test_from_env_success(self, mock_getenv, mock_parse):
+    def test_from_env_success(self, mock_getenv, mock_parse_tokens, mock_parse_temp):
         """Test from_env with all required vars."""
         mock_getenv.return_value = "llama3.1:8b"
-        mock_parse.return_value = 50
+        mock_parse_tokens.return_value = 50
+        mock_parse_temp.return_value = 0.5
 
         client = OllamaClient.from_env()
 
         assert client.model == "llama3.1:8b"
         assert client.max_tokens == 50
+        assert client.temperature == 0.5
 
     @patch("site_automator.llm.os.getenv")
     def test_from_env_missing_model(self, mock_getenv):
-        """Test from_env raises when LLM_MODEL missing."""
+        """Test from_env raises when OLLAMA_MODEL missing."""
         mock_getenv.return_value = None
 
-        with pytest.raises(ValueError, match="LLM_MODEL"):
+        with pytest.raises(ValueError, match="OLLAMA_MODEL"):
             OllamaClient.from_env()
+
+
+class TestOllamaClientBuildKwargs:
+    """Test OllamaClient._build_kwargs."""
+
+    def test_without_optional_params(self):
+        client = OllamaClient(model="llama3.1:8b")
+        kwargs = client._build_kwargs(prompt="test")
+
+        assert kwargs == {"model": "llama3.1:8b", "prompt": "test"}
+
+    def test_with_max_tokens(self):
+        client = OllamaClient(model="llama3.1:8b", max_tokens=50)
+        kwargs = client._build_kwargs(prompt="test")
+
+        assert kwargs == {
+            "model": "llama3.1:8b",
+            "prompt": "test",
+            "options": {"num_predict": 50},
+        }
+
+    def test_with_temperature(self):
+        client = OllamaClient(model="llama3.1:8b", temperature=0.5)
+        kwargs = client._build_kwargs(prompt="test")
+
+        assert kwargs == {
+            "model": "llama3.1:8b",
+            "prompt": "test",
+            "options": {"temperature": 0.5},
+        }
+
+    def test_with_both(self):
+        client = OllamaClient(model="llama3.1:8b", max_tokens=50, temperature=0.5)
+        kwargs = client._build_kwargs(messages=[{"role": "user", "content": "test"}])
+
+        assert kwargs == {
+            "model": "llama3.1:8b",
+            "messages": [{"role": "user", "content": "test"}],
+            "options": {"num_predict": 50, "temperature": 0.5},
+        }
 
 
 class TestOllamaClientGenerateCompletion:
     """Test OllamaClient.generate_completion."""
 
     @patch("site_automator.llm.ollama.generate")
-    def test_generate_completion_without_max_tokens(self, mock_generate):
-        """Test generate_completion without max_tokens."""
+    def test_generate_completion_without_options(self, mock_generate):
+        """Test generate_completion without max_tokens or temperature."""
         mock_generate.return_value = {"response": "Hello from Ollama"}
 
-        client = OllamaClient(model="llama3.1:8b", max_tokens=None)
+        client = OllamaClient(model="llama3.1:8b")
         result = client.generate_completion("test prompt")
 
         assert result == "Hello from Ollama"
@@ -459,6 +685,21 @@ class TestOllamaClientGenerateCompletion:
         )
 
     @patch("site_automator.llm.ollama.generate")
+    def test_generate_completion_with_temperature(self, mock_generate):
+        """Test generate_completion with temperature."""
+        mock_generate.return_value = {"response": "Hello"}
+
+        client = OllamaClient(model="llama3.1:8b", temperature=0.5)
+        result = client.generate_completion("test prompt")
+
+        assert result == "Hello"
+        mock_generate.assert_called_once_with(
+            model="llama3.1:8b",
+            prompt="test prompt",
+            options={"temperature": 0.5},
+        )
+
+    @patch("site_automator.llm.ollama.generate")
     def test_generate_completion_empty_response(self, mock_generate):
         """Test generate_completion returns empty string when response is None."""
         mock_generate.return_value = {"response": None}
@@ -473,11 +714,11 @@ class TestOllamaClientGenerateChat:
     """Test OllamaClient.generate_chat."""
 
     @patch("site_automator.llm.ollama.chat")
-    def test_generate_chat_without_max_tokens(self, mock_chat):
-        """Test generate_chat without max_tokens."""
+    def test_generate_chat_without_options(self, mock_chat):
+        """Test generate_chat without max_tokens or temperature."""
         mock_chat.return_value = {"message": {"content": "Hello from chat"}}
 
-        client = OllamaClient(model="llama3.1:8b", max_tokens=None)
+        client = OllamaClient(model="llama3.1:8b")
         messages = [{"role": "user", "content": "test message"}]
         result = client.generate_chat(messages)
 
@@ -501,6 +742,22 @@ class TestOllamaClientGenerateChat:
             model="llama3.1:8b",
             messages=messages,
             options={"num_predict": 50},
+        )
+
+    @patch("site_automator.llm.ollama.chat")
+    def test_generate_chat_with_temperature(self, mock_chat):
+        """Test generate_chat with temperature."""
+        mock_chat.return_value = {"message": {"content": "Hello"}}
+
+        client = OllamaClient(model="llama3.1:8b", temperature=0.5)
+        messages = [{"role": "user", "content": "test"}]
+        result = client.generate_chat(messages)
+
+        assert result == "Hello"
+        mock_chat.assert_called_once_with(
+            model="llama3.1:8b",
+            messages=messages,
+            options={"temperature": 0.5},
         )
 
     @patch("site_automator.llm.ollama.chat")
@@ -594,7 +851,7 @@ class TestGetLlmClient:
     @patch("site_automator.llm.OpenAIClient.from_env")
     @patch("site_automator.llm.os.getenv")
     def test_get_openai_client(self, mock_getenv, mock_from_env):
-        """Test factory returns OpenAI client."""
+        """Test factory returns OpenAI client for openai provider."""
         mock_getenv.return_value = "openai"
         mock_client = Mock()
         mock_from_env.return_value = mock_client
@@ -602,7 +859,20 @@ class TestGetLlmClient:
         result = get_llm_client()
 
         assert result == mock_client
-        mock_from_env.assert_called_once()
+        mock_from_env.assert_called_once_with("openai")
+
+    @patch("site_automator.llm.OpenAIClient.from_env")
+    @patch("site_automator.llm.os.getenv")
+    def test_get_groq_client(self, mock_getenv, mock_from_env):
+        """Test factory routes non-ollama provider to OpenAIClient."""
+        mock_getenv.return_value = "groq"
+        mock_client = Mock()
+        mock_from_env.return_value = mock_client
+
+        result = get_llm_client()
+
+        assert result == mock_client
+        mock_from_env.assert_called_once_with("groq")
 
     @patch("site_automator.llm.OllamaClient.from_env")
     @patch("site_automator.llm.os.getenv")
@@ -623,14 +893,6 @@ class TestGetLlmClient:
         mock_getenv.return_value = None
 
         with pytest.raises(ValueError, match="LLM_PROVIDER"):
-            get_llm_client()
-
-    @patch("site_automator.llm.os.getenv")
-    def test_invalid_provider_raises(self, mock_getenv):
-        """Test invalid LLM_PROVIDER raises ValueError."""
-        mock_getenv.return_value = "invalid"
-
-        with pytest.raises(ValueError, match="Invalid LLM_PROVIDER"):
             get_llm_client()
 
 

@@ -21,11 +21,6 @@ if (!$config['tracking_enabled']) {
     return;
 }
 
-// Exclude Check
-if (is_excluded($config['ip'] ?? '', $config['user_agent'] ?? '')) {
-    return;
-}
-
 // Required
 if ($config['url'] === '') {
     return;
