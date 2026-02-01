@@ -89,6 +89,17 @@ if exit_code == 0:
 wordops.ensure_swap(size_gb=4)
 ```
 
+## Default Catch-all
+
+Creates a default catch-all Nginx server block that returns 444 for any domain not explicitly configured.
+
+This avoids a domain pointed to the server, but not set up as a site. From being served by the first available site by Nginx.
+
+```python
+# Create default catch-all
+wordops.ensure_default_catchall()
+```
+
 ## Complete Example
 
 ```python
@@ -108,6 +119,9 @@ try:
 
     # Restart nginx
     wordops.restart_nginx()
+
+    # Create default catch-all
+    wordops.ensure_default_catchall()
 
 finally:
     wordops.close()

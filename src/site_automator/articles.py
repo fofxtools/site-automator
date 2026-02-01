@@ -3,18 +3,20 @@ import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 
 from site_automator.sites import load_site_config
 from site_automator.topics import load_topics
 from site_automator.prompts import load_prompt
-from site_automator.llm import generate_completion_clean, get_llm_client
+from site_automator.llm import generate_completion_bulk_clean, get_llm_client
 
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+# Negative value means unlimited
 MAX_ARTICLES_PER_RUN = 100
 
 
@@ -81,52 +83,80 @@ def generate_articles_llm(site_id: str) -> None:
     total = len(topics)
     generated = 0
     skipped = 0
+    failed = 0
 
     logger.info(f"Starting article generation for {site_id}: {total} topics")
 
-    for topic in topics:
-        # Stop if we've reached the max articles per run
-        if generated >= MAX_ARTICLES_PER_RUN:
-            logger.info(
-                f"Reached MAX_ARTICLES_PER_RUN ({MAX_ARTICLES_PER_RUN}), stopping"
-            )
-            break
-        title = topic["title"]
-        slug = topic["slug"]
+    # First pass: determine which topics still need articles
+    pending_topics: list[dict[str, Any]] = []
+    pending_markdown_paths: list[Path] = []
 
+    for topic in topics:
+        slug = topic["slug"]
         markdown_path = _articles_markdown_path(site_id, slug)
 
-        # Skip if markdown already exists (resumable)
         if markdown_path.exists():
             skipped += 1
             logger.debug(f"Skipping {slug}: markdown already exists")
             continue
 
-        # Generate article
-        logger.info(f"Generating article for '{title}' ({slug})")
+        pending_topics.append(topic)
+        pending_markdown_paths.append(markdown_path)
 
-        prompt = prompt_template.format(title=title)
-        article_content = generate_completion_clean(prompt)
+    # Apply MAX_ARTICLES_PER_RUN (negative means unlimited)
+    if MAX_ARTICLES_PER_RUN < 0:
+        batch_topics = pending_topics
+        batch_markdown_paths = pending_markdown_paths
+    else:
+        batch_topics = pending_topics[:MAX_ARTICLES_PER_RUN]
+        batch_markdown_paths = pending_markdown_paths[:MAX_ARTICLES_PER_RUN]
 
-        # Write markdown file
-        with markdown_path.open("w", encoding="utf-8") as f:
-            f.write(article_content)
+    if not batch_topics:
+        logger.info(f"No new articles to generate for {site_id}")
+    else:
+        logger.info(
+            f"Generating {len(batch_topics)} articles for {site_id} "
+            f"(MAX_ARTICLES_PER_RUN={MAX_ARTICLES_PER_RUN})"
+        )
 
-        # Write generation metadata
-        generation_path = _articles_generation_path(site_id, slug)
-        metadata = {
-            "title": title,
-            "slug": slug,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "model": model_name,
-        }
-        with generation_path.open("w", encoding="utf-8") as f:
-            json.dump(metadata, f, indent=2, ensure_ascii=False)
+        # Build prompts for bulk generation
+        prompts = [
+            prompt_template.format(title=topic["title"]) for topic in batch_topics
+        ]
 
-        generated += 1
-        logger.info(f"Article generated: {slug} ({generated}/{total})")
+        # Bulk-generate article contents. Results are aligned with prompts.
+        results = generate_completion_bulk_clean(prompts)
+
+        for topic, markdown_path, article_content in zip(
+            batch_topics, batch_markdown_paths, results
+        ):
+            title = topic["title"]
+            slug = topic["slug"]
+
+            if article_content is None:
+                logger.warning(f"LLM generation failed for '{title}' ({slug})")
+                failed += 1
+                continue
+
+            # Write markdown file
+            with markdown_path.open("w", encoding="utf-8") as f:
+                f.write(article_content)
+
+            # Write generation metadata
+            generation_path = _articles_generation_path(site_id, slug)
+            metadata = {
+                "title": title,
+                "slug": slug,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "model": model_name,
+            }
+            with generation_path.open("w", encoding="utf-8") as f:
+                json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+            generated += 1
+            logger.info(f"Article generated: {slug} ({generated}/{total})")
 
     logger.info(
         f"Article generation complete for {site_id}: "
-        f"{generated} generated, {skipped} skipped, {total} total"
+        f"{generated} generated, {skipped} skipped, {failed} failed, {total} total"
     )

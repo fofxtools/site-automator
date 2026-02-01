@@ -171,6 +171,81 @@ class WordOpsProvisioner:
         self.run_command(f"wo site update {domain} --letsencrypt", check=True)
         logger.info(f"SSL enabled successfully for {domain}")
 
+    def ensure_default_catchall(self, return_code: int = 444) -> None:
+        """Create default catch-all Nginx server block if not already present.
+
+        Prevents unmatched domains from being served by the first available site.
+        Creates /etc/nginx/sites-available/000-catchall that handles both HTTP
+        and HTTPS requests for any domain without a specific server block.
+
+        Removes /etc/nginx/sites-enabled/default if present to avoid conflicts.
+
+        Args:
+            return_code: HTTP status code to return for HTTP requests
+                        (default: 444 = close connection)
+
+        Raises:
+            RuntimeError: If catch-all creation fails or conflicting default_server exists
+        """
+        # Check if our catch-all already exists
+        check_cmd = "test -L /etc/nginx/sites-enabled/000-catchall"
+        _, exit_code = self.run_command(check_cmd, check=False)
+
+        if exit_code == 0:
+            logger.info("Default catch-all already exists")
+            return
+
+        # Remove distro default if present
+        self.run_command(
+            "[ -L /etc/nginx/sites-enabled/default ] && rm /etc/nginx/sites-enabled/default",
+            check=False,
+        )
+
+        # Check for other conflicting default_server blocks
+        check_cmd = (
+            "grep -R 'listen .*default_server' /etc/nginx/sites-enabled/ 2>/dev/null "
+            "| grep -E 'listen (80|443)' "
+            "| grep -v 000-catchall || true"
+        )
+        output, _ = self.run_command(check_cmd, check=False)
+
+        if output.strip():
+            raise RuntimeError(
+                f"Conflicting default_server blocks found:\n{output}\n"
+                "Remove these before creating catch-all."
+            )
+
+        logger.info("Creating default catch-all server block")
+
+        config = f"""server {{
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return {return_code};
+}}
+
+server {{
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+    ssl_reject_handshake on;
+}}"""
+
+        self.run_command(
+            f"cat > /etc/nginx/sites-available/000-catchall << 'EOF'\n{config}\nEOF",
+            check=True,
+        )
+
+        self.run_command(
+            "ln -sf /etc/nginx/sites-available/000-catchall /etc/nginx/sites-enabled/000-catchall",
+            check=True,
+        )
+
+        self.run_command("nginx -t", check=True)
+        self.run_command("systemctl reload nginx", check=True)
+
+        logger.info("Default catch-all created successfully")
+
     def ensure_swap(self, size_gb: int = 2) -> None:
         """Create swap file if not already present.
 

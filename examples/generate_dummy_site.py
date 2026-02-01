@@ -224,7 +224,7 @@ def setup_plugins(wordpress: WordPressDeployer, domain: str) -> None:
     ]
     wordpress.install_plugins(domain, plugin_slugs, activate=True)
 
-    # Visited /wp-admin to trigger Related Posts section from plugin (no need to login)
+    # Visit /wp-admin to trigger Related Posts section from plugin (no need to login)
     requests.get(f"https://{domain}/wp-admin")
 
 

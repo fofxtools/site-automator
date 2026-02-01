@@ -664,7 +664,7 @@ class TestWipeSite:
         assert mock_ssh_client.exec_command.call_count == 0
 
     def test_wipe_site_with_confirm(self, wordpress, mock_ssh_client):
-        """Test wipe_site executes db reset and rm."""
+        """Test wipe_site executes db reset and find (default wipes everything)."""
         wordpress.wipe_site("test.com", confirm=True)
 
         calls = mock_ssh_client.exec_command.call_args_list
@@ -672,4 +672,42 @@ class TestWipeSite:
 
         assert len(call_commands) == 2
         assert "db reset --yes" in call_commands[0]
-        assert "rm -rf /var/www/test.com/htdocs/*" in call_commands[1]
+        # Default behavior: no exclusions, wipe everything
+        assert (
+            "find /var/www/test.com/htdocs -mindepth 1 -maxdepth 1" in call_commands[1]
+        )
+        assert "! -name" not in call_commands[1]
+        assert "-exec rm -rf {} +" in call_commands[1]
+
+    def test_wipe_site_with_exclude_stats(self, wordpress, mock_ssh_client):
+        """Test wipe_site with exclude_dirs=['stats'] preserves stats folder."""
+        wordpress.wipe_site("test.com", confirm=True, exclude_dirs=["stats"])
+
+        calls = mock_ssh_client.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+
+        assert len(call_commands) == 2
+        assert "db reset --yes" in call_commands[0]
+        # Exclude stats folder
+        assert (
+            "find /var/www/test.com/htdocs -mindepth 1 -maxdepth 1" in call_commands[1]
+        )
+        assert "! -name 'stats'" in call_commands[1]
+        assert "-exec rm -rf {} +" in call_commands[1]
+
+    def test_wipe_site_with_custom_exclude_dirs(self, wordpress, mock_ssh_client):
+        """Test wipe_site with custom exclude_dirs."""
+        wordpress.wipe_site("test.com", confirm=True, exclude_dirs=["stats", "uploads"])
+
+        calls = mock_ssh_client.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+
+        assert len(call_commands) == 2
+        assert "db reset --yes" in call_commands[0]
+        # Custom exclusions
+        assert (
+            "find /var/www/test.com/htdocs -mindepth 1 -maxdepth 1" in call_commands[1]
+        )
+        assert "! -name 'stats'" in call_commands[1]
+        assert "! -name 'uploads'" in call_commands[1]
+        assert "-exec rm -rf {} +" in call_commands[1]

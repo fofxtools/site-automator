@@ -385,6 +385,117 @@ class TestEnsureSSL:
         assert mock_client_instance.exec_command.call_count == 2
 
 
+class TestEnsureDefaultCatchall:
+    """Test ensure_default_catchall method."""
+
+    @patch("site_automator.wordops.paramiko.SSHClient")
+    def test_already_exists(self, mock_ssh_client):
+        """Test returns early if catchall already exists."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_stdout = Mock()
+        mock_stderr = Mock()
+        mock_channel = Mock()
+        mock_stdout.channel = mock_channel
+        mock_channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b""
+        mock_stderr.read.return_value = b""
+
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops.ensure_default_catchall()
+
+        mock_client_instance.exec_command.assert_called_once_with(
+            "test -L /etc/nginx/sites-enabled/000-catchall"
+        )
+
+    @patch("site_automator.wordops.paramiko.SSHClient")
+    def test_raises_on_conflicting_default_server(self, mock_ssh_client):
+        """Test raises error if conflicting default_server exists."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        call_count = [0]
+
+        def exec_command_side_effect(cmd):
+            mock_stdout = Mock()
+            mock_stderr = Mock()
+            mock_channel = Mock()
+            mock_stdout.channel = mock_channel
+            mock_stderr.read.return_value = b""
+
+            call_count[0] += 1
+            if call_count[0] == 1:
+                # First call: catchall doesn't exist
+                mock_channel.recv_exit_status.return_value = 1
+                mock_stdout.read.return_value = b""
+            elif call_count[0] == 2:
+                # Second call: grep finds conflict
+                mock_channel.recv_exit_status.return_value = 0
+                mock_stdout.read.return_value = (
+                    b"/etc/nginx/sites-enabled/other:1:listen 80 default_server;"
+                )
+
+            return (None, mock_stdout, mock_stderr)
+
+        mock_client_instance.exec_command.side_effect = exec_command_side_effect
+
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+
+        with pytest.raises(RuntimeError, match="Conflicting default_server"):
+            wordops.ensure_default_catchall()
+
+    @patch("site_automator.wordops.paramiko.SSHClient")
+    def test_creates_catchall_config(self, mock_ssh_client):
+        """Test creates catchall config with correct content."""
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        call_count = [0]
+
+        def exec_command_side_effect(cmd):
+            mock_stdout = Mock()
+            mock_stderr = Mock()
+            mock_channel = Mock()
+            mock_stdout.channel = mock_channel
+            mock_stderr.read.return_value = b""
+            mock_stdout.read.return_value = b""
+
+            call_count[0] += 1
+            if call_count[0] <= 3:
+                # First 3 calls: checks fail (catchall doesn't exist, no conflicts, rm)
+                mock_channel.recv_exit_status.return_value = 1
+            else:
+                # Remaining calls succeed (cat, ln, nginx -t, reload)
+                mock_channel.recv_exit_status.return_value = 0
+
+            return (None, mock_stdout, mock_stderr)
+
+        mock_client_instance.exec_command.side_effect = exec_command_side_effect
+
+        wordops = WordOpsProvisioner(host="example.com", password="pass")
+        wordops.ensure_default_catchall()
+
+        # Check config was written
+        calls = [
+            call[0][0] for call in mock_client_instance.exec_command.call_args_list
+        ]
+        config_call = [c for c in calls if "cat >" in c][0]
+
+        assert "listen 80 default_server" in config_call
+        assert "listen [::]:80 default_server" in config_call
+        assert "listen 443 ssl default_server" in config_call
+        assert "listen [::]:443 ssl default_server" in config_call
+        assert "ssl_reject_handshake on" in config_call
+        assert "return 444" in config_call
+
+
 class TestEnsureSwap:
     """Test ensure_swap method."""
 

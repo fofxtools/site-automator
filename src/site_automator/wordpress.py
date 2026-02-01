@@ -756,15 +756,25 @@ class WordPressDeployer:
         logger.debug(f"Escaped widget args: {escaped_widgets}")
         logger.debug(f"Widget delete output:\n{output}")
 
-    def wipe_site(self, domain: str, *, confirm: bool = False) -> None:
-        """Wipe WordPress site (database and all files).
+    def wipe_site(
+        self,
+        domain: str,
+        *,
+        confirm: bool = False,
+        exclude_dirs: list[str] | None = None,
+    ) -> None:
+        """Wipe WordPress site (database and files).
 
-        This is a destructive operation that deletes ALL content, uploads,
+        This is a destructive operation that deletes content, uploads,
         plugins, themes, and database tables.
+
+        Note: It does NOT delete wp-config.php. As that contains the existing database credentials.
 
         Args:
             domain: Domain name of the site
             confirm: Must be True to proceed. Prevents accidental wipes.
+            exclude_dirs: Optional list of directory names to preserve.
+                         By default, wipes everything.
 
         Raises:
             ValueError: If confirm is not True
@@ -774,6 +784,25 @@ class WordPressDeployer:
             raise ValueError(
                 "wipe_site() requires confirm=True. This destroys all site data."
             )
-        logger.info(f"Wiping WordPress site for {domain}")
+
+        # Default to no exclusions (wipe everything)
+        if exclude_dirs is None:
+            exclude_dirs = []
+
+        logger.info(
+            f"Wiping WordPress site for {domain}"
+            + (f" (preserving: {', '.join(exclude_dirs)})" if exclude_dirs else "")
+        )
         self.wp(domain, "db reset --yes")
-        self.wordops.run_command(f"rm -rf /var/www/{domain}/htdocs/*", check=True)
+
+        # Always use find to ensure hidden files are deleted too
+        # Build -name conditions for excluded directories
+        conditions = ""
+        if exclude_dirs:
+            conditions = " ".join(f"! -name '{dir_name}'" for dir_name in exclude_dirs)
+
+        delete_cmd = (
+            f"find /var/www/{domain}/htdocs -mindepth 1 -maxdepth 1 "
+            f"{conditions} -exec rm -rf {{}} +"
+        )
+        self.wordops.run_command(delete_cmd, check=True)

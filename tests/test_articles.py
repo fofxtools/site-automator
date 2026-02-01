@@ -39,10 +39,10 @@ class TestGenerateArticlesLLM:
         topics_file.parent.mkdir(parents=True, exist_ok=True)
         topics_file.write_text(json.dumps(topics_data))
 
-    @patch("site_automator.articles.generate_completion_clean")
+    @patch("site_automator.articles.generate_completion_bulk_clean")
     @patch("site_automator.articles.get_llm_client")
     def test_generates_articles_from_scratch(
-        self, mock_get_llm, mock_generate, tmp_path
+        self, mock_get_llm, mock_generate_bulk, tmp_path
     ):
         """Test generating articles from scratch."""
         # Setup
@@ -55,7 +55,11 @@ class TestGenerateArticlesLLM:
         mock_llm = Mock()
         mock_llm.model = "gpt-4"
         mock_get_llm.return_value = mock_llm
-        mock_generate.return_value = "# Article Content\n\nThis is the article."
+        mock_generate_bulk.return_value = [
+            "# Article Content\n\nThis is the article.",
+            "# Article Content\n\nThis is the article.",
+            "# Article Content\n\nThis is the article.",
+        ]
 
         # Execute
         with patch.dict(
@@ -89,9 +93,9 @@ class TestGenerateArticlesLLM:
         assert metadata["model"] == "gpt-4"
         assert "generated_at" in metadata
 
-    @patch("site_automator.articles.generate_completion_clean")
+    @patch("site_automator.articles.generate_completion_bulk_clean")
     @patch("site_automator.articles.get_llm_client")
-    def test_skips_existing_articles(self, mock_get_llm, mock_generate, tmp_path):
+    def test_skips_existing_articles(self, mock_get_llm, mock_generate_bulk, tmp_path):
         """Test resumable behavior - skips existing articles."""
         # Setup
         csv_path = self._setup_site_config(tmp_path)
@@ -108,7 +112,7 @@ class TestGenerateArticlesLLM:
         mock_llm = Mock()
         mock_llm.model = "gpt-4"
         mock_get_llm.return_value = mock_llm
-        mock_generate.return_value = "# New Article"
+        mock_generate_bulk.return_value = ["# New Article", "# New Article"]
 
         # Execute
         with patch.dict(
@@ -129,8 +133,10 @@ class TestGenerateArticlesLLM:
         assert (markdown_dir / "topic-two.md").exists()
         assert (markdown_dir / "topic-three.md").exists()
 
-        # Verify generate was called only 2 times (not 3)
-        assert mock_generate.call_count == 2
+        # Verify bulk generate was called once with 2 prompts (for the 2 new topics)
+        mock_generate_bulk.assert_called_once()
+        called_prompts = mock_generate_bulk.call_args.args[0]
+        assert len(called_prompts) == 2
 
     def test_raises_error_for_wrong_strategy(self, tmp_path):
         """Test raises error when article_strategy is not 'llm'."""

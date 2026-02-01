@@ -106,6 +106,29 @@ class TestCreateArticlesWordpress:
         # Verify create_post was called only 2 times (not 3)
         assert wordpress.create_post.call_count == 2
 
+    def test_respects_limit_parameter(self, tmp_path, wordpress):
+        """Test limit parameter restricts number of posts created."""
+        # Setup
+        csv_path = _setup_site_config(tmp_path)
+        content_path = tmp_path / "content"
+        self._setup_generation_files(tmp_path)
+
+        # Mock WordPress
+        wordpress.create_post = Mock(side_effect=[101, 102])
+
+        # Execute with limit=2
+        with patch.dict(
+            "os.environ",
+            {
+                "SITES_CONFIG_PATH": csv_path,
+                "SITES_CONTENT_PATH": str(content_path),
+            },
+        ):
+            create_articles_wordpress("site1", wordpress, limit=2)
+
+        # Verify only 2 posts created (not all 3)
+        assert wordpress.create_post.call_count == 2
+
     def test_converts_markdown_to_html(self, tmp_path, wordpress):
         """Test markdown is converted to HTML before posting."""
         # Setup
@@ -247,6 +270,29 @@ class TestActivateArticlesWordpress:
             activate_articles_wordpress("site1", wordpress)
 
         # Verify wp was called only 2 times (not 3)
+        assert wordpress.wp.call_count == 2
+
+    def test_respects_limit_parameter(self, tmp_path, wordpress):
+        """Test limit parameter restricts number of posts activated."""
+        # Setup
+        csv_path = _setup_site_config(tmp_path)
+        content_path = tmp_path / "content"
+        self._setup_published_files(tmp_path)
+
+        # Mock WordPress
+        wordpress.wp = Mock()
+
+        # Execute with limit=2
+        with patch.dict(
+            "os.environ",
+            {
+                "SITES_CONFIG_PATH": csv_path,
+                "SITES_CONTENT_PATH": str(content_path),
+            },
+        ):
+            activate_articles_wordpress("site1", wordpress, limit=2)
+
+        # Verify only 2 posts activated (not all 3)
         assert wordpress.wp.call_count == 2
 
     def test_raises_error_if_post_id_missing(self, tmp_path, wordpress):

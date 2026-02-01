@@ -18,8 +18,6 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 WP_PUBLISH_STATUS_DEFAULT = "draft"
-MAX_CREATE_PER_RUN = -1
-MAX_ACTIVATE_PER_RUN = -1
 
 
 def _articles_published_path(site_id: str, slug: str) -> Path:
@@ -34,17 +32,20 @@ def _articles_markdown_path(site_id: str, slug: str) -> Path:
     return content_root / site_id / "articles" / "markdown" / f"{slug}.md"
 
 
-def create_articles_wordpress(site_id: str, wordpress: WordPressDeployer) -> None:
+def create_articles_wordpress(
+    site_id: str, wordpress: WordPressDeployer, limit: int | None = None
+) -> None:
     """
     Create articles on WordPress from generation files.
 
     Args:
         site_id: Site identifier
         wordpress: WordPressDeployer instance
+        limit: Maximum number of articles to create (None for unlimited)
 
     Behavior:
     - Reads all .json files in SITES_CONTENT_PATH/{site_id}/articles/generation folder
-    - For each file up to MAX_CREATE_PER_RUN:
+    - For each file up to limit:
       - Gets title from generation/{slug}.json
       - Checks if already published in published/{slug}.json
       - Gets content from markdown/{slug}.md
@@ -76,9 +77,7 @@ def create_articles_wordpress(site_id: str, wordpress: WordPressDeployer) -> Non
     generation_files.sort(key=lambda f: f.stat().st_mtime)
 
     # Apply limit
-    max_create = MAX_CREATE_PER_RUN
-    if max_create <= 0:
-        max_create = len(generation_files)
+    max_create = limit if limit is not None else len(generation_files)
 
     created = 0
     skipped = 0
@@ -89,7 +88,7 @@ def create_articles_wordpress(site_id: str, wordpress: WordPressDeployer) -> Non
 
     for gen_file in generation_files:
         if created >= max_create:
-            logger.info(f"Reached MAX_CREATE_PER_RUN ({MAX_CREATE_PER_RUN}), stopping")
+            logger.info(f"Reached creation limit ({max_create}), stopping")
             break
 
         slug = gen_file.stem
@@ -150,17 +149,20 @@ def create_articles_wordpress(site_id: str, wordpress: WordPressDeployer) -> Non
     )
 
 
-def activate_articles_wordpress(site_id: str, wordpress: WordPressDeployer) -> None:
+def activate_articles_wordpress(
+    site_id: str, wordpress: WordPressDeployer, limit: int | None = None
+) -> None:
     """
     Activate published articles on WordPress by changing status to 'publish'.
 
     Args:
         site_id: Site identifier
         wordpress: WordPressDeployer instance
+        limit: Maximum number of articles to activate (None for unlimited)
 
     Behavior:
     - Reads all .json files in SITES_CONTENT_PATH/{site_id}/articles/published folder
-    - For each file up to MAX_ACTIVATE_PER_RUN:
+    - For each file up to limit:
       - Gets post_id and status from published/{slug}.json
       - Changes post_id status to 'publish' using WordPressDeployer
       - Updates published/{slug}.json status field to 'publish'
@@ -187,9 +189,7 @@ def activate_articles_wordpress(site_id: str, wordpress: WordPressDeployer) -> N
     published_files.sort(key=lambda f: f.stat().st_mtime)
 
     # Apply limit
-    max_activate = MAX_ACTIVATE_PER_RUN
-    if max_activate <= 0:
-        max_activate = len(published_files)
+    max_activate = limit if limit is not None else len(published_files)
 
     activated = 0
     skipped = 0
@@ -200,9 +200,7 @@ def activate_articles_wordpress(site_id: str, wordpress: WordPressDeployer) -> N
 
     for pub_file in published_files:
         if activated >= max_activate:
-            logger.info(
-                f"Reached MAX_ACTIVATE_PER_RUN ({MAX_ACTIVATE_PER_RUN}), stopping"
-            )
+            logger.info(f"Reached activation limit ({max_activate}), stopping")
             break
 
         slug = pub_file.stem
