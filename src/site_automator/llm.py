@@ -9,7 +9,7 @@ import ollama
 from dotenv import load_dotenv
 from openai import AsyncOpenAI, OpenAI
 
-from site_automator.utils import clean_llm_text
+from site_automator.utils import clean_llm_text, parse_numbered_list
 
 _DEFAULT_MAX_CONCURRENCY = 10
 
@@ -484,3 +484,29 @@ def generate_chat_bulk_clean(
     client = get_llm_client()
     results = client.generate_chat_bulk(message_lists)
     return [clean_llm_text(r) if r is not None else None for r in results]
+
+
+def generate_list_items_bulk(prompts: list[str]) -> list[str]:
+    """Generate and parse numbered lists from multiple prompts in bulk.
+
+    Deduplicates items while preserving order.
+
+    Args:
+        prompts: List of prompts that should return numbered lists
+
+    Returns:
+        Flat list of unique parsed items from all prompts
+    """
+    results = generate_completion_bulk_clean(prompts)
+
+    seen = set()
+    items = []
+    for result in results:
+        if result is not None:
+            parsed = parse_numbered_list(result)
+            for item in parsed:
+                if item not in seen:
+                    seen.add(item)
+                    items.append(item)
+
+    return items

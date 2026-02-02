@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-# Negative value means unlimited
-MAX_ARTICLES_PER_RUN = 100
+# None means unlimited
+MAX_ARTICLES_PER_RUN = None
 
 
 def _articles_markdown_path(site_id: str, slug: str) -> Path:
@@ -103,8 +103,8 @@ def generate_articles_llm(site_id: str) -> None:
         pending_topics.append(topic)
         pending_markdown_paths.append(markdown_path)
 
-    # Apply MAX_ARTICLES_PER_RUN (negative means unlimited)
-    if MAX_ARTICLES_PER_RUN < 0:
+    # Apply MAX_ARTICLES_PER_RUN (None means unlimited)
+    if MAX_ARTICLES_PER_RUN is None:
         batch_topics = pending_topics
         batch_markdown_paths = pending_markdown_paths
     else:

@@ -1,10 +1,10 @@
 import json
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
-from site_automator.topics import load_topics, generate_topics_llm
+from site_automator.topics import load_topics, generate_topics_site_id
 
 
 class TestLoadTopics:
@@ -35,7 +35,7 @@ class TestLoadTopics:
 
 
 class TestGenerateTopicsLLM:
-    """Test generate_topics_llm function."""
+    """Test generate_topics_site_id function."""
 
     def _setup_site_config(
         self, tmp_path: Path, site_id: str = "site1", pages: int = 10
@@ -57,20 +57,22 @@ class TestGenerateTopicsLLM:
         prompts_file.write_text(prompts_content)
         return str(tmp_path)
 
-    @patch("site_automator.topics.get_llm_client")
-    def test_generates_topics_from_scratch(self, mock_get_llm, tmp_path):
+    @patch("site_automator.topics.generate_list_items_bulk")
+    def test_generates_topics_from_scratch(self, mock_bulk, tmp_path):
         """Test generating topics from scratch."""
         # Setup
         csv_path = self._setup_site_config(tmp_path, pages=5)
         prompts_path = self._setup_prompts(tmp_path)
         content_path = tmp_path / "content"
 
-        # Mock LLM to return numbered list
-        mock_llm = Mock()
-        mock_llm.generate_completion.return_value = (
-            "1. Topic One\n2. Topic Two\n3. Topic Three\n4. Topic Four\n5. Topic Five"
-        )
-        mock_get_llm.return_value = mock_llm
+        # Mock bulk function to return list of topics
+        mock_bulk.return_value = [
+            "Topic One",
+            "Topic Two",
+            "Topic Three",
+            "Topic Four",
+            "Topic Five",
+        ]
 
         # Execute
         with patch.dict(
@@ -81,7 +83,7 @@ class TestGenerateTopicsLLM:
                 "SITES_CONTENT_PATH": str(content_path),
             },
         ):
-            result = generate_topics_llm("site1")
+            result = generate_topics_site_id("site1")
 
         # Verify
         assert len(result) == 5
@@ -95,8 +97,8 @@ class TestGenerateTopicsLLM:
         saved_data = json.loads(topics_file.read_text())
         assert len(saved_data) == 5
 
-    @patch("site_automator.topics.get_llm_client")
-    def test_returns_existing_complete_topics(self, mock_get_llm, tmp_path):
+    @patch("site_automator.topics.generate_list_items_bulk")
+    def test_returns_existing_complete_topics(self, mock_bulk, tmp_path):
         """Test idempotent behavior - returns existing complete topics."""
         # Setup
         csv_path = self._setup_site_config(tmp_path, pages=3)
@@ -122,15 +124,15 @@ class TestGenerateTopicsLLM:
                 "SITES_CONTENT_PATH": str(content_path),
             },
         ):
-            result = generate_topics_llm("site1")
+            result = generate_topics_site_id("site1")
 
         # Verify - should return existing without calling LLM
         assert len(result) == 3
         assert result[0]["title"] == "Existing 1"
-        mock_get_llm.assert_not_called()
+        mock_bulk.assert_not_called()
 
-    @patch("site_automator.topics.get_llm_client")
-    def test_resumes_incomplete_topics(self, mock_get_llm, tmp_path):
+    @patch("site_automator.topics.generate_list_items_bulk")
+    def test_resumes_incomplete_topics(self, mock_bulk, tmp_path):
         """Test resuming generation from incomplete topics."""
         # Setup
         csv_path = self._setup_site_config(tmp_path, pages=5)
@@ -146,12 +148,12 @@ class TestGenerateTopicsLLM:
         topics_file.parent.mkdir(parents=True)
         topics_file.write_text(json.dumps(existing_topics))
 
-        # Mock LLM to return more topics
-        mock_llm = Mock()
-        mock_llm.generate_completion.return_value = (
-            "1. New Topic 3\n2. New Topic 4\n3. New Topic 5"
-        )
-        mock_get_llm.return_value = mock_llm
+        # Mock bulk function to return more topics
+        mock_bulk.return_value = [
+            "New Topic 3",
+            "New Topic 4",
+            "New Topic 5",
+        ]
 
         # Execute
         with patch.dict(
@@ -162,7 +164,7 @@ class TestGenerateTopicsLLM:
                 "SITES_CONTENT_PATH": str(content_path),
             },
         ):
-            result = generate_topics_llm("site1")
+            result = generate_topics_site_id("site1")
 
         # Verify - should have 5 total (2 existing + 3 new)
         assert len(result) == 5

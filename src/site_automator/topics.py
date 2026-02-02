@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 import os
 from pathlib import Path
 from typing import Any
@@ -9,14 +10,13 @@ from slugify import slugify
 
 from site_automator.sites import load_site_config
 from site_automator.prompts import load_prompt
-from site_automator.llm import get_llm_client
-from site_automator.utils import parse_numbered_list
+from site_automator.llm import generate_list_items_bulk
 
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-MAX_TOPIC_GENERATIONS_PER_LOOP = 20
+MAX_TOPIC_GENERATION_BATCHES = 20
 
 
 def _topics_path(site_id: str) -> Path:
@@ -36,12 +36,16 @@ def load_topics(site_id: str) -> list[dict[str, Any]]:
         return data
 
 
-def generate_topics_llm(site_id: str) -> list[dict[str, Any]]:
+def generate_topics_site_id(
+    site_id: str, batch_size: int = 100
+) -> list[dict[str, Any]]:
     """
     Generate topics for a site using an LLM.
 
     Args:
         site_id: Site identifier
+        batch_size: Assumed number of items returned per prompt (used to calculate
+                    how many prompts to generate per iteration)
 
     Behavior:
     - Reads site config from sites.csv
@@ -86,21 +90,25 @@ def generate_topics_llm(site_id: str) -> list[dict[str, Any]]:
         key="topic_generation",
     )
 
-    llm = get_llm_client()
-
     iteration = 0
 
-    while len(all_topics) < target_count and iteration < MAX_TOPIC_GENERATIONS_PER_LOOP:
+    while len(all_topics) < target_count and (
+        MAX_TOPIC_GENERATION_BATCHES is None or iteration < MAX_TOPIC_GENERATION_BATCHES
+    ):
         iteration += 1
 
-        # Generate prompt
-        prompt = prompt_template.format(seed_topic=site["seed_topic"])
+        # Calculate how many prompts to generate based on remaining need
+        remaining = target_count - len(all_topics)
+        num_prompts = math.ceil(remaining / batch_size)
 
-        # Call LLM
-        raw_output = llm.generate_completion(prompt)
+        # Generate multiple prompts
+        prompts = [
+            prompt_template.format(seed_topic=site["seed_topic"])
+            for _ in range(num_prompts)
+        ]
 
-        # Parse numbered list
-        titles = parse_numbered_list(raw_output)
+        # Call LLM in bulk and parse (already deduped within batch)
+        titles = generate_list_items_bulk(prompts)
 
         if not titles:
             # LLM returned nothing parseable, continue to next iteration

@@ -12,6 +12,7 @@ from site_automator.llm import (
     generate_chat_clean,
     generate_completion_bulk_clean,
     generate_chat_bulk_clean,
+    generate_list_items_bulk,
 )
 
 
@@ -1026,3 +1027,43 @@ class TestGenerateChatBulkClean:
 
         assert results == [None, "clean2"]
         assert mock_clean.call_count == 1
+
+
+class TestGenerateListItemsBulk:
+    """Test generate_list_items_bulk function."""
+
+    @patch("site_automator.llm.parse_numbered_list")
+    @patch("site_automator.llm.generate_completion_bulk_clean")
+    def test_basic_functionality(self, mock_bulk, mock_parse):
+        """Test basic parsing and flattening."""
+        mock_bulk.return_value = ["1. Item A\n2. Item B", "1. Item C"]
+        mock_parse.side_effect = [["Item A", "Item B"], ["Item C"]]
+
+        result = generate_list_items_bulk(["prompt1", "prompt2"])
+
+        assert result == ["Item A", "Item B", "Item C"]
+        mock_bulk.assert_called_once_with(["prompt1", "prompt2"])
+        assert mock_parse.call_count == 2
+
+    @patch("site_automator.llm.parse_numbered_list")
+    @patch("site_automator.llm.generate_completion_bulk_clean")
+    def test_deduplication(self, mock_bulk, mock_parse):
+        """Test deduplication across prompts."""
+        mock_bulk.return_value = ["1. Item A\n2. Item B", "1. Item B\n2. Item C"]
+        mock_parse.side_effect = [["Item A", "Item B"], ["Item B", "Item C"]]
+
+        result = generate_list_items_bulk(["prompt1", "prompt2"])
+
+        assert result == ["Item A", "Item B", "Item C"]
+
+    @patch("site_automator.llm.parse_numbered_list")
+    @patch("site_automator.llm.generate_completion_bulk_clean")
+    def test_handles_none_results(self, mock_bulk, mock_parse):
+        """Test handles None from failed API calls."""
+        mock_bulk.return_value = ["1. Item A", None, "1. Item B"]
+        mock_parse.side_effect = [["Item A"], ["Item B"]]
+
+        result = generate_list_items_bulk(["p1", "p2", "p3"])
+
+        assert result == ["Item A", "Item B"]
+        assert mock_parse.call_count == 2
