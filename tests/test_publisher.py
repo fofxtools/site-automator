@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 import pytest
 
 from site_automator.publisher import (
-    create_articles_wordpress,
-    activate_articles_wordpress,
+    create_posts_wordpress,
+    publish_posts_wordpress,
 )
 
 
@@ -23,7 +23,7 @@ def _setup_site_config(tmp_path: Path, site_id: str = "site1") -> str:
 
 
 class TestCreateArticlesWordpress:
-    """Test create_articles_wordpress function."""
+    """Test create_posts_wordpress function."""
 
     def _setup_generation_files(self, tmp_path: Path, site_id: str = "site1") -> None:
         """Helper to set up generation files."""
@@ -58,7 +58,7 @@ class TestCreateArticlesWordpress:
                 "SITES_CONTENT_PATH": str(content_path),
             },
         ):
-            create_articles_wordpress("site1", wordpress)
+            create_posts_wordpress("site1", wordpress)
 
         # Verify create_post was called 3 times
         assert wordpress.create_post.call_count == 3
@@ -101,7 +101,7 @@ class TestCreateArticlesWordpress:
                 "SITES_CONTENT_PATH": str(content_path),
             },
         ):
-            create_articles_wordpress("site1", wordpress)
+            create_posts_wordpress("site1", wordpress)
 
         # Verify create_post was called only 2 times (not 3)
         assert wordpress.create_post.call_count == 2
@@ -124,7 +124,7 @@ class TestCreateArticlesWordpress:
                 "SITES_CONTENT_PATH": str(content_path),
             },
         ):
-            create_articles_wordpress("site1", wordpress, limit=2)
+            create_posts_wordpress("site1", wordpress, limit=2)
 
         # Verify only 2 posts created (not all 3)
         assert wordpress.create_post.call_count == 2
@@ -147,7 +147,7 @@ class TestCreateArticlesWordpress:
                 "SITES_CONTENT_PATH": str(content_path),
             },
         ):
-            create_articles_wordpress("site1", wordpress)
+            create_posts_wordpress("site1", wordpress)
 
         # Verify HTML content was passed (not markdown)
         call_args = wordpress.create_post.call_args_list[0]
@@ -178,11 +178,11 @@ class TestCreateArticlesWordpress:
             },
         ):
             with pytest.raises(ValueError, match="Missing title"):
-                create_articles_wordpress("site1", wordpress)
+                create_posts_wordpress("site1", wordpress)
 
 
-class TestActivateArticlesWordpress:
-    """Test activate_articles_wordpress function."""
+class TestPublishPostsWordpress:
+    """Test publish_posts_wordpress function."""
 
     def _setup_published_files(self, tmp_path: Path, site_id: str = "site1") -> None:
         """Helper to set up published files."""
@@ -200,8 +200,8 @@ class TestActivateArticlesWordpress:
             }
             (published_dir / f"{slug}.json").write_text(json.dumps(pub_data))
 
-    def test_activates_draft_posts(self, tmp_path, wordpress):
-        """Test activating draft posts to publish status."""
+    def test_publishes_draft_posts(self, tmp_path, wordpress):
+        """Test publishing draft posts to publish status."""
         # Setup
         csv_path = _setup_site_config(tmp_path)
         content_path = tmp_path / "content"
@@ -218,7 +218,7 @@ class TestActivateArticlesWordpress:
                 "SITES_CONTENT_PATH": str(content_path),
             },
         ):
-            activate_articles_wordpress("site1", wordpress)
+            publish_posts_wordpress("site1", wordpress)
 
         # Verify wp was called 3 times
         assert wordpress.wp.call_count == 3
@@ -233,10 +233,10 @@ class TestActivateArticlesWordpress:
         published_dir = content_path / "site1" / "articles" / "published"
         pub_data = json.loads((published_dir / "article-one.json").read_text())
         assert pub_data["status"] == "publish"
-        assert "activated_at" in pub_data
+        assert "published_at" in pub_data
 
-    def test_skips_already_activated(self, tmp_path, wordpress):
-        """Test resumable behavior - skips already activated articles."""
+    def test_skips_already_published(self, tmp_path, wordpress):
+        """Test resumable behavior - skips already published posts."""
         # Setup
         csv_path = _setup_site_config(tmp_path)
         content_path = tmp_path / "content"
@@ -248,7 +248,7 @@ class TestActivateArticlesWordpress:
             "slug": "article-one",
             "post_id": 101,
             "status": "publish",
-            "activated_at": "2024-01-01T00:00:00Z",
+            "published_at": "2024-01-01T00:00:00Z",
         }
         (published_dir / "article-one.json").write_text(json.dumps(pub_data_published))
 
@@ -267,13 +267,13 @@ class TestActivateArticlesWordpress:
                 "SITES_CONTENT_PATH": str(content_path),
             },
         ):
-            activate_articles_wordpress("site1", wordpress)
+            publish_posts_wordpress("site1", wordpress)
 
         # Verify wp was called only 2 times (not 3)
         assert wordpress.wp.call_count == 2
 
     def test_respects_limit_parameter(self, tmp_path, wordpress):
-        """Test limit parameter restricts number of posts activated."""
+        """Test limit parameter restricts number of posts published."""
         # Setup
         csv_path = _setup_site_config(tmp_path)
         content_path = tmp_path / "content"
@@ -290,9 +290,9 @@ class TestActivateArticlesWordpress:
                 "SITES_CONTENT_PATH": str(content_path),
             },
         ):
-            activate_articles_wordpress("site1", wordpress, limit=2)
+            publish_posts_wordpress("site1", wordpress, limit=2)
 
-        # Verify only 2 posts activated (not all 3)
+        # Verify only 2 posts published (not all 3)
         assert wordpress.wp.call_count == 2
 
     def test_raises_error_if_post_id_missing(self, tmp_path, wordpress):
@@ -316,7 +316,7 @@ class TestActivateArticlesWordpress:
             },
         ):
             with pytest.raises(ValueError, match="Missing post_id"):
-                activate_articles_wordpress("site1", wordpress)
+                publish_posts_wordpress("site1", wordpress)
 
     def test_raises_error_if_status_missing(self, tmp_path, wordpress):
         """Test raises error if status is missing."""
@@ -339,4 +339,4 @@ class TestActivateArticlesWordpress:
             },
         ):
             with pytest.raises(ValueError, match="Missing status"):
-                activate_articles_wordpress("site1", wordpress)
+                publish_posts_wordpress("site1", wordpress)

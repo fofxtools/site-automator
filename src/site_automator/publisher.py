@@ -1,4 +1,4 @@
-"""Publisher - Publish articles to WordPress sites."""
+"""Publish local articles to WordPress sites."""
 
 import json
 import logging
@@ -32,16 +32,16 @@ def _articles_markdown_path(site_id: str, slug: str) -> Path:
     return content_root / site_id / "articles" / "markdown" / f"{slug}.md"
 
 
-def create_articles_wordpress(
+def create_posts_wordpress(
     site_id: str, wordpress: WordPressDeployer, limit: int | None = None
 ) -> None:
     """
-    Create articles on WordPress from generation files.
+    Create posts on WordPress from generation files.
 
     Args:
         site_id: Site identifier
         wordpress: WordPressDeployer instance
-        limit: Maximum number of articles to create (None for unlimited)
+        limit: Maximum number of posts to create (None for unlimited)
 
     Behavior:
     - Reads all .json files in SITES_CONTENT_PATH/{site_id}/articles/generation folder
@@ -82,9 +82,7 @@ def create_articles_wordpress(
     created = 0
     skipped = 0
 
-    logger.info(
-        f"Starting article creation for {site_id}: {len(generation_files)} files"
-    )
+    logger.info(f"Starting post creation for {site_id}: {len(generation_files)} files")
 
     for gen_file in generation_files:
         if created >= max_create:
@@ -144,21 +142,21 @@ def create_articles_wordpress(
         logger.info(f"Post created: {slug} (ID: {post_id}, {created}/{max_create})")
 
     logger.info(
-        f"Article creation complete for {site_id}: "
+        f"Post creation complete for {site_id}: "
         f"{created} created, {skipped} skipped, {len(generation_files)} total"
     )
 
 
-def activate_articles_wordpress(
+def publish_posts_wordpress(
     site_id: str, wordpress: WordPressDeployer, limit: int | None = None
 ) -> None:
     """
-    Activate published articles on WordPress by changing status to 'publish'.
+    Publish draft posts on WordPress by changing status to 'publish'.
 
     Args:
         site_id: Site identifier
         wordpress: WordPressDeployer instance
-        limit: Maximum number of articles to activate (None for unlimited)
+        limit: Maximum number of posts to publish (None for unlimited)
 
     Behavior:
     - Reads all .json files in SITES_CONTENT_PATH/{site_id}/articles/published folder
@@ -166,7 +164,7 @@ def activate_articles_wordpress(
       - Gets post_id and status from published/{slug}.json
       - Changes post_id status to 'publish' using WordPressDeployer
       - Updates published/{slug}.json status field to 'publish'
-      - Records activated_at timestamp
+      - Records published_at timestamp
     """
     site = load_site_config(site_id)
     domain = site["domain"]
@@ -189,18 +187,18 @@ def activate_articles_wordpress(
     published_files.sort(key=lambda f: f.stat().st_mtime)
 
     # Apply limit
-    max_activate = limit if limit is not None else len(published_files)
+    max_publish = limit if limit is not None else len(published_files)
 
-    activated = 0
+    published = 0
     skipped = 0
 
     logger.info(
-        f"Starting article activation for {site_id}: {len(published_files)} files"
+        f"Starting post publication for {site_id}: {len(published_files)} files"
     )
 
     for pub_file in published_files:
-        if activated >= max_activate:
-            logger.info(f"Reached activation limit ({max_activate}), stopping")
+        if published >= max_publish:
+            logger.info(f"Reached publication limit ({max_publish}), stopping")
             break
 
         slug = pub_file.stem
@@ -220,26 +218,26 @@ def activate_articles_wordpress(
         # Skip if already published
         if status == "publish":
             skipped += 1
-            logger.debug(f"Skipping {slug}: already activated")
+            logger.debug(f"Skipping {slug}: already published")
             continue
 
         # Update post status to publish
-        logger.info(f"Activating post '{slug}' (ID: {post_id})")
+        logger.info(f"Publishing post '{slug}' (ID: {post_id})")
         wordpress.wp(domain, f"post update {post_id} --post_status=publish", check=True)
 
         # Update published metadata
         pub_data["status"] = "publish"
-        pub_data["activated_at"] = datetime.now(timezone.utc).isoformat()
+        pub_data["published_at"] = datetime.now(timezone.utc).isoformat()
 
         with pub_file.open("w", encoding="utf-8") as f:
             json.dump(pub_data, f, indent=2, ensure_ascii=False)
 
-        activated += 1
+        published += 1
         logger.info(
-            f"Post activated: {slug} (ID: {post_id}, {activated}/{max_activate})"
+            f"Post published: {slug} (ID: {post_id}, {published}/{max_publish})"
         )
 
     logger.info(
-        f"Article activation complete for {site_id}: "
-        f"{activated} activated, {skipped} skipped, {len(published_files)} total"
+        f"Post publication complete for {site_id}: "
+        f"{published} published, {skipped} skipped, {len(published_files)} total"
     )

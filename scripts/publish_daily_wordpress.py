@@ -13,7 +13,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from site_automator.publisher import activate_articles_wordpress
+from site_automator.publisher import publish_posts_wordpress
 from site_automator.sites import load_site_config
 from site_automator.wordpress import WordPressDeployer
 from site_automator.wordops import WordOpsProvisioner
@@ -63,14 +63,14 @@ def count_posts_activated_today(site_id: str) -> int:
             with pub_file.open("r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            # Check if activated_at exists and is from today
-            activated_at = data.get("activated_at")
-            if activated_at:
-                activated_dt = datetime.fromisoformat(activated_at)
+            # Check if published_at exists and is from today
+            published_at = data.get("published_at")
+            if published_at:
+                published_dt = datetime.fromisoformat(published_at)
                 # Ensure timezone-aware comparison
-                if activated_dt.tzinfo is None:
-                    activated_dt = activated_dt.replace(tzinfo=timezone.utc)
-                if activated_dt.astimezone(timezone.utc).date() == today:
+                if published_dt.tzinfo is None:
+                    published_dt = published_dt.replace(tzinfo=timezone.utc)
+                if published_dt.astimezone(timezone.utc).date() == today:
                     count += 1
         except (json.JSONDecodeError, ValueError, KeyError):
             # Skip malformed files
@@ -120,7 +120,7 @@ def main():
             wordpress = WordPressDeployer(wordops)
 
             # Activate articles up to remaining quota
-            activate_articles_wordpress(site_id, wordpress, limit=remaining)
+            publish_posts_wordpress(site_id, wordpress, limit=remaining)
 
             logger.info(f"Daily publishing complete for {site_id}")
             return 0

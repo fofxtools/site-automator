@@ -13,7 +13,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from site_automator.publisher import create_articles_wordpress
+from site_automator.publisher import create_posts_wordpress
 from site_automator.sites import load_site_config
 from site_automator.wordpress import WordPressDeployer
 from site_automator.wordops import WordOpsProvisioner
@@ -120,7 +120,7 @@ def main():
             wordpress = WordPressDeployer(wordops)
 
             # Create articles up to remaining quota
-            create_articles_wordpress(site_id, wordpress, limit=remaining)
+            create_posts_wordpress(site_id, wordpress, limit=remaining)
 
             logger.info(f"Daily creation complete for {site_id}")
             return 0
