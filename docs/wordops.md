@@ -14,6 +14,14 @@ Connect to your server via SSH and run WordOps commands.
 
 WordOps must be installed on your server. See the [WordOps installation guide](https://docs.wordops.net/getting-started/installation-guide/).
 
+Commands to install WordOps on server:
+
+```bash
+apt update && apt upgrade
+wget -qO wo wops.cc && sudo bash wo
+wo stack install
+```
+
 ## Setup
 
 Add your server credentials to `.env`:

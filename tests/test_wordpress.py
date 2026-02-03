@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import Mock, patch
 
 
 class TestWp:
@@ -711,3 +712,174 @@ class TestWipeSite:
         assert "! -name 'stats'" in call_commands[1]
         assert "! -name 'uploads'" in call_commands[1]
         assert "-exec rm -rf {} +" in call_commands[1]
+
+
+class TestWipeAndInstall:
+    """Test wipe_and_install method."""
+
+    def test_wipe_and_install_without_confirm_raises(self, wordpress):
+        """Test wipe_and_install raises ValueError without confirm=True."""
+        with pytest.raises(ValueError) as exc_info:
+            wordpress.wipe_and_install("test.com", "Test Site")
+
+        assert "confirm=True" in str(exc_info.value)
+
+    def test_wipe_and_install_with_existing_site(self, wordpress, mock_ssh_client):
+        """Test wipe_and_install wipes existing site then installs."""
+        # Mock site_exists to return True
+        wordpress.site_exists = Mock(return_value=True)
+        wordpress.wipe_site = Mock()
+
+        credentials = wordpress.wipe_and_install("test.com", "Test Site", confirm=True)
+
+        # Verify wipe was called
+        wordpress.site_exists.assert_called_once_with("test.com")
+        wordpress.wipe_site.assert_called_once_with(
+            "test.com", confirm=True, exclude_dirs=["stats"]
+        )
+
+        # Verify wp commands were called (core download and install)
+        calls = mock_ssh_client.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+        assert any("wp core download" in cmd for cmd in call_commands)
+        assert any("wp core install" in cmd for cmd in call_commands)
+
+        # Verify credentials returned
+        assert "admin_user" in credentials
+        assert "admin_password" in credentials
+        assert "admin_email" in credentials
+        assert credentials["admin_user"] == "admin"
+        assert credentials["admin_email"] == "admin@server.local"
+        assert len(credentials["admin_password"]) > 0
+
+    def test_wipe_and_install_without_existing_site(self, wordpress, mock_ssh_client):
+        """Test wipe_and_install skips wipe if site doesn't exist."""
+        # Mock site_exists to return False
+        wordpress.site_exists = Mock(return_value=False)
+        wordpress.wipe_site = Mock()
+
+        credentials = wordpress.wipe_and_install("test.com", "Test Site", confirm=True)
+
+        # Verify wipe was NOT called
+        wordpress.site_exists.assert_called_once_with("test.com")
+        wordpress.wipe_site.assert_not_called()
+
+        # Verify wp commands were called (core download and install)
+        calls = mock_ssh_client.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+        assert any("wp core download" in cmd for cmd in call_commands)
+        assert any("wp core install" in cmd for cmd in call_commands)
+
+        # Verify credentials returned
+        assert credentials["admin_user"] == "admin"
+        assert len(credentials["admin_password"]) > 0
+
+    def test_wipe_and_install_custom_exclude_dirs(self, wordpress):
+        """Test wipe_and_install respects custom exclude_dirs."""
+        wordpress.site_exists = Mock(return_value=True)
+        wordpress.wipe_site = Mock()
+
+        wordpress.wipe_and_install(
+            "test.com",
+            "Test Site",
+            exclude_dirs=["stats", "uploads"],
+            confirm=True,
+        )
+
+        # Verify wipe was called with custom exclude_dirs
+        wordpress.wipe_site.assert_called_once_with(
+            "test.com", confirm=True, exclude_dirs=["stats", "uploads"]
+        )
+
+    def test_wipe_and_install_custom_admin_credentials(
+        self, wordpress, mock_ssh_client
+    ):
+        """Test wipe_and_install uses custom admin credentials."""
+        wordpress.site_exists = Mock(return_value=False)
+
+        credentials = wordpress.wipe_and_install(
+            "test.com",
+            "Test Site",
+            admin_user="testadmin",
+            admin_email="test@example.com",
+            confirm=True,
+        )
+
+        # Verify custom credentials were used
+        assert credentials["admin_user"] == "testadmin"
+        assert credentials["admin_email"] == "test@example.com"
+
+        # Verify wp install command used custom credentials
+        calls = mock_ssh_client.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+        install_cmd = [cmd for cmd in call_commands if "core install" in cmd][0]
+        assert "testadmin" in install_cmd
+        assert "test@example.com" in install_cmd
+
+
+class TestInitialSetup:
+    """Test initial_setup method."""
+
+    @patch("requests.get")
+    @patch("site_automator.seo.create_indexnow_key")
+    @patch("site_automator.tracking.PageviewTrackingSetup")
+    def test_initial_setup_orchestrates_all_steps(
+        self, mock_tracking_class, mock_create_indexnow, mock_requests_get, wordpress
+    ):
+        """Test initial_setup calls all expected methods with correct parameters."""
+        # Setup mocks
+        mock_tracking = Mock()
+        mock_tracking_class.return_value = mock_tracking
+        mock_create_indexnow.return_value = "test-key-123"
+
+        # Mock all the WordPress methods
+        wordpress.delete_demo_content = Mock()
+        wordpress.configure_site = Mock()
+        wordpress.sync_admin_password_to_db = Mock()
+        wordpress.create_robots_txt = Mock()
+        wordpress.disable_comments_with_plugin = Mock()
+        wordpress.delete_widgets = Mock()
+        wordpress.install_theme = Mock()
+        wordpress.delete_themes = Mock()
+        wordpress.install_plugins = Mock()
+
+        # Call initial_setup
+        wordpress.initial_setup(
+            domain="test.com",
+            site_title="Test Site",
+            site_description="Test Description",
+            theme="generatepress",
+            seo_plugin="seo-by-rank-math",
+            internal_linking_plugin="yet-another-related-posts-plugin",
+        )
+
+        # Verify all methods were called with correct parameters
+        wordpress.delete_demo_content.assert_called_once_with("test.com")
+        wordpress.configure_site.assert_called_once_with(
+            "test.com", title="Test Site", description="Test Description"
+        )
+        wordpress.sync_admin_password_to_db.assert_called_once_with("test.com")
+        wordpress.create_robots_txt.assert_called_once_with("test.com")
+        wordpress.disable_comments_with_plugin.assert_called_once_with("test.com")
+        wordpress.delete_widgets.assert_called_once_with("test.com", ["block-4"])
+        wordpress.install_theme.assert_called_once_with(
+            "test.com", "generatepress", activate=True
+        )
+        wordpress.delete_themes.assert_called_once_with(
+            "test.com", ["twentytwentythree", "twentytwentyfour"]
+        )
+        wordpress.install_plugins.assert_called_once_with(
+            "test.com",
+            ["nginx-helper", "seo-by-rank-math", "yet-another-related-posts-plugin"],
+            activate=True,
+        )
+
+        # Verify tracking setup was called
+        mock_tracking_class.assert_called_once_with(wordpress.wordops)
+        mock_tracking.setup_tracking.assert_called_once_with("test.com")
+
+        # Verify wp-admin was visited to trigger plugin initialization
+        mock_requests_get.assert_called_once_with("https://test.com/wp-admin")
+
+        # Verify IndexNow key was created
+        mock_create_indexnow.assert_called_once_with("test.com", wordpress.wordops)

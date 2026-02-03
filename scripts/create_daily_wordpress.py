@@ -13,29 +13,13 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from site_automator.utils import configure_logging
 from site_automator.publisher import create_posts_wordpress
 from site_automator.sites import load_site_config
-from site_automator.wordpress import WordPressDeployer
 from site_automator.wordops import WordOpsProvisioner
+from site_automator.wordpress import WordPressDeployer
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-
-# File logging (if configured)
-log_file = os.getenv("LOG_FILE")
-if log_file:
-    log_file_level = os.getenv("LOG_FILE_LEVEL", "ERROR").upper()
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(log_file_level)
-    file_handler.setFormatter(
-        logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-    )
-    logging.getLogger().addHandler(file_handler)
-
-# Silence paramiko's noisy INFO logs
-logging.getLogger("paramiko").setLevel(logging.WARNING)
+configure_logging(console_level="INFO")
 
 logger = logging.getLogger(__name__)
 

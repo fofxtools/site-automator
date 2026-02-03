@@ -1,4 +1,13 @@
-from site_automator.utils import parse_numbered_list, clean_llm_text, parse_bool
+import logging
+import os
+from unittest.mock import patch
+
+from site_automator.utils import (
+    parse_numbered_list,
+    clean_llm_text,
+    parse_bool,
+    configure_logging,
+)
 
 
 class TestParseNumberedList:
@@ -56,3 +65,50 @@ class TestParseBool:
     def test_whitespace_stripped(self):
         assert parse_bool("  true  ") is True
         assert parse_bool("  false  ") is False
+
+
+class TestConfigureLogging:
+    def test_basic_configuration(self):
+        """Test basic logging configuration with defaults."""
+        # Reset logging to ensure clean state
+        logging.root.handlers = []
+
+        configure_logging()
+
+        # Verify root logger is configured
+        assert logging.root.level == logging.INFO
+        assert len(logging.root.handlers) > 0
+
+        # Verify paramiko and httpx are silenced
+        assert logging.getLogger("paramiko").level == logging.WARNING
+        assert logging.getLogger("httpx").level == logging.WARNING
+
+    def test_custom_console_level(self):
+        """Test configuring custom console level."""
+        # Reset logging
+        logging.root.handlers = []
+
+        configure_logging(console_level="DEBUG")
+
+        assert logging.root.level == logging.DEBUG
+
+    def test_env_var_log_level(self):
+        """Test LOG_LEVEL environment variable is respected."""
+        # Reset logging
+        logging.root.handlers = []
+
+        with patch.dict(os.environ, {"LOG_LEVEL": "WARNING"}):
+            configure_logging()
+            assert logging.root.level == logging.WARNING
+
+    def test_silence_flags(self):
+        """Test that silence flags work correctly."""
+        # Reset logging
+        logging.root.handlers = []
+
+        # Test with silence flags disabled
+        configure_logging(silence_paramiko=False, silence_httpx=False)
+
+        # Loggers should not be at WARNING level (would be at root level)
+        # We just verify the function doesn't crash and runs successfully
+        assert logging.root.level == logging.INFO

@@ -806,3 +806,179 @@ class WordPressDeployer:
             f"{conditions} -exec rm -rf {{}} +"
         )
         self.wordops.run_command(delete_cmd, check=True)
+
+    def wipe_and_install(
+        self,
+        domain: str,
+        site_title: str,
+        exclude_dirs: list[str] | None = None,
+        admin_user: str = "admin",
+        admin_email: str = "admin@server.local",
+        *,
+        confirm: bool = False,
+    ) -> dict[str, str]:
+        """Wipe existing site and install fresh WordPress with generated credentials.
+
+        This is a destructive operation that:
+        - Wipes the existing site (if it exists) preserving specified directories
+        - Downloads WordPress core
+        - Installs WordPress with randomly generated admin password
+
+        Args:
+            domain: Domain name of the site
+            site_title: Site title for WordPress installation
+            exclude_dirs: Optional list of directory names to preserve during wipe.
+                          Defaults to ["stats"] to preserve analytics data.
+            admin_user: Admin username (default: "admin")
+            admin_email: Admin email (default: "admin@server.local")
+            confirm: Must be True to proceed. Prevents accidental wipes.
+
+        Returns:
+            Dictionary containing admin credentials:
+            {
+                "admin_user": str,
+                "admin_password": str,
+                "admin_email": str
+            }
+
+        Raises:
+            ValueError: If confirm is not True
+            RuntimeError: If any step fails
+        """
+        import secrets
+        import shlex
+
+        if not confirm:
+            raise ValueError(
+                "wipe_and_install() requires confirm=True. This destroys all site data."
+            )
+
+        # Default to preserving stats directory
+        if exclude_dirs is None:
+            exclude_dirs = ["stats"]
+
+        logger.info(f"Starting wipe and install for {domain}")
+
+        # Wipe site if it exists
+        if self.site_exists(domain):
+            logger.info(f"Site exists, wiping: {domain}")
+            self.wipe_site(domain, confirm=True, exclude_dirs=exclude_dirs)
+
+        # Generate random admin password
+        admin_password = secrets.token_urlsafe(16)
+
+        # Download and install WordPress core
+        logger.info(f"Downloading and installing WordPress core for {domain}")
+        self.wp(domain, "core download")
+        self.wp(
+            domain,
+            f"core install "
+            f"--url={shlex.quote(domain)} "
+            f"--title={shlex.quote(site_title)} "
+            f"--admin_user={shlex.quote(admin_user)} "
+            f"--admin_password={shlex.quote(admin_password)} "
+            f"--admin_email={shlex.quote(admin_email)}",
+        )
+
+        logger.info(f"WordPress installation complete for {domain}")
+
+        return {
+            "admin_user": admin_user,
+            "admin_password": admin_password,
+            "admin_email": admin_email,
+        }
+
+    def initial_setup(
+        self,
+        domain: str,
+        site_title: str,
+        site_description: str,
+        theme: str,
+        seo_plugin: str,
+        internal_linking_plugin: str,
+    ) -> None:
+        """Perform initial WordPress site setup after installation.
+
+        This method orchestrates the complete initial configuration of a WordPress site,
+        including removing demo content, configuring settings, installing themes and
+        plugins, setting up tracking, and creating SEO configuration.
+
+        Steps performed:
+        - Delete demo content (Hello World post, sample pages, etc.)
+        - Configure site settings (title, description)
+        - Sync admin password to DB_PASSWORD
+        - Create robots.txt
+        - Disable comments site-wide
+        - Delete default widgets
+        - Install and activate the specified theme
+        - Delete default themes (twentytwentythree, twentytwentyfour)
+        - Setup pageview tracking
+        - Install and activate plugins (nginx-helper, SEO, internal linking)
+        - Trigger plugin initialization
+        - Create IndexNow key for SEO
+
+        Args:
+            domain: Domain name of the site
+            site_title: Site title from sites.csv
+            site_description: Site description/tagline from sites.csv
+            theme: Theme slug to install and activate
+            seo_plugin: SEO plugin slug (e.g., "seo-by-rank-math")
+            internal_linking_plugin: Internal linking plugin slug (e.g., "yet-another-related-posts-plugin")
+
+        Raises:
+            RuntimeError: If any setup step fails
+        """
+        import requests
+        from site_automator.seo import create_indexnow_key
+        from site_automator.tracking import PageviewTrackingSetup
+
+        logger.info(f"Starting initial setup for {domain}")
+
+        # Delete demo content
+        self.delete_demo_content(domain)
+
+        # Configure site settings
+        self.configure_site(
+            domain,
+            title=site_title,
+            description=site_description,
+        )
+
+        # Sync admin password to DB_PASSWORD
+        self.sync_admin_password_to_db(domain)
+
+        # Create robots.txt
+        self.create_robots_txt(domain)
+
+        # Disable comments
+        self.disable_comments_with_plugin(domain)
+
+        # Delete default widgets
+        self.delete_widgets(domain, ["block-4"])
+
+        # Install and activate the configured theme
+        self.install_theme(domain, theme, activate=True)
+
+        # Delete default themes
+        self.delete_themes(domain, ["twentytwentythree", "twentytwentyfour"])
+
+        # Setup pageview tracking
+        tracking = PageviewTrackingSetup(self.wordops)
+        tracking.setup_tracking(domain)
+
+        # Install and activate plugins
+        plugin_slugs = [
+            "nginx-helper",
+            seo_plugin,
+            internal_linking_plugin,
+        ]
+        self.install_plugins(domain, plugin_slugs, activate=True)
+
+        # Visit /wp-admin to trigger Related Posts section from plugin (no need to login)
+        requests.get(f"https://{domain}/wp-admin")
+
+        # Create IndexNow key
+        indexnow_key = create_indexnow_key(domain, self.wordops)
+        logger.info(f"Created IndexNow key: {indexnow_key}")
+
+        logger.info(f"Initial setup complete for {domain}")

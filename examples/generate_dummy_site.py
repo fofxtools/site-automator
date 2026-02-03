@@ -10,29 +10,12 @@ from time import perf_counter
 from faker import Faker
 import requests
 
-from site_automator.tracking import PageviewTrackingSetup
+from site_automator.utils import configure_logging
 from site_automator.wordops import WordOpsProvisioner
 from site_automator.wordpress import WordPressDeployer
 
 # Configure logging
-console_level = os.getenv("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(
-    level=console_level, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-)
-
-# File logging (if configured)
-log_file = os.getenv("LOG_FILE")
-if log_file:
-    log_file_level = os.getenv("LOG_FILE_LEVEL", "ERROR").upper()
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(log_file_level)
-    file_handler.setFormatter(
-        logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-    )
-    logging.getLogger().addHandler(file_handler)
-
-# Silence paramiko's noisy INFO logs
-logging.getLogger("paramiko").setLevel(logging.WARNING)
+configure_logging()
 
 
 def install_with_fake_data(wordpress: WordPressDeployer, domain: str) -> dict[str, str]:
@@ -68,37 +51,6 @@ def install_with_fake_data(wordpress: WordPressDeployer, domain: str) -> dict[st
     }
 
 
-def deploy_and_configure(
-    wordpress: WordPressDeployer,
-    wordops: WordOpsProvisioner,
-    domain: str,
-    credentials: dict[str, str],
-) -> None:
-    """Deploy and configure WordPress site."""
-    logging.info(f"Deploying and configuring WordPress for {domain}")
-    fake = Faker()
-
-    wordpress.delete_demo_content(domain)
-
-    wordpress.configure_site(
-        domain,
-        title=credentials["title"],
-        description=fake.catch_phrase(),
-    )
-
-    wordpress.sync_admin_password_to_db(domain)
-    wordpress.create_robots_txt(domain)
-    wordpress.disable_comments_with_plugin(domain)
-    wordpress.delete_widgets(domain, ["block-4"])
-    wordpress.install_theme(domain, "astra", activate=False)
-    wordpress.install_theme(domain, "kadence", activate=False)
-    wordpress.install_theme(domain, "generatepress", activate=True)
-    wordpress.delete_themes(domain, ["twentytwentythree", "twentytwentyfour"])
-
-    tracking = PageviewTrackingSetup(wordops)
-    tracking.setup_tracking(domain)
-
-
 def create_fake_taxonomy(
     wordpress: WordPressDeployer, domain: str
 ) -> dict[str, list[int]]:
@@ -131,6 +83,49 @@ def create_fake_taxonomy(
         tag_ids.append(int(output.strip()))
 
     return {"categories": category_ids, "tags": tag_ids}
+
+
+def download_picsum_images(shared_dir: str = "/shared", count: int = 9) -> list[str]:
+    """Download picsum images if they don't exist.
+
+    Args:
+        shared_dir: Directory to store images (default: /shared)
+        count: Number of images to download (default: 9)
+
+    Returns:
+        List of image paths
+    """
+    logging.info(f"Checking for picsum images in {shared_dir}")
+
+    # Create shared directory if it doesn't exist
+    os.makedirs(shared_dir, exist_ok=True)
+
+    image_paths = []
+    for i in range(1, count + 1):
+        image_path = os.path.join(shared_dir, f"picsum_800_600_{i}.jpg")
+        image_paths.append(image_path)
+
+        if os.path.exists(image_path):
+            logging.info(f"Image already exists: {image_path}")
+            continue
+
+        # Download random image from picsum.photos
+        url = "https://picsum.photos/800/600"
+        logging.info(f"Downloading random image to {image_path}")
+
+        try:
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+
+            with open(image_path, "wb") as f:
+                f.write(response.content)
+
+            logging.info(f"Successfully downloaded: {image_path}")
+        except Exception as e:
+            logging.error(f"Failed to download image from {url}: {e}")
+            raise
+
+    return image_paths
 
 
 def populate_fake_posts_and_pages(
@@ -244,8 +239,20 @@ def main() -> None:
         wordpress.wipe_site(domain, confirm=True)
         wordpress.wp(domain, "core download")
         credentials = install_with_fake_data(wordpress, domain)
-        deploy_and_configure(wordpress, wordops, domain, credentials)
+
+        # Deploy and configure WordPress
+        fake = Faker()
+        wordpress.initial_setup(
+            domain,
+            site_title=credentials["title"],
+            site_description=fake.catch_phrase(),
+            theme="generatepress",
+            seo_plugin="seo-by-rank-math",
+            internal_linking_plugin="yet-another-related-posts-plugin",
+        )
+
         taxonomy = create_fake_taxonomy(wordpress, domain)
+        download_picsum_images()
         populate_fake_posts_and_pages(wordpress, domain, taxonomy)
         # Must activate related posts plugins only after populating posts to avoid empty wp_yarpp_related_cache table error
         setup_plugins(wordpress, domain)

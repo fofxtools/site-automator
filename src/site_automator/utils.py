@@ -1,3 +1,5 @@
+import logging
+import os
 import re
 
 _NUMBERED_LINE_RE = re.compile(
@@ -72,3 +74,46 @@ def parse_bool(value: str | None) -> bool:
     if not value:
         return False
     return value.strip().lower() in {"1", "true", "yes", "y"}
+
+
+def configure_logging(
+    console_level: str | None = None,
+    format_string: str | None = None,
+    silence_paramiko: bool = True,
+    silence_httpx: bool = True,
+) -> None:
+    """Configure logging with console output and optional file logging.
+
+    Args:
+        console_level: Console log level (defaults to LOG_LEVEL env var or INFO)
+        format_string: Log format string (defaults to standard format)
+        silence_paramiko: Whether to silence paramiko's noisy INFO logs
+        silence_httpx: Whether to silence httpx's noisy INFO logs
+    """
+    # Determine console level from parameter or environment variable
+    if console_level is None:
+        console_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    else:
+        console_level = console_level.upper()
+
+    # Use default format if not specified
+    if format_string is None:
+        format_string = "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+
+    # Configure basic logging
+    logging.basicConfig(level=console_level, format=format_string)
+
+    # File logging (if configured via environment)
+    log_file = os.getenv("LOG_FILE")
+    if log_file:
+        log_file_level = os.getenv("LOG_FILE_LEVEL", "ERROR").upper()
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(log_file_level)
+        file_handler.setFormatter(logging.Formatter(format_string))
+        logging.getLogger().addHandler(file_handler)
+
+    # Silence noisy third-party loggers
+    if silence_paramiko:
+        logging.getLogger("paramiko").setLevel(logging.WARNING)
+    if silence_httpx:
+        logging.getLogger("httpx").setLevel(logging.WARNING)
