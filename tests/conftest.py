@@ -37,7 +37,9 @@ def mock_ssh_client():
 @pytest.fixture
 def wordops(mock_ssh_client):
     """Create a WordOpsProvisioner with mocked SSH."""
-    return WordOpsProvisioner(host="example.com", password="pass")
+    with patch("site_automator.wordops.resolve_ssh_host") as mock_resolve:
+        mock_resolve.return_value = ("example.com", None, None)
+        return WordOpsProvisioner(host="example.com")
 
 
 @pytest.fixture

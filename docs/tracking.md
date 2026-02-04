@@ -1,27 +1,26 @@
 # Pageview Tracking
 
-Set up database-backed pageview tracking for WordPress sites.
+Set up flat file-based pageview tracking for WordPress sites.
 
 ## What it does
 
 `PageviewTrackingSetup` installs a custom tracking system that:
-- Creates MySQL database and user
-- Creates tracking tables
-- Installs tracking plugins
+- Creates flat file storage directory structure
+- Installs tracking plugin
 - Configures exclusion rules (IPs, user agents)
+- Uploads Python processing scripts
+- Configures automated log processing via cron
 
 ## Setup
 
 Add tracking configuration to `.env`:
 
 ```bash
-# Database settings (optional - uses defaults if not set)
-TRACKING_DB_NAME=site_automator
-TRACKING_DB_USER=db_admin
-TRACKING_DB_PASSWORD=
+# Environment file path (optional - defaults to '../../../../.env')
+TRACKING_ENV_FILE=../../../../.env
 
-# Plugin configuration file path
-TRACKING_DB_CONFIG_FILE=../../../../.env
+# Data storage directory (optional - defaults to '/var/lib/pageview-tracking')
+TRACKING_DATA_ROOT=/var/lib/pageview-tracking
 
 # Exclusions (comma-separated)
 TRACKING_EXCLUDE_IPS=127.0.0.1,192.168.1.1
@@ -36,7 +35,7 @@ TRACKING_EXCLUDE_USER_AGENTS_SUBSTRING=bot,scraper
 from site_automator.wordops import WordOpsProvisioner
 from site_automator.tracking import PageviewTrackingSetup
 
-wordops = WordOpsProvisioner.from_env()
+wordops = WordOpsProvisioner(host="your-server-alias")
 tracking = PageviewTrackingSetup(wordops)
 
 # Set up complete tracking system
@@ -47,13 +46,16 @@ tracking.setup_tracking("example.com")
 
 The `setup_tracking()` method:
 
-- **Resource Files** - Uploads plugins and SQL files to `/shared/` (if not already present)
-- **MySQL User** - Creates database user (default: `db_admin`)
-- **Database** - Creates database (default: `site_automator`)
-- **Tables** - Creates `tracking_pageviews` and `tracking_pageviews_daily`
-- **Environment File** - Creates `/var/www/example.com/.env` with credentials
-- **Plugins** - Installs tracking plugins from `/shared/`
-- **Configuration** - Writes `track_config.php` with exclusion rules
+- **Resource Files** - Uploads plugin to `/shared/` (if not already present)
+- **Data Directory** - Creates `/var/lib/pageview-tracking/` with subdirectories:
+  - `raw/` - Raw JSONL logs organized by domain/date
+  - `agg/daily/` - Aggregated daily statistics
+  - `scripts/` - Python processing scripts
+- **Environment File** - Creates `/var/www/example.com/.env` with tracking settings
+- **Plugin** - Installs tracking plugin from `/shared/`
+- **Configuration** - Writes `track_config.php` with storage path and exclusion rules
+- **Processing Scripts** - Uploads Python scripts for log processing
+- **Cron Job** - Sets up automated hourly log processing
 
 ## Exclusion Rules
 
@@ -79,16 +81,14 @@ These rules are written to `track_config.php` on the server.
 
 The tracking system requires these files in the local `/resources/` directory:
 
-**SQL files:**
-- `tracking_pageviews.sql`
-- `tracking_pageviews_daily.sql`
-
-**Plugin files:**
-- `pageview-tracking-core.zip`
+**Plugin:**
 - `pageview-tracking.zip`
-- `pageview-tracking-daily.zip`
 
-These files are automatically uploaded to `/shared/` on the server during setup.
+**Processing Scripts** (in `/pageview-tracking/python/`):
+- `process_daily_logs.py` - Required for statistics generation
+- `generate_dummy_logs.py` - Optional, for testing
+
+The plugin is automatically uploaded to `/shared/` on the server during setup. The Python scripts are uploaded to `/var/lib/pageview-tracking/scripts/`.
 
 ## Complete Example
 
@@ -96,11 +96,11 @@ These files are automatically uploaded to `/shared/` on the server during setup.
 from site_automator.wordops import WordOpsProvisioner
 from site_automator.tracking import PageviewTrackingSetup
 
-wordops = WordOpsProvisioner.from_env()
+wordops = WordOpsProvisioner(host="your-server-alias")
 tracking = PageviewTrackingSetup(wordops)
 
 try:
-    # Set up tracking with default database settings
+    # Set up tracking with default flat file storage
     # and exclusion rules from .env
     tracking.setup_tracking("example.com")
 
@@ -110,16 +110,17 @@ finally:
     wordops.close()
 ```
 
-## Database Access
+## Data Storage
 
-After setup, the tracking database credentials are stored in:
-- Server: `/var/www/example.com/.env`
+After setup, pageview data is stored in flat files:
 
-```python
-# Credentials are in the remote .env file
-# Example structure:
-# TRACKING_DB_HOST=localhost
-# TRACKING_DB_NAME=site_automator
-# TRACKING_DB_USER=db_admin
-# TRACKING_DB_PASSWORD=<generated_password>
-```
+**Raw Logs** - `/var/lib/pageview-tracking/raw/`
+- JSONL format (one JSON object per line)
+- Organized by domain and date: `{domain}/{YYYY-MM-DD}.jsonl`
+
+**Daily Aggregates** - `/var/lib/pageview-tracking/agg/daily/`
+- Processed statistics by domain and date: `{domain}/{YYYY-MM-DD}.json`
+
+**Processing Scripts** - `/var/lib/pageview-tracking/scripts/`
+- `process_daily_logs.py` - Runs hourly via cron to aggregate raw logs
+- `generate_dummy_logs.py` - Testing utility for generating sample data

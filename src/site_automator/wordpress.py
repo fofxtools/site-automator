@@ -533,7 +533,7 @@ class WordPressDeployer:
 
         logger.debug(f"Plugin deactivate command: {wp_command}")
         output, _ = self.wp(domain, wp_command, check=True)
-        logger.info("All plugins deactivated successfully")
+        logger.info(f"All plugins deactivated successfully (Excluded: {exclude})")
         if escaped_exclude:
             logger.debug(f"Escaped exclude args: {escaped_exclude}")
         logger.debug(f"Plugin deactivate output:\n{output}")

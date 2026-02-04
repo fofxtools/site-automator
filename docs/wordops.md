@@ -17,19 +17,28 @@ WordOps must be installed on your server. See the [WordOps installation guide](h
 Commands to install WordOps on server:
 
 ```bash
-apt update && apt upgrade
+apt update && apt upgrade -y
 wget -qO wo wops.cc && sudo bash wo
 wo stack install
 ```
 
 ## Setup
 
-Add your server credentials to `.env`:
+Configure SSH access using `~/.ssh/config`. Append:
 
 ```bash
-SERVER_HOST=123.45.67.89
-SSH_USER=root
-SSH_PASSWORD=your_password
+# ~/.ssh/config
+Host your-server-alias
+  HostName 123.45.67.89
+  User root
+  IdentityFile ~/.ssh/id_ed25519
+```
+
+Add the server to your site configuration in `sites.csv`:
+
+```csv
+site_id,domain,server,...
+mysite,example.com,your-server-alias,...
 ```
 
 ## Basic Usage
@@ -37,11 +46,11 @@ SSH_PASSWORD=your_password
 ```python
 from site_automator.wordops import WordOpsProvisioner
 
-# Connect using .env credentials
-wordops = WordOpsProvisioner.from_env()
+# Connect using SSH config alias
+wordops = WordOpsProvisioner(host="your-server-alias")
 
-# Or connect directly
-wordops = WordOpsProvisioner(host="123.45.67.89", password="your_password")
+# Or connect with IP/hostname (still uses SSH keys)
+wordops = WordOpsProvisioner(host="123.45.67.89")
 
 # Close when done
 wordops.close()
@@ -59,12 +68,16 @@ wordops.create_site("example.com", flags=["--wp"])
 # Create with specific PHP version
 wordops.create_site("example.com", flags=["--wp", "--php82"])
 
+# Create with cache (Nginx fastcgi_cache)
+wordops.create_site("example.com", flags=["--wpfc"])
+
 # Create with cache (Redis)
 wordops.create_site("example.com", flags=["--wp", "--redis"])
 ```
 
 Common flags:
 - `--wp` - Install WordPress
+- `--wpfc` - Install WordPress with Nginx fastcgi_cache
 - `--php81`, `--php82` - PHP version
 - `--redis` - Redis cache
 - `--letsencrypt` - SSL certificate
@@ -108,12 +121,23 @@ This avoids a domain pointed to the server, but not set up as a site. From being
 wordops.ensure_default_catchall()
 ```
 
+## Git Safe Directory
+
+`ensure_ssl()` may give the following error: `fatal: detected dubious ownership in repository at '/var/www/{domain}/conf/nginx'`
+
+This is because WordOps runs as `root` but creates repositories as `www-data`. Configure git to trust these repositories so automation can run without errors:
+
+```python
+# Configure git safe.directory
+wordops.ensure_git_safe_directory()
+```
+
 ## Complete Example
 
 ```python
 from site_automator.wordops import WordOpsProvisioner
 
-wordops = WordOpsProvisioner.from_env()
+wordops = WordOpsProvisioner(host="your-server-alias")
 
 try:
     # Set up swap for small VPS
@@ -130,6 +154,9 @@ try:
 
     # Create default catch-all
     wordops.ensure_default_catchall()
+
+    # Configure git safe.directory
+    wordops.ensure_git_safe_directory()
 
 finally:
     wordops.close()

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Set up DNS for a domain using registrar and DigitalOcean."""
 
-import csv
 import logging
 import os
 import sys
@@ -11,6 +10,8 @@ from dotenv import load_dotenv
 
 from site_automator.digitalocean import DigitalOceanDNSManager
 from site_automator.registrars import RegistrarNameserverManager
+from site_automator.sites import load_site_config_by_domain
+from site_automator.ssh import resolve_ssh_host
 from site_automator.utils import configure_logging
 
 configure_logging()
@@ -20,33 +21,24 @@ def main() -> None:
     """Set up DNS nameservers and records."""
     load_dotenv()
 
-    # Get domain and server IP from environment
+    # Get domain from environment
     domain = os.getenv("SITE_DOMAIN")
     if not domain:
         print("ERROR: SITE_DOMAIN environment variable is required")
         sys.exit(1)
 
-    server_ip = os.getenv("SERVER_IP")
-    if not server_ip:
-        print("ERROR: SERVER_IP environment variable is required")
-        sys.exit(1)
+    # Load site config to get registrar and server
+    site = load_site_config_by_domain(domain)
 
-    # Read sites.csv to get registrar
-    csv_path = "local/config/sites.csv"
-    registrar = None
+    registrar = site["registrar"]
+    server = site["server"]
 
-    with open(csv_path, "r") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            if row["domain"] == domain:
-                registrar = row["registrar"]
-                break
+    # Resolve SSH host to get server IP
+    server_ip, _, _ = resolve_ssh_host(server)
 
-    if not registrar:
-        print(f"ERROR: Domain {domain} not found in {csv_path}")
-        sys.exit(1)
-
-    logging.info(f"Setting up DNS for {domain} (registrar: {registrar})")
+    logging.info(
+        f"Setting up DNS for {domain} (registrar: {registrar}, server: {server}, IP: {server_ip})"
+    )
 
     # Update nameservers at registrar
     registrars = RegistrarNameserverManager.from_env()

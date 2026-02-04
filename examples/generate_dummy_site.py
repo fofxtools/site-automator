@@ -10,12 +10,10 @@ from time import perf_counter
 from faker import Faker
 import requests
 
+from site_automator.sites import load_site_config_by_domain
 from site_automator.utils import configure_logging
 from site_automator.wordops import WordOpsProvisioner
 from site_automator.wordpress import WordPressDeployer
-
-# Configure logging
-configure_logging()
 
 
 def install_with_fake_data(wordpress: WordPressDeployer, domain: str) -> dict[str, str]:
@@ -85,41 +83,44 @@ def create_fake_taxonomy(
     return {"categories": category_ids, "tags": tag_ids}
 
 
-def download_picsum_images(shared_dir: str = "/shared", count: int = 9) -> list[str]:
-    """Download picsum images if they don't exist.
+def download_picsum_images(
+    wordops: WordOpsProvisioner, shared_dir: str = "/shared", count: int = 9
+) -> list[str]:
+    """Download picsum images directly on remote server if they don't exist.
 
     Args:
-        shared_dir: Directory to store images (default: /shared)
+        wordops: WordOpsProvisioner instance
+        shared_dir: Directory to store images on remote server (default: /shared)
         count: Number of images to download (default: 9)
 
     Returns:
-        List of image paths
+        List of remote image paths
     """
     logging.info(f"Checking for picsum images in {shared_dir}")
 
-    # Create shared directory if it doesn't exist
-    os.makedirs(shared_dir, exist_ok=True)
+    # Create shared directory if it doesn't exist, set permissions, and set ownership to www-data
+    wordops.run_command(
+        f"mkdir -p {shared_dir} && chmod 755 {shared_dir} && chown -R www-data:www-data {shared_dir}",
+        check=True,
+    )
 
     image_paths = []
     for i in range(1, count + 1):
         image_path = os.path.join(shared_dir, f"picsum_800_600_{i}.jpg")
         image_paths.append(image_path)
 
-        if os.path.exists(image_path):
-            logging.info(f"Image already exists: {image_path}")
+        # Check if image already exists on remote server
+        _, returncode = wordops.run_command(f"test -f {image_path}", check=False)
+        if returncode == 0:
+            logging.info(f"Image already exists on server: {image_path}")
             continue
 
-        # Download random image from picsum.photos
+        # Download random image from picsum.photos directly on remote server
         url = "https://picsum.photos/800/600"
-        logging.info(f"Downloading random image to {image_path}")
+        logging.info(f"Downloading random image to remote server: {image_path}")
 
         try:
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
-
-            with open(image_path, "wb") as f:
-                f.write(response.content)
-
+            wordops.run_command(f"curl -L -o {image_path} {url}", check=True)
             logging.info(f"Successfully downloaded: {image_path}")
         except Exception as e:
             logging.error(f"Failed to download image from {url}: {e}")
@@ -226,16 +227,27 @@ def setup_plugins(wordpress: WordPressDeployer, domain: str) -> None:
 def main() -> None:
     """Generate dummy WordPress site."""
     load_dotenv()
+    configure_logging()
 
     domain = os.getenv("SITE_DOMAIN")
     if not domain:
         print("ERROR: SITE_DOMAIN environment variable is required")
         sys.exit(1)
 
-    wordops = WordOpsProvisioner.from_env()
+    # Load site config by domain to get server
+    site = load_site_config_by_domain(domain)
+    server = site["server"]
+
+    wordops = WordOpsProvisioner(host=server)
     wordpress = WordPressDeployer(wordops)
 
     try:
+        # Create site if it doesn't exist
+        if not wordpress.site_exists(domain):
+            wordops.create_site(domain, flags=["--wpfc"])
+            wordops.ensure_ssl(domain)
+            wordops.restart_nginx()
+
         wordpress.wipe_site(domain, confirm=True)
         wordpress.wp(domain, "core download")
         credentials = install_with_fake_data(wordpress, domain)
@@ -252,7 +264,7 @@ def main() -> None:
         )
 
         taxonomy = create_fake_taxonomy(wordpress, domain)
-        download_picsum_images()
+        download_picsum_images(wordops)
         populate_fake_posts_and_pages(wordpress, domain, taxonomy)
         # Must activate related posts plugins only after populating posts to avoid empty wp_yarpp_related_cache table error
         setup_plugins(wordpress, domain)

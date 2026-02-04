@@ -4,10 +4,17 @@ from unittest.mock import patch
 
 import pytest
 
-from site_automator.sites import load_all_sites, load_site_config, initialize_site
+from site_automator.sites import (
+    load_all_sites,
+    load_site_config,
+    load_site_config_by_domain,
+    initialize_site,
+)
 
-VALID_HEADERS = "site_id,domain,seed_topic,prompts_file,cms,pages_per_site,posts_per_day,llm_provider,llm_batch_mode\n"
-VALID_ROW = "site1,example.com,gardening,prompts.yaml,wordpress,10,2,openai,true\n"
+VALID_HEADERS = "site_id,domain,server,seed_topic,prompts_file,cms,pages_per_site,posts_per_day,llm_provider,llm_batch_mode\n"
+VALID_ROW = (
+    "site1,example.com,test-server,gardening,prompts.yaml,wordpress,10,2,openai,true\n"
+)
 
 
 def _write_csv(tmp_path: Path, content: str) -> str:
@@ -60,12 +67,31 @@ class TestLoadSiteConfig:
                 load_site_config("nonexistentsite")
 
     def test_missing_boolean_column_defaults_false(self, tmp_path):
-        headers = "site_id,domain,seed_topic,prompts_file,cms,pages_per_site,posts_per_day,llm_provider\n"
-        row = "site1,example.com,gardening,prompts.yaml,wordpress,10,2,openai\n"
+        headers = "site_id,domain,server,seed_topic,prompts_file,cms,pages_per_site,posts_per_day,llm_provider\n"
+        row = "site1,example.com,test-server,gardening,prompts.yaml,wordpress,10,2,openai\n"
         path = _write_csv(tmp_path, headers + row)
         with patch.dict("os.environ", {"SITES_CONFIG_PATH": path}):
             config = load_site_config("site1")
         assert config["llm_batch_mode"] is False
+
+
+class TestLoadSiteConfigByDomain:
+    def test_returns_normalized_row_by_domain(self, tmp_path):
+        path = _write_csv(tmp_path, VALID_HEADERS + VALID_ROW)
+        with patch.dict("os.environ", {"SITES_CONFIG_PATH": path}):
+            config = load_site_config_by_domain("example.com")
+        assert config["site_id"] == "site1"
+        assert config["domain"] == "example.com"
+        assert config["server"] == "test-server"
+        assert config["pages_per_site"] == 10
+        assert config["posts_per_day"] == 2
+        assert config["llm_batch_mode"] is True
+
+    def test_domain_not_found(self, tmp_path):
+        path = _write_csv(tmp_path, VALID_HEADERS + VALID_ROW)
+        with patch.dict("os.environ", {"SITES_CONFIG_PATH": path}):
+            with pytest.raises(ValueError, match="domain not found"):
+                load_site_config_by_domain("nonexistent.com")
 
 
 class TestInitializeSite:

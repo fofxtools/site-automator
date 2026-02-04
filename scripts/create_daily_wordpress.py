@@ -80,10 +80,11 @@ def main():
         # Load site config
         site = load_site_config(site_id)
         posts_per_day = int(site["posts_per_day"])
+        server = site["server"]
 
         logger.info(
             f"Starting daily creation for {site_id} "
-            f"(limit: {posts_per_day} posts/day)"
+            f"(limit: {posts_per_day} posts/day, server: {server})"
         )
 
         # Count posts already created today
@@ -99,7 +100,7 @@ def main():
             return 0
 
         # Connect to WordPress
-        wordops = WordOpsProvisioner.from_env()
+        wordops = WordOpsProvisioner(host=server)
         try:
             wordpress = WordPressDeployer(wordops)
 

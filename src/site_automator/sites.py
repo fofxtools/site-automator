@@ -12,6 +12,7 @@ load_dotenv()
 CSV_REQUIRED_HEADERS = {
     "site_id",
     "domain",
+    "server",
     "seed_topic",
     "prompts_file",
     "cms",
@@ -54,6 +55,25 @@ def load_site_config(site_id: str) -> dict[str, Any]:
             return _normalize_site_row(site)
 
     raise ValueError(f"site_id not found: {site_id}")
+
+
+def load_site_config_by_domain(domain: str) -> dict[str, Any]:
+    """Load site config by domain.
+
+    Args:
+        domain: Domain name (e.g., "example.com")
+
+    Returns:
+        Normalized site configuration dictionary
+
+    Raises:
+        ValueError: If domain not found in sites.csv
+    """
+    for site in load_all_sites():
+        if site["domain"] == domain:
+            return _normalize_site_row(site)
+
+    raise ValueError(f"domain not found: {domain}")
 
 
 def _normalize_site_row(row: dict[str, str]) -> dict[str, Any]:

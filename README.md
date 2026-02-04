@@ -32,7 +32,7 @@ from site_automator import (
 )
 
 # Create site (use --wpfc for Nginx fastcgi_cache)
-wordops = WordOpsProvisioner.from_env()
+wordops = WordOpsProvisioner(host="your-server-alias")
 wordops.create_site("example.com", flags=["--wp"])
 
 # Configure DNS
@@ -56,14 +56,22 @@ wordops.close()
 
 ## Configuration
 
-Create a `.env` file with your credentials:
+### SSH Setup
+
+Configure SSH access in `~/.ssh/config`:
 
 ```bash
-# SSH
-SERVER_HOST=203.0.113.10
-SSH_USER=root
-SSH_PASSWORD=your_password
+Host your-server-alias
+  HostName 203.0.113.10
+  User root
+  IdentityFile ~/.ssh/id_ed25519
+```
 
+### Environment Variables
+
+Create a `.env` file with your API credentials:
+
+```bash
 # DNS
 DIGITALOCEAN_TOKEN=your_token
 NAMECHEAP_USERNAME=your_username

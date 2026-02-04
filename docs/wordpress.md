@@ -19,13 +19,16 @@ Requires a `WordOpsProvisioner` instance:
 from site_automator.wordops import WordOpsProvisioner
 from site_automator.wordpress import WordPressDeployer
 
-wordops = WordOpsProvisioner.from_env()
+wordops = WordOpsProvisioner(host="your-server-alias")
 wordpress = WordPressDeployer(wordops)
 ```
 
 ## Site Configuration
 
 ```python
+# Create site with Nginx fastcgi_cache
+wordops.create_site("example.com", flags=["--wpfc"])
+
 # Configure site settings
 wordpress.configure_site(
     "example.com",
@@ -177,8 +180,8 @@ wordpress.delete_demo_content("example.com")
 # Run any WP-CLI command
 output, exit_code = wordpress.wp("example.com", "plugin list --status=active")
 
-# Don't raise on failure with check=False
-output, exit_code = wordpress.wp("example.com", "post get 999", check=False)
+# Don't raise on command failure with check=False
+output, exit_code = wordpress.wp("example.com", "post get 999999", check=False)
 ```
 
 ## Complete Example
@@ -186,39 +189,49 @@ output, exit_code = wordpress.wp("example.com", "post get 999", check=False)
 ```python
 from site_automator.wordops import WordOpsProvisioner
 from site_automator.wordpress import WordPressDeployer
+from site_automator.utils import configure_logging
 
-wordops = WordOpsProvisioner.from_env()
+configure_logging()
+
+wordops = WordOpsProvisioner(host="your-server-alias")
 wordpress = WordPressDeployer(wordops)
 
+domain = "example.com"
+image_path = "/path/to/image.jpg"
+
 try:
+    # Create site with Nginx fastcgi_cache
+    wordops.create_site(domain, flags=["--wpfc"])
+    wordops.ensure_ssl(domain)
+    
     # Configure site
     wordpress.configure_site(
-        "example.com",
+        domain,
         title="My Blog",
         description="Thoughts and ideas",
         permalink_structure="/%postname%/",
     )
 
     # Clean up
-    wordpress.delete_demo_content("example.com")
-    wordpress.disable_comments_with_plugin("example.com")
-    wordpress.delete_widgets("example.com", ["block-4"])
+    wordpress.delete_demo_content(domain)
+    wordpress.disable_comments_with_plugin(domain)
+    wordpress.delete_widgets(domain, ["block-4"])
 
     # Install theme
-    wordpress.install_theme("example.com", "astra", activate=True)
-    wordpress.delete_themes("example.com", ["twentytwentythree", "twentytwentyfour"])
+    wordpress.install_theme(domain, "astra", activate=True)
+    wordpress.delete_themes(domain, ["twentytwentythree", "twentytwentyfour"])
 
     # Create content
     post_id = wordpress.create_post(
-        "example.com",
+        domain,
         title="First Post",
         content="Welcome to my blog!",
         status="publish",
     )
 
     # Add featured image
-    attachment_id = wordpress.ensure_attachment("example.com", "/path/to/image.jpg")
-    wordpress.set_featured_image("example.com", post_id, attachment_id)
+    attachment_id = wordpress.ensure_attachment(domain, image_path)
+    wordpress.set_featured_image(domain, post_id, attachment_id)
 
 finally:
     wordops.close()
