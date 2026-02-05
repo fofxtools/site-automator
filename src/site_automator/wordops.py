@@ -144,14 +144,17 @@ class WordOpsProvisioner:
         self.run_command("git config --system --add safe.directory '*'", check=True)
         logger.info("Git safe.directory configured")
 
-    def ensure_ssl(self, domain: str) -> None:
+    def ensure_ssl(self, domain: str) -> bool:
         """Enable SSL for domain if not already enabled.
+
+        Checks DNS propagation before attempting SSL issuance.
+        If DNS doesn't point to this server, skips SSL with a warning.
 
         Args:
             domain: Domain name
 
-        Raises:
-            RuntimeError: If SSL enablement fails
+        Returns:
+            True if SSL was enabled or already exists, False if skipped due to DNS mismatch
         """
         # Check if SSL is already enabled by looking for SSL certificate files
         check_cmd = f"test -f /var/www/{domain}/conf/nginx/ssl.conf"
@@ -159,12 +162,28 @@ class WordOpsProvisioner:
 
         if exit_code == 0:
             logger.info(f"SSL already enabled for {domain}")
-            return
+            return True
+
+        # Get server IP
+        server_ip, _, _ = resolve_ssh_host(self.host)
+
+        # Check DNS propagation using Google's DNS (8.8.8.8)
+        logger.info(f"Checking DNS propagation for {domain} (expected IP: {server_ip})")
+        dns_check = f"dig +short {domain} @8.8.8.8 | grep -q '^{server_ip}$'"
+        _, exit_code = self.run_command(dns_check, check=False)
+
+        if exit_code != 0:
+            logger.warning(
+                f"DNS for {domain} not pointing to {server_ip} yet. "
+                f"Skipping SSL. Add manually later with: wo site update {domain} --letsencrypt"
+            )
+            return False
 
         # Enable SSL using WordOps
         logger.info(f"Enabling SSL for {domain}")
         self.run_command(f"wo site update {domain} --letsencrypt", check=True)
         logger.info(f"SSL enabled successfully for {domain}")
+        return True
 
     def ensure_default_catchall(self, return_code: int = 444) -> None:
         """Create default catch-all Nginx server block if not already present.

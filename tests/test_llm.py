@@ -471,7 +471,7 @@ class TestOpenAIClientGenerateCompletionBulk:
     @patch("site_automator.llm.AsyncOpenAI")
     def test_returns_results_in_order(self, mock_async_class, _mock_conc):
         mock_client = AsyncMock()
-        mock_async_class.return_value = mock_client
+        mock_async_class.return_value.__aenter__.return_value = mock_client
 
         mock_client.chat.completions.create = AsyncMock(
             side_effect=[
@@ -490,6 +490,9 @@ class TestOpenAIClientGenerateCompletionBulk:
     @patch("site_automator.llm._parse_max_concurrency", return_value=10)
     @patch("site_automator.llm.AsyncOpenAI")
     def test_empty_list(self, mock_async_class, _mock_conc):
+        mock_client = AsyncMock()
+        mock_async_class.return_value.__aenter__.return_value = mock_client
+
         client = OpenAIClient(api_key="key", model="gpt-4")
         assert client.generate_completion_bulk([]) == []
 
@@ -497,7 +500,7 @@ class TestOpenAIClientGenerateCompletionBulk:
     @patch("site_automator.llm.AsyncOpenAI")
     def test_partial_failure_returns_none(self, mock_async_class, _mock_conc):
         mock_client = AsyncMock()
-        mock_async_class.return_value = mock_client
+        mock_async_class.return_value.__aenter__.return_value = mock_client
 
         mock_client.chat.completions.create = AsyncMock(
             side_effect=[
@@ -530,7 +533,7 @@ class TestOpenAIClientGenerateChatBulk:
     @patch("site_automator.llm.AsyncOpenAI")
     def test_returns_results_in_order(self, mock_async_class, _mock_conc):
         mock_client = AsyncMock()
-        mock_async_class.return_value = mock_client
+        mock_async_class.return_value.__aenter__.return_value = mock_client
 
         mock_client.chat.completions.create = AsyncMock(
             side_effect=[
@@ -553,7 +556,7 @@ class TestOpenAIClientGenerateChatBulk:
     @patch("site_automator.llm.AsyncOpenAI")
     def test_partial_failure_returns_none(self, mock_async_class, _mock_conc):
         mock_client = AsyncMock()
-        mock_async_class.return_value = mock_client
+        mock_async_class.return_value.__aenter__.return_value = mock_client
 
         mock_client.chat.completions.create = AsyncMock(
             side_effect=[self._mock_chat_response("Chat 1"), RuntimeError("fail")]

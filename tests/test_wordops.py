@@ -394,9 +394,10 @@ class TestEnsureSSL:
         )
 
         wordops = WordOpsProvisioner(host="example.com")
-        wordops.ensure_ssl("test.com")
+        result = wordops.ensure_ssl("test.com")
 
-        # Should only call the check command, not the update command
+        # Should return True and only call the check command, not the update command
+        assert result is True
         mock_client_instance.exec_command.assert_called_once_with(
             "test -f /var/www/test.com/conf/nginx/ssl.conf"
         )
@@ -404,7 +405,7 @@ class TestEnsureSSL:
     @patch("site_automator.wordops.resolve_ssh_host")
     @patch("site_automator.wordops.paramiko.SSHClient")
     def test_ensure_ssl_enables_ssl(self, mock_ssh_client, mock_resolve):
-        """Test ensure_ssl enables SSL when not present."""
+        """Test ensure_ssl enables SSL when not present and DNS matches."""
         mock_resolve.return_value = ("192.168.1.1", None, None)
         mock_client_instance = Mock()
         mock_ssh_client.return_value = mock_client_instance
@@ -421,6 +422,9 @@ class TestEnsureSSL:
             if "test -f" in command:
                 # SSL check fails (not present)
                 mock_channel.recv_exit_status.return_value = 1
+            elif "dig +short" in command:
+                # DNS check succeeds (matches server IP)
+                mock_channel.recv_exit_status.return_value = 0
             else:
                 # SSL enable succeeds
                 mock_channel.recv_exit_status.return_value = 0
@@ -430,9 +434,48 @@ class TestEnsureSSL:
         mock_client_instance.exec_command.side_effect = exec_command_side_effect
 
         wordops = WordOpsProvisioner(host="example.com")
-        wordops.ensure_ssl("test.com")
+        result = wordops.ensure_ssl("test.com")
 
-        # Should call both check and update commands
+        # Should return True and call check, DNS check, and update commands
+        assert result is True
+        assert mock_client_instance.exec_command.call_count == 3
+
+    @patch("site_automator.wordops.resolve_ssh_host")
+    @patch("site_automator.wordops.paramiko.SSHClient")
+    def test_ensure_ssl_skips_on_dns_mismatch(self, mock_ssh_client, mock_resolve):
+        """Test ensure_ssl skips when DNS doesn't match server IP."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Setup mock to return different values for different commands
+        def exec_command_side_effect(command):
+            mock_stdout = Mock()
+            mock_stderr = Mock()
+            mock_channel = Mock()
+            mock_stdout.channel = mock_channel
+            mock_stdout.read.return_value = b""
+            mock_stderr.read.return_value = b""
+
+            if "test -f" in command:
+                # SSL check fails (not present)
+                mock_channel.recv_exit_status.return_value = 1
+            elif "dig +short" in command:
+                # DNS check fails (doesn't match server IP)
+                mock_channel.recv_exit_status.return_value = 1
+            else:
+                # Should not reach SSL enable
+                mock_channel.recv_exit_status.return_value = 0
+
+            return None, mock_stdout, mock_stderr
+
+        mock_client_instance.exec_command.side_effect = exec_command_side_effect
+
+        wordops = WordOpsProvisioner(host="example.com")
+        result = wordops.ensure_ssl("test.com")
+
+        # Should return False and only call check and DNS check commands (not SSL enable)
+        assert result is False
         assert mock_client_instance.exec_command.call_count == 2
 
 

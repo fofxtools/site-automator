@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Set up DNS for a domain using registrar and DigitalOcean."""
+"""Set up DNS for a domain using registrar and DigitalOcean.
 
+Usage:
+    python3 examples/setup_dns.py --site-id example_com
+"""
+
+import argparse
 import logging
-import os
 import sys
 import time
 
@@ -10,7 +14,7 @@ from dotenv import load_dotenv
 
 from site_automator.digitalocean import DigitalOceanDNSManager
 from site_automator.registrars import RegistrarNameserverManager
-from site_automator.sites import load_site_config_by_domain
+from site_automator.sites import load_site_config
 from site_automator.ssh import resolve_ssh_host
 from site_automator.utils import configure_logging
 
@@ -21,14 +25,12 @@ def main() -> None:
     """Set up DNS nameservers and records."""
     load_dotenv()
 
-    # Get domain from environment
-    domain = os.getenv("SITE_DOMAIN")
-    if not domain:
-        print("ERROR: SITE_DOMAIN environment variable is required")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Set up DNS for a domain")
+    parser.add_argument("--site-id", required=True, help="Site ID from sites.csv")
+    args = parser.parse_args()
 
-    # Load site config to get registrar and server
-    site = load_site_config_by_domain(domain)
+    site = load_site_config(args.site_id)
+    domain = site["domain"]
 
     registrar = site["registrar"]
     server = site["server"]

@@ -79,7 +79,6 @@ class OpenAIClient:
     temperature: float | None
     base_url: str | None
     _client: OpenAI | None
-    _async_client: AsyncOpenAI | None
 
     def __init__(
         self,
@@ -104,7 +103,6 @@ class OpenAIClient:
         self.temperature = temperature
         self.base_url = base_url
         self._client: OpenAI | None = None
-        self._async_client: AsyncOpenAI | None = None
 
     @classmethod
     def from_env(cls, provider: str) -> "OpenAIClient":
@@ -205,20 +203,8 @@ class OpenAIClient:
             logger.exception("OpenAI API error")
             raise
 
-    def _get_async_client(self) -> AsyncOpenAI:
-        """Get or create AsyncOpenAI client instance."""
-        if self._async_client is None:
-            if self.base_url is not None:
-                self._async_client = AsyncOpenAI(
-                    api_key=self.api_key, base_url=self.base_url
-                )
-            else:
-                self._async_client = AsyncOpenAI(api_key=self.api_key)
-        return self._async_client
-
-    async def _generate_completion_async(self, prompt: str) -> str:
+    async def _generate_completion_async(self, client: AsyncOpenAI, prompt: str) -> str:
         """Async version of generate_completion."""
-        client = self._get_async_client()
         kwargs = self._build_kwargs([{"role": "user", "content": prompt}])
         try:
             response = await client.chat.completions.create(**kwargs)
@@ -227,9 +213,10 @@ class OpenAIClient:
             logger.exception("OpenAI API error")
             raise
 
-    async def _generate_chat_async(self, messages: list[dict[str, Any]]) -> str:
+    async def _generate_chat_async(
+        self, client: AsyncOpenAI, messages: list[dict[str, Any]]
+    ) -> str:
         """Async version of generate_chat."""
-        client = self._get_async_client()
         kwargs = self._build_kwargs(messages)
         try:
             response = await client.chat.completions.create(**kwargs)
@@ -250,15 +237,19 @@ class OpenAIClient:
         """
         semaphore = asyncio.Semaphore(_parse_max_concurrency())
 
-        async def _limited(prompt: str) -> str:
+        async def _limited(client: AsyncOpenAI, prompt: str) -> str:
             async with semaphore:
-                return await self._generate_completion_async(prompt)
+                return await self._generate_completion_async(client, prompt)
 
         async def _run() -> list[str | None]:
-            raw = await asyncio.gather(
-                *[_limited(p) for p in prompts], return_exceptions=True
-            )
-            return [None if isinstance(r, BaseException) else r for r in raw]
+            async with AsyncOpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url,
+            ) as client:
+                raw = await asyncio.gather(
+                    *[_limited(client, p) for p in prompts], return_exceptions=True
+                )
+                return [None if isinstance(r, BaseException) else r for r in raw]
 
         return asyncio.run(_run())
 
@@ -276,15 +267,20 @@ class OpenAIClient:
         """
         semaphore = asyncio.Semaphore(_parse_max_concurrency())
 
-        async def _limited(messages: list[dict[str, Any]]) -> str:
+        async def _limited(client: AsyncOpenAI, messages: list[dict[str, Any]]) -> str:
             async with semaphore:
-                return await self._generate_chat_async(messages)
+                return await self._generate_chat_async(client, messages)
 
         async def _run() -> list[str | None]:
-            raw = await asyncio.gather(
-                *[_limited(m) for m in message_lists], return_exceptions=True
-            )
-            return [None if isinstance(r, BaseException) else r for r in raw]
+            async with AsyncOpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url,
+            ) as client:
+                raw = await asyncio.gather(
+                    *[_limited(client, m) for m in message_lists],
+                    return_exceptions=True,
+                )
+                return [None if isinstance(r, BaseException) else r for r in raw]
 
         return asyncio.run(_run())
 

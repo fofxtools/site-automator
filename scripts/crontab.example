@@ -5,6 +5,9 @@
 # Logging: Set LOG_FILE in .env to enable file logging
 # Example: LOG_FILE=/path/to/site-automator/logs/publish.log
 
+# To check cron logs:
+# grep CRON /var/log/syslog | tail -20
+
 # Email for cron notifications (failures, errors)
 # Set to your email to receive alerts, or set to "" to disable emails
 #MAILTO=your-email@example.com
@@ -18,21 +21,21 @@ VENV_PYTHON=/path/to/site-automator/.venv/bin/python
 # flock -n prevents overlaps if previous job is still running
 
 # Site 1 (site1_id) - Create drafts
-0 2 * * * flock -n /tmp/site1_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id site1_id"
-# Site 1 (site1_id) - Publish existing drafts (1 hour after creation)
-0 3 * * * flock -n /tmp/site1_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id site1_id"
+0 2 * * * flock -n /tmp/site1_id_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id site1_id"
+# Site 1 (site1_id) - Publish existing drafts
+0 3 * * * flock -n /tmp/site1_id_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id site1_id"
 
 # Site 2 (site2_id) - Create drafts
-0 4 * * * flock -n /tmp/site2_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id site2_id"
-# Site 2 (site2_id) - Publish existing drafts (1 hour after creation)
-0 5 * * * flock -n /tmp/site2_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id site2_id"
+0 4 * * * flock -n /tmp/site2_id_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id site2_id"
+# Site 2 (site2_id) - Publish existing drafts
+0 5 * * * flock -n /tmp/site2_id_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id site2_id"
 
 # Site 3 (site3_id) - Create drafts
-0 6 * * * flock -n /tmp/site3_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id site3_id"
-# Site 3 (site3_id) - Publish existing drafts (1 hour after creation)
-0 7 * * * flock -n /tmp/site3_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id site3_id"
+0 6 * * * flock -n /tmp/site3_id_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id site3_id"
+# Site 3 (site3_id) - Publish existing drafts
+0 7 * * * flock -n /tmp/site3_id_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id site3_id"
 
 # Site 4 (site4_id) - Create drafts
-0 8 * * * flock -n /tmp/site4_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id site4_id"
-# Site 4 (site4_id) - Publish existing drafts (1 hour after creation)
-0 9 * * * flock -n /tmp/site4_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id site4_id"
+0 8 * * * flock -n /tmp/site4_id_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id site4_id"
+# Site 4 (site4_id) - Publish existing drafts
+0 9 * * * flock -n /tmp/site4_id_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id site4_id"

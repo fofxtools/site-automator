@@ -642,16 +642,30 @@ class TestDeleteWidgets:
         """Test deleting multiple widgets."""
         wordpress.delete_widgets("test.com", ["block-3", "block-4"])
 
-        call_args = mock_ssh_client.exec_command.call_args[0][0]
-        assert "widget delete" in call_args
-        assert "block-3" in call_args
-        assert "block-4" in call_args
+        # Verify all delete commands were called (one per widget)
+        calls = mock_ssh_client.exec_command.call_args_list
+        call_commands = [call[0][0] for call in calls]
+
+        # Check that both widgets were deleted individually
+        assert any("widget delete" in cmd and "block-3" in cmd for cmd in call_commands)
+        assert any("widget delete" in cmd and "block-4" in cmd for cmd in call_commands)
 
     def test_delete_empty_list_returns_early(self, wordpress, mock_ssh_client):
         """Test that empty widget list returns without calling wp."""
         wordpress.delete_widgets("test.com", [])
 
         assert mock_ssh_client.exec_command.call_count == 0
+
+    def test_delete_widgets_idempotent(self, wordpress, mock_ssh_client):
+        """Test delete_widgets is idempotent (handles already deleted widgets)."""
+        # Return exit code 1 (widget not found) for all delete commands
+        mock_ssh_client._mock_channel.recv_exit_status.return_value = 1
+        mock_ssh_client._mock_stdout.read.return_value = (
+            b"Warning: Widget 'block-4' doesn't exist.\nError: No widgets deleted."
+        )
+
+        # Should not raise even if widgets don't exist
+        wordpress.delete_widgets("test.com", ["block-4"])
 
 
 class TestWipeSite:

@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Generate a dummy WordPress site with fake data using Faker."""
+"""Generate a dummy WordPress site with fake data using Faker.
 
+Usage:
+    python3 examples/generate_dummy_site.py --site-id example_com
+"""
+
+import argparse
 import logging
 import os
-import sys
 
 from dotenv import load_dotenv
 from time import perf_counter
 from faker import Faker
 import requests
 
-from site_automator.sites import load_site_config_by_domain
+from site_automator.sites import load_site_config
 from site_automator.utils import configure_logging
 from site_automator.wordops import WordOpsProvisioner
 from site_automator.wordpress import WordPressDeployer
@@ -229,13 +233,14 @@ def main() -> None:
     load_dotenv()
     configure_logging()
 
-    domain = os.getenv("SITE_DOMAIN")
-    if not domain:
-        print("ERROR: SITE_DOMAIN environment variable is required")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Generate a dummy WordPress site with fake data"
+    )
+    parser.add_argument("--site-id", required=True, help="Site ID from sites.csv")
+    args = parser.parse_args()
 
-    # Load site config by domain to get server
-    site = load_site_config_by_domain(domain)
+    site = load_site_config(args.site_id)
+    domain = site["domain"]
     server = site["server"]
 
     wordops = WordOpsProvisioner(host=server)

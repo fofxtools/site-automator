@@ -729,12 +729,12 @@ class WordPressDeployer:
     ) -> None:
         """Delete WordPress widgets.
 
+        This method is idempotent. It can be run multiple times safely.
+        If a widget is already deleted, it will be skipped.
+
         Args:
             domain: Domain name of the site
             widget_ids: List of widget IDs to delete (e.g., ["block-3", "block-4"])
-
-        Raises:
-            RuntimeError: If widget deletion fails
         """
         import shlex
 
@@ -744,17 +744,21 @@ class WordPressDeployer:
 
         logger.info(f"Deleting {len(widget_ids)} widget(s) on {domain}")
 
-        # Escape each widget ID for shell safety
-        escaped_widgets = [shlex.quote(widget_id) for widget_id in widget_ids]
-        widgets_str = " ".join(escaped_widgets)
+        # Delete each widget individually to handle missing widgets gracefully
+        for widget_id in widget_ids:
+            escaped_widget = shlex.quote(widget_id)
+            wp_command = f"widget delete {escaped_widget}"
 
-        wp_command = f"widget delete {widgets_str}"
+            logger.debug(f"Widget delete command: {wp_command}")
+            _, exit_code = self.wp(domain, wp_command, check=False)
+            if exit_code == 0:
+                logger.debug(f"Deleted widget: {widget_id}")
+            else:
+                logger.debug(
+                    f"Widget {widget_id} not found (already deleted or doesn't exist)"
+                )
 
-        logger.debug(f"Widget delete command: {wp_command}")
-        output, _ = self.wp(domain, wp_command, check=True)
-        logger.info(f"Widgets deleted successfully: {', '.join(widget_ids)}")
-        logger.debug(f"Escaped widget args: {escaped_widgets}")
-        logger.debug(f"Widget delete output:\n{output}")
+        logger.info(f"Widget deletion complete for {domain}")
 
     def wipe_site(
         self,
