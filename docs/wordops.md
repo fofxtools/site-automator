@@ -95,10 +95,10 @@ wordops.ensure_ssl("example.com")
 
 ```python
 # Run any shell command
-output, exit_code = wordops.run_command("ls -la /var/www")
+output, exit_code = wordops.ssh.run_command("ls -la /var/www")
 
 # Don't raise on failure with check=False (check exit code instead)
-output, exit_code = wordops.run_command("test -f /some/file", check=False)
+output, exit_code = wordops.ssh.run_command("test -f /some/file", check=False)
 if exit_code == 0:
     print("File exists")
 ```

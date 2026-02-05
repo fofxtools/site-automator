@@ -121,7 +121,8 @@ def generate_articles_llm(site_id: str) -> None:
 
         # Build prompts for bulk generation
         prompts = [
-            prompt_template.format(title=topic["title"]) for topic in batch_topics
+            prompt_template.format(title=topic["title"], seed_topic=site["seed_topic"])
+            for topic in batch_topics
         ]
 
         # Bulk-generate article contents. Results are aligned with prompts.

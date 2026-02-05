@@ -50,7 +50,9 @@ class PageviewTrackingSetup:
 
         # Ensure remote folder exists
         logger.debug(f"Ensuring remote folder exists: {remote_folder}")
-        self.wordops.run_command(f"mkdir -p {shlex.quote(remote_folder)}", check=True)
+        self.wordops.ssh.run_command(
+            f"mkdir -p {shlex.quote(remote_folder)}", check=True
+        )
 
         for filename in files:
             local_path = resources_dir / filename
@@ -64,10 +66,10 @@ class PageviewTrackingSetup:
             logger.info(f"Uploading {filename} to {remote_path}")
 
             # Upload file using SFTP
-            if not self.wordops._client:
+            if not self.wordops.ssh._client:
                 raise RuntimeError("SSH client not connected")
 
-            sftp = self.wordops._client.open_sftp()
+            sftp = self.wordops.ssh._client.open_sftp()
             try:
                 sftp.put(str(local_path), remote_path)
                 logger.debug(f"Upload completed: {remote_path}")
@@ -100,7 +102,7 @@ class PageviewTrackingSetup:
         # Create .env file
         logger.debug(f"Creating .env file at: {env_file_path}")
         command = f"echo {env_content_escaped} > {env_file_path_escaped}"
-        self.wordops.run_command(command, check=True)
+        self.wordops.ssh.run_command(command, check=True)
 
         logger.info(f".env file created successfully at: {env_file_path}")
 
@@ -129,7 +131,7 @@ class PageviewTrackingSetup:
             f"wp plugin install {plugin_escaped} --activate --force --allow-root"
         )
 
-        self.wordops.run_command(command, check=True)
+        self.wordops.ssh.run_command(command, check=True)
         logger.debug(f"Plugin installed and activated: {plugin}")
 
         logger.info(f"Tracking plugin installed successfully for {domain}")
@@ -258,7 +260,7 @@ return [
 
         logger.debug(f"Writing track_config.php: {config_file_path}")
         command = f"echo {php_config_escaped} > {config_file_escaped}"
-        self.wordops.run_command(command, check=True)
+        self.wordops.ssh.run_command(command, check=True)
 
         logger.info(f"track_config.php updated successfully for {domain}")
 
@@ -297,7 +299,7 @@ return [
 
         for command in commands:
             logger.debug(f"Executing: {command}")
-            self.wordops.run_command(command, check=True)
+            self.wordops.ssh.run_command(command, check=True)
 
         logger.info("Flat file storage directory created successfully")
 
@@ -336,10 +338,10 @@ return [
             logger.info(f"Uploading {script} to {remote_path}")
 
             # Upload via SFTP
-            if not self.wordops._client:
+            if not self.wordops.ssh._client:
                 raise RuntimeError("SSH client not connected")
 
-            sftp = self.wordops._client.open_sftp()
+            sftp = self.wordops.ssh._client.open_sftp()
             try:
                 sftp.put(str(local_path), remote_path)
                 logger.debug(f"Upload completed: {remote_path}")
@@ -348,7 +350,7 @@ return [
 
             # Make executable
             command = f"chmod +x {shlex.quote(remote_path)}"
-            self.wordops.run_command(command, check=True)
+            self.wordops.ssh.run_command(command, check=True)
 
         logger.info("Python processing scripts uploaded successfully")
 
@@ -371,7 +373,7 @@ return [
             f"(crontab -l 2>/dev/null; echo {shlex.quote(cron_line)}) | crontab -"
         )
 
-        self.wordops.run_command(command, check=True)
+        self.wordops.ssh.run_command(command, check=True)
         logger.info("Cron job setup completed")
 
     def setup_tracking(self, domain: str) -> None:

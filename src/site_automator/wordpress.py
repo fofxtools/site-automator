@@ -40,7 +40,7 @@ class WordPressDeployer:
             RuntimeError: If check=True and command returns non-zero exit code
         """
         command = f"cd /var/www/{domain}/htdocs && wp {wp_command} --allow-root"
-        return self.wordops.run_command(command, check=check)
+        return self.wordops.ssh.run_command(command, check=check)
 
     def site_exists(self, domain: str) -> bool:
         """Check if WordPress is installed for the domain.
@@ -158,7 +158,7 @@ class WordPressDeployer:
             f"Sitemap: https://{domain}/wp-sitemap.xml\n"
         )
 
-        self.wordops.run_command(
+        self.wordops.ssh.run_command(
             f"cat > /var/www/{domain}/htdocs/robots.txt << 'ROBOTS_EOF'\n{content}ROBOTS_EOF",
             check=True,
         )
@@ -809,7 +809,7 @@ class WordPressDeployer:
             f"find /var/www/{domain}/htdocs -mindepth 1 -maxdepth 1 "
             f"{conditions} -exec rm -rf {{}} +"
         )
-        self.wordops.run_command(delete_cmd, check=True)
+        self.wordops.ssh.run_command(delete_cmd, check=True)
 
     def wipe_and_install(
         self,

@@ -63,6 +63,15 @@ def main() -> None:
         delete_local_content=args.delete_local_content,
     )
 
+    logger.info(
+        f"\nTo automate daily content creation and publishing, add the following to your crontab (replace paths):\n\n"
+        f"PROJECT_PATH=/path/to/site-automator\n"
+        f"VENV_PYTHON=/path/to/site-automator/.venv/bin/python\n\n"
+        f"# {args.site_id}\n"
+        f'0 0 * * * flock -n /tmp/{args.site_id}_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id {args.site_id}"\n\n'
+        f'0 1 * * * flock -n /tmp/{args.site_id}_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id {args.site_id}"\n'
+    )
+
 
 if __name__ == "__main__":
     start_time = perf_counter()

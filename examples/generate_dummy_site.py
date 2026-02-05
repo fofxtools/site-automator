@@ -103,7 +103,7 @@ def download_picsum_images(
     logging.info(f"Checking for picsum images in {shared_dir}")
 
     # Create shared directory if it doesn't exist, set permissions, and set ownership to www-data
-    wordops.run_command(
+    wordops.ssh.run_command(
         f"mkdir -p {shared_dir} && chmod 755 {shared_dir} && chown -R www-data:www-data {shared_dir}",
         check=True,
     )
@@ -114,7 +114,7 @@ def download_picsum_images(
         image_paths.append(image_path)
 
         # Check if image already exists on remote server
-        _, returncode = wordops.run_command(f"test -f {image_path}", check=False)
+        _, returncode = wordops.ssh.run_command(f"test -f {image_path}", check=False)
         if returncode == 0:
             logging.info(f"Image already exists on server: {image_path}")
             continue
@@ -124,7 +124,7 @@ def download_picsum_images(
         logging.info(f"Downloading random image to remote server: {image_path}")
 
         try:
-            wordops.run_command(f"curl -L -o {image_path} {url}", check=True)
+            wordops.ssh.run_command(f"curl -L -o {image_path} {url}", check=True)
             logging.info(f"Successfully downloaded: {image_path}")
         except Exception as e:
             logging.error(f"Failed to download image from {url}: {e}")

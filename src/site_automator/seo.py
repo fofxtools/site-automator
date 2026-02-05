@@ -42,7 +42,7 @@ def create_indexnow_key(domain: str, wordops: WordOpsProvisioner) -> str:
     key_file_escaped = shlex.quote(key_file)
 
     logger.info(f"Creating IndexNow key file for {domain}")
-    wordops.run_command(f"echo {key_escaped} > {key_file_escaped}", check=True)
+    wordops.ssh.run_command(f"echo {key_escaped} > {key_file_escaped}", check=True)
     logger.info(f"IndexNow key file created: {key_file}")
 
     return key

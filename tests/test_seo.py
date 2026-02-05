@@ -8,14 +8,14 @@ from site_automator.seo import create_indexnow_key, submit_indexnow
 class TestCreateIndexnowKey:
     """Test create_indexnow_key function."""
 
-    def test_generates_key_and_writes_file(self, wordops, mock_ssh_client):
+    def test_generates_key_and_writes_file(self, wordops, mock_ssh_connection):
         """Test key is generated and written to the webroot."""
         key = create_indexnow_key("example.com", wordops)
 
         assert len(key) == 32
         assert key.isalnum()
 
-        cmd = mock_ssh_client.exec_command.call_args[0][0]
+        cmd = mock_ssh_connection.run_command.call_args[0][0]
         assert f"{key}.txt" in cmd
         assert "/var/www/example.com/htdocs/" in cmd
 

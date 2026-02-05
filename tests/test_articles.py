@@ -23,7 +23,9 @@ class TestGenerateArticlesLLM:
 
     def _setup_prompts(self, tmp_path: Path) -> str:
         """Helper to set up prompts.yaml."""
-        prompts_content = "article_generation: |\n  Write article for {title}\n"
+        prompts_content = (
+            "article_generation: |\n  Write article titled {title} about {seed_topic}\n"
+        )
         prompts_file = tmp_path / "prompts.yaml"
         prompts_file.write_text(prompts_content)
         return str(tmp_path)
@@ -71,6 +73,17 @@ class TestGenerateArticlesLLM:
             },
         ):
             generate_articles_llm("site1")
+
+        # Verify prompts were generated with correct substitutions
+        mock_generate_bulk.assert_called_once()
+        called_prompts = mock_generate_bulk.call_args.args[0]
+        assert len(called_prompts) == 3
+
+        # Verify substitution happened correctly in first prompt
+        assert "Topic One" in called_prompts[0]
+        assert "test topic" in called_prompts[0]
+        assert "{title}" not in called_prompts[0]
+        assert "{seed_topic}" not in called_prompts[0]
 
         # Verify markdown files created
         markdown_dir = content_path / "site1" / "articles" / "markdown"
@@ -137,6 +150,17 @@ class TestGenerateArticlesLLM:
         mock_generate_bulk.assert_called_once()
         called_prompts = mock_generate_bulk.call_args.args[0]
         assert len(called_prompts) == 2
+
+        # Verify substitution happened correctly (Topic One was skipped, so we have Two and Three)
+        assert "Topic Two" in called_prompts[0]
+        assert "test topic" in called_prompts[0]
+        assert "{title}" not in called_prompts[0]
+        assert "{seed_topic}" not in called_prompts[0]
+
+        assert "Topic Three" in called_prompts[1]
+        assert "test topic" in called_prompts[1]
+        assert "{title}" not in called_prompts[1]
+        assert "{seed_topic}" not in called_prompts[1]
 
     def test_raises_error_for_wrong_strategy(self, tmp_path):
         """Test raises error when article_strategy is not 'llm'."""

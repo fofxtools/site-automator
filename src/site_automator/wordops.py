@@ -2,9 +2,7 @@
 
 import logging
 
-import paramiko
-
-from site_automator.ssh import resolve_ssh_host
+from site_automator.ssh import resolve_ssh_host, SSHConnection
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +12,7 @@ class WordOpsProvisioner:
 
     host: str
     user: str | None
-    _client: paramiko.SSHClient | None
+    ssh: SSHConnection
 
     def __init__(
         self,
@@ -29,70 +27,11 @@ class WordOpsProvisioner:
         """
         self.host = host
         self.user = user
-        self._client: paramiko.SSHClient | None = None
-        self._connect()
-
-    def _connect(self) -> None:
-        """Establish SSH connection using SSH keys and agent."""
-        # Resolve SSH config alias to actual hostname
-        hostname, config_user, keyfile = resolve_ssh_host(self.host)
-
-        # Priority: explicit user > SSH config user > default 'root'
-        username = self.user or config_user or "root"
-
-        logger.info(f"Connecting to {self.host} (resolved: {hostname}) as {username}")
-        logger.info(f"Using key file: {keyfile}")
-        self._client = paramiko.SSHClient()
-        self._client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self._client.connect(
-            hostname=hostname,
-            username=username,
-            key_filename=keyfile,
-            allow_agent=True,
-            look_for_keys=True,
-        )
-        logger.info("SSH connection established")
+        self.ssh = SSHConnection(host, user)
 
     def close(self) -> None:
         """Close SSH connection."""
-        if self._client:
-            self._client.close()
-            self._client = None
-
-    def run_command(self, command: str, check: bool = True) -> tuple[str, int]:
-        """Run SSH command. Returns (output, exit_code).
-
-        Args:
-            command: Shell command to execute
-            check: If True, raise exception on non-zero exit code
-
-        Returns:
-            Tuple of (stdout output, exit code)
-
-        Raises:
-            RuntimeError: If check=True and command returns non-zero exit code
-        """
-        if not self._client:
-            raise RuntimeError("SSH client not connected")
-
-        logger.debug(f"Running command: {command}")
-        _, stdout, stderr = self._client.exec_command(command)
-        exit_code = stdout.channel.recv_exit_status()
-        output = stdout.read().decode("utf-8").strip()
-        error = stderr.read().decode("utf-8").strip()
-        logger.debug(f"Command exit code: {exit_code}")
-
-        if check and exit_code != 0:
-            logger.error(f"Command failed: {command} (exit code {exit_code})")
-            raise RuntimeError(
-                f"Command failed with exit code {exit_code}: {command}\n"
-                f"Error: {error}\n"
-                f"Output: {output}"
-            )
-
-        # Return combined output if there's error output
-        full_output = output if not error else f"{output}\n{error}".strip()
-        return full_output, exit_code
+        self.ssh.close()
 
     def create_site(
         self,
@@ -114,7 +53,7 @@ class WordOpsProvisioner:
 
         logger.info(f"Creating site: {domain}")
         logger.info(f"Flags: {flags_str}".strip())
-        output, _ = self.run_command(command, check=True)
+        output, _ = self.ssh.run_command(command, check=True)
         logger.info(f"Site created successfully: {domain}")
         logger.debug(f"Site creation output:\n{output}")
 
@@ -125,7 +64,7 @@ class WordOpsProvisioner:
             RuntimeError: If restart fails
         """
         logger.info("Restarting Nginx")
-        self.run_command("systemctl restart nginx", check=True)
+        self.ssh.run_command("systemctl restart nginx", check=True)
         logger.info("Nginx restarted successfully")
 
     def ensure_git_safe_directory(self) -> None:
@@ -141,7 +80,7 @@ class WordOpsProvisioner:
         This should be run once during initial server setup.
         """
         logger.info("Configuring git safe.directory for WordOps")
-        self.run_command("git config --system --add safe.directory '*'", check=True)
+        self.ssh.run_command("git config --system --add safe.directory '*'", check=True)
         logger.info("Git safe.directory configured")
 
     def ensure_ssl(self, domain: str) -> bool:
@@ -158,7 +97,7 @@ class WordOpsProvisioner:
         """
         # Check if SSL is already enabled by looking for SSL certificate files
         check_cmd = f"test -f /var/www/{domain}/conf/nginx/ssl.conf"
-        _, exit_code = self.run_command(check_cmd, check=False)
+        _, exit_code = self.ssh.run_command(check_cmd, check=False)
 
         if exit_code == 0:
             logger.info(f"SSL already enabled for {domain}")
@@ -170,7 +109,7 @@ class WordOpsProvisioner:
         # Check DNS propagation using Google's DNS (8.8.8.8)
         logger.info(f"Checking DNS propagation for {domain} (expected IP: {server_ip})")
         dns_check = f"dig +short {domain} @8.8.8.8 | grep -q '^{server_ip}$'"
-        _, exit_code = self.run_command(dns_check, check=False)
+        _, exit_code = self.ssh.run_command(dns_check, check=False)
 
         if exit_code != 0:
             logger.warning(
@@ -181,7 +120,7 @@ class WordOpsProvisioner:
 
         # Enable SSL using WordOps
         logger.info(f"Enabling SSL for {domain}")
-        self.run_command(f"wo site update {domain} --letsencrypt", check=True)
+        self.ssh.run_command(f"wo site update {domain} --letsencrypt", check=True)
         logger.info(f"SSL enabled successfully for {domain}")
         return True
 
@@ -203,14 +142,14 @@ class WordOpsProvisioner:
         """
         # Check if our catch-all already exists
         check_cmd = "test -L /etc/nginx/sites-enabled/000-catchall"
-        _, exit_code = self.run_command(check_cmd, check=False)
+        _, exit_code = self.ssh.run_command(check_cmd, check=False)
 
         if exit_code == 0:
             logger.info("Default catch-all already exists")
             return
 
         # Remove distro default if present
-        self.run_command(
+        self.ssh.run_command(
             "[ -L /etc/nginx/sites-enabled/default ] && rm /etc/nginx/sites-enabled/default",
             check=False,
         )
@@ -221,7 +160,7 @@ class WordOpsProvisioner:
             "| grep -E 'listen (80|443)' "
             "| grep -v 000-catchall || true"
         )
-        output, _ = self.run_command(check_cmd, check=False)
+        output, _ = self.ssh.run_command(check_cmd, check=False)
 
         if output.strip():
             raise RuntimeError(
@@ -245,18 +184,18 @@ server {{
     ssl_reject_handshake on;
 }}"""
 
-        self.run_command(
+        self.ssh.run_command(
             f"cat > /etc/nginx/sites-available/000-catchall << 'EOF'\n{config}\nEOF",
             check=True,
         )
 
-        self.run_command(
+        self.ssh.run_command(
             "ln -sf /etc/nginx/sites-available/000-catchall /etc/nginx/sites-enabled/000-catchall",
             check=True,
         )
 
-        self.run_command("nginx -t", check=True)
-        self.run_command("systemctl reload nginx", check=True)
+        self.ssh.run_command("nginx -t", check=True)
+        self.ssh.run_command("systemctl reload nginx", check=True)
 
         logger.info("Default catch-all created successfully")
 
@@ -270,7 +209,7 @@ server {{
             RuntimeError: If swap creation fails
         """
         # Check if swap is already enabled
-        output, _ = self.run_command("swapon --show", check=False)
+        output, _ = self.ssh.run_command("swapon --show", check=False)
 
         if output.strip():
             logger.info("Swap already exists")
@@ -278,13 +217,13 @@ server {{
 
         # Create swap file
         logger.info(f"Creating {size_gb}GB swap file")
-        self.run_command(f"fallocate -l {size_gb}G /swapfile", check=True)
-        self.run_command("chmod 600 /swapfile", check=True)
-        self.run_command("mkswap /swapfile", check=True)
-        self.run_command("swapon /swapfile", check=True)
+        self.ssh.run_command(f"fallocate -l {size_gb}G /swapfile", check=True)
+        self.ssh.run_command("chmod 600 /swapfile", check=True)
+        self.ssh.run_command("mkswap /swapfile", check=True)
+        self.ssh.run_command("swapon /swapfile", check=True)
 
         # Add to fstab only if not already present (idempotent)
-        self.run_command(
+        self.ssh.run_command(
             "grep -q '^/swapfile ' /etc/fstab || "
             "echo '/swapfile none swap sw 0 0' >> /etc/fstab",
             check=True,
