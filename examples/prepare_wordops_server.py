@@ -25,7 +25,7 @@ def main() -> None:
     wordops = WordOpsProvisioner(host=args.server)
     try:
         wordops.ensure_default_catchall()
-        wordops.ensure_swap()
+        wordops.ssh.ensure_swap()
         wordops.ensure_git_safe_directory()
     finally:
         wordops.close()

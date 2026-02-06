@@ -13,9 +13,9 @@ class TestGenerateArticlesLLM:
     def _setup_site_config(self, tmp_path: Path, site_id: str = "site1") -> str:
         """Helper to set up site config CSV."""
         csv_content = (
-            "site_id,domain,server,seed_topic,prompts_file,cms,pages_per_site,posts_per_day,"
+            "site_id,domain,server,prompts_file,seed_topic,cms,pages_per_site,posts_per_day,"
             "llm_provider,article_strategy,llm_batch_mode\n"
-            f"{site_id},example.com,test-server,test topic,prompts.yaml,wordpress,10,2,openai,llm,false\n"
+            f"{site_id},example.com,test-server,prompts.yaml,test topic,wordpress,10,2,openai,llm,false\n"
         )
         csv_file = tmp_path / "sites.csv"
         csv_file.write_text(csv_content)
@@ -166,9 +166,9 @@ class TestGenerateArticlesLLM:
         """Test raises error when article_strategy is not 'llm'."""
         # Setup with wrong strategy
         csv_content = (
-            "site_id,domain,server,seed_topic,prompts_file,cms,pages_per_site,posts_per_day,"
+            "site_id,domain,server,prompts_file,seed_topic,cms,pages_per_site,posts_per_day,"
             "llm_provider,article_strategy,llm_batch_mode\n"
-            "site1,example.com,test-server,test topic,prompts.yaml,wordpress,10,2,openai,manual,false\n"
+            "site1,example.com,test-server,prompts.yaml,test topic,wordpress,10,2,openai,manual,false\n"
         )
         csv_file = tmp_path / "sites.csv"
         csv_file.write_text(csv_content)

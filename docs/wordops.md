@@ -107,7 +107,7 @@ if exit_code == 0:
 
 ```python
 # Create 4GB swap (default is 2GB)
-wordops.ensure_swap(size_gb=4)
+wordops.ssh.ensure_swap(size_gb=4)
 ```
 
 ## Default Catch-all
@@ -141,7 +141,7 @@ wordops = WordOpsProvisioner(host="your-server-alias")
 
 try:
     # Set up swap for small VPS
-    wordops.ensure_swap(size_gb=2)
+    wordops.ssh.ensure_swap(size_gb=2)
 
     # Create WordPress site with Nginx fastcgi_cache
     wordops.create_site("example.com", flags=["--wpfc"])

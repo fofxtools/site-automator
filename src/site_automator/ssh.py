@@ -105,3 +105,35 @@ class SSHConnection:
         if self._client:
             self._client.close()
             self._client = None
+
+    def ensure_swap(self, size_gb: int = 2) -> None:
+        """Create swap file if not already present.
+
+        Args:
+            size_gb: Swap file size in GB (default: 2)
+
+        Raises:
+            RuntimeError: If swap creation fails
+        """
+        # Check if swap is already enabled
+        output, _ = self.run_command("swapon --show", check=False)
+
+        if output.strip():
+            logger.info("Swap already exists")
+            return
+
+        # Create swap file
+        logger.info(f"Creating {size_gb}GB swap file")
+        self.run_command(f"fallocate -l {size_gb}G /swapfile", check=True)
+        self.run_command("chmod 600 /swapfile", check=True)
+        self.run_command("mkswap /swapfile", check=True)
+        self.run_command("swapon /swapfile", check=True)
+
+        # Add to fstab only if not already present (idempotent)
+        self.run_command(
+            "grep -q '^/swapfile ' /etc/fstab || "
+            "echo '/swapfile none swap sw 0 0' >> /etc/fstab",
+            check=True,
+        )
+
+        logger.info(f"Swap file created successfully: {size_gb}GB")

@@ -302,3 +302,76 @@ class TestSSHConnection:
         ssh = SSHConnection(host="example.com")
         ssh._client = None
         ssh.close()  # Should not raise
+
+
+class TestEnsureSwap:
+    """Test ensure_swap method."""
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_ensure_swap_already_exists(self, mock_ssh_client, mock_resolve):
+        """Test ensure_swap skips when swap already exists."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Mock exec_command to return swap exists
+        mock_stdout = Mock()
+        mock_stdout.channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b"swap output"
+        mock_stderr = Mock()
+        mock_stderr.read.return_value = b""
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        ssh = SSHConnection(host="example.com")
+        ssh.ensure_swap()
+
+        # Should only call the check command
+        assert mock_client_instance.exec_command.call_count == 1
+        mock_client_instance.exec_command.assert_called_with("swapon --show")
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_ensure_swap_creates_swap(self, mock_ssh_client, mock_resolve):
+        """Test ensure_swap creates swap when not present."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        call_count = [0]
+
+        # Setup mock to return different values for different commands
+        def exec_command_side_effect(command):
+            call_count[0] += 1
+            mock_stdout = Mock()
+            mock_stderr = Mock()
+            mock_stderr.read.return_value = b""
+
+            if "swapon --show" in command:
+                # No swap exists (empty output)
+                mock_stdout.channel.recv_exit_status.return_value = 0
+                mock_stdout.read.return_value = b""
+            else:
+                # All other commands succeed
+                mock_stdout.channel.recv_exit_status.return_value = 0
+                mock_stdout.read.return_value = b"success"
+
+            return (None, mock_stdout, mock_stderr)
+
+        mock_client_instance.exec_command.side_effect = exec_command_side_effect
+
+        ssh = SSHConnection(host="example.com")
+        ssh.ensure_swap(size_gb=4)
+
+        # Should call multiple commands to create swap
+        # 1. swapon --show (check)
+        # 2. fallocate
+        # 3. chmod
+        # 4. mkswap
+        # 5. swapon
+        # 6. grep/echo fstab
+        assert mock_client_instance.exec_command.call_count == 6

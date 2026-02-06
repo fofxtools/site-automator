@@ -304,48 +304,6 @@ class TestEnsureDefaultCatchall:
         assert "return 444" in config_call
 
 
-class TestEnsureSwap:
-    """Test ensure_swap method."""
-
-    @patch("site_automator.wordops.SSHConnection")
-    def test_ensure_swap_already_exists(self, mock_ssh_connection):
-        """Test ensure_swap skips when swap already exists."""
-        mock_ssh_instance = Mock()
-        mock_ssh_connection.return_value = mock_ssh_instance
-        mock_ssh_instance.run_command.return_value = ("swap output", 0)
-
-        wordops = WordOpsProvisioner(host="example.com")
-        wordops.ensure_swap()
-
-        # Should only call the check command
-        mock_ssh_instance.run_command.assert_called_once_with(
-            "swapon --show", check=False
-        )
-
-    @patch("site_automator.wordops.SSHConnection")
-    def test_ensure_swap_creates_swap(self, mock_ssh_connection):
-        """Test ensure_swap creates swap when not present."""
-        mock_ssh_instance = Mock()
-        mock_ssh_connection.return_value = mock_ssh_instance
-
-        # Setup mock to return different values for different commands
-        def run_command_side_effect(command, check=True):
-            if "swapon --show" in command:
-                # No swap exists
-                return ("", 0)
-            else:
-                # All other commands succeed
-                return ("success", 0)
-
-        mock_ssh_instance.run_command.side_effect = run_command_side_effect
-
-        wordops = WordOpsProvisioner(host="example.com")
-        wordops.ensure_swap(size_gb=4)
-
-        # Should call multiple commands to create swap
-        assert mock_ssh_instance.run_command.call_count == 6
-
-
 class TestEnsureGitSafeDirectory:
     """Test ensure_git_safe_directory method."""
 
