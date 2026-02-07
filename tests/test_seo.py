@@ -35,25 +35,36 @@ class TestSubmitIndexnow:
         assert "url=https%3A%2F%2Fexample.com%2Fpage" in called_url
         assert "key=abc123" in called_url
 
-    @patch.dict("os.environ", {"SCRAPERAPI_KEY": "scraper_key_123"})
-    @patch("site_automator.seo.requests.get")
-    def test_submit_via_scraperapi(self, mock_get):
-        """Test submission routed through ScraperAPI."""
-        mock_get.return_value = Mock(status_code=200)
+    @patch.dict("os.environ", {"ZYTE_API_KEY": "zyte_key_123"})
+    @patch("site_automator.seo.requests.post")
+    def test_submit_via_zyte(self, mock_post):
+        """Test submission routed through Zyte API."""
+        # Mock Zyte API response with base64-encoded empty body
+        mock_post.return_value = Mock(
+            status_code=200,
+            json=lambda: {"httpResponseBody": ""},  # Empty base64 string
+        )
 
-        submit_indexnow("https://example.com/page", "abc123", use_scraperapi=True)
+        submit_indexnow("https://example.com/page", "abc123", use_zyte=True)
 
-        called_url = mock_get.call_args[0][0]
-        assert called_url.startswith("https://api.scraperapi.com")
-        assert "api_key=scraper_key_123" in called_url
-        # Inner URL should be percent-encoded
-        assert "bing.com%2Findexnow" in called_url
+        # Verify POST request to Zyte API
+        assert mock_post.call_args[0][0] == "https://api.zyte.com/v1/extract"
+
+        # Verify authentication (API key as username, empty password)
+        assert mock_post.call_args[1]["auth"] == ("zyte_key_123", "")
+
+        # Verify JSON body contains the IndexNow URL
+        json_body = mock_post.call_args[1]["json"]
+        assert "bing.com/indexnow" in json_body["url"]
+        assert "url=https%3A%2F%2Fexample.com%2Fpage" in json_body["url"]
+        assert "key=abc123" in json_body["url"]
+        assert json_body["httpResponseBody"] is True
 
     @patch.dict("os.environ", {}, clear=True)
-    def test_submit_scraperapi_missing_key_raises(self):
-        """Test ValueError when SCRAPERAPI_KEY is not set."""
-        with pytest.raises(ValueError, match="SCRAPERAPI_KEY"):
-            submit_indexnow("https://example.com/page", "abc123", use_scraperapi=True)
+    def test_submit_zyte_missing_key_raises(self):
+        """Test ValueError when ZYTE_API_KEY is not set."""
+        with pytest.raises(ValueError, match="ZYTE_API_KEY"):
+            submit_indexnow("https://example.com/page", "abc123", use_zyte=True)
 
     @patch("site_automator.seo.requests.get")
     def test_submit_raises_on_http_error(self, mock_get):
@@ -63,3 +74,12 @@ class TestSubmitIndexnow:
 
         with pytest.raises(Exception, match="422"):
             submit_indexnow("https://example.com/page", "abc123")
+
+    @patch.dict("os.environ", {"ZYTE_API_KEY": "zyte_key_123"})
+    @patch("site_automator.seo.requests.post")
+    def test_submit_zyte_no_body(self, mock_post):
+        mock_post.return_value = Mock(
+            status_code=200, json=lambda: {}  # No httpResponseBody
+        )
+
+        submit_indexnow("https://example.com/page", "abc123", use_zyte=True)

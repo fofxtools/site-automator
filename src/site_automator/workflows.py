@@ -14,13 +14,13 @@ from site_automator.wordpress import WordPressDeployer
 logger = logging.getLogger(__name__)
 
 
-def setup_site(
+def setup_site_wordpress(
     site_id: str,
     *,
     wipe: bool = False,
     delete_local_content: bool = False,
 ) -> None:
-    """Setup a site with generated content.
+    """Setup a WordPress site with generated content.
 
     Args:
         site_id: Site identifier

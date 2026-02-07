@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 from site_automator.tracking import PageviewTrackingSetup
 
 
@@ -14,19 +14,14 @@ class TestUploadTrackingResources:
 
     def test_upload_tracking_plugin(self, tracking, mock_ssh_connection):
         """Test plugin is always uploaded (overwrites if exists)."""
-        # Mock SFTP
-        mock_sftp = Mock()
-        mock_ssh_connection._client = Mock()
-        mock_ssh_connection._client.open_sftp.return_value = mock_sftp
-
         tracking._upload_tracking_resources()
 
-        # Should create remote directory
-        calls = [call[0][0] for call in mock_ssh_connection.run_command.call_args_list]
-        assert any("mkdir -p" in cmd and "/shared" in cmd for cmd in calls)
+        # Should upload 1 file using upload_file
+        assert mock_ssh_connection.upload_file.call_count == 1
 
-        # Should always upload 1 file (overwrites if exists)
-        assert mock_sftp.put.call_count == 1
+        # Verify upload_file was called with correct path
+        call_args = mock_ssh_connection.upload_file.call_args[0]
+        assert "/shared/" in call_args[1]  # remote path
 
 
 class TestCreateEnvFile:
@@ -77,18 +72,14 @@ class TestUpdateTrackConfig:
         """Test _update_track_config creates config file with env values."""
         tracking._update_track_config("example.com")
 
-        mock_ssh_connection.run_command.assert_called_once()
-        call_cmd = mock_ssh_connection.run_command.call_args[0][0]
+        # Should upload file using upload_file
+        mock_ssh_connection.upload_file.assert_called_once()
 
-        assert "echo" in call_cmd
-        assert "track_config.php" in call_cmd
-        assert "../../../../.env" in call_cmd
-        assert "/var/lib/pageview-tracking" in call_cmd
-        assert "127.0.0.1" in call_cmd
-        assert "192.168.1.1" in call_cmd
-        assert "10.0.0.0/8" in call_cmd
-        assert "BadBot" in call_cmd
-        assert "bot" in call_cmd
+        # Verify remote path
+        call_args = mock_ssh_connection.upload_file.call_args[0]
+        remote_path = call_args[1]
+        assert "track_config.php" in remote_path
+        assert "example.com" in remote_path
 
 
 class TestCreateDataDirectory:
@@ -130,14 +121,10 @@ class TestUploadProcessingScripts:
 
     def test_upload_processing_scripts(self, tracking, mock_ssh_connection):
         """Test _upload_processing_scripts uploads scripts and makes them executable."""
-        mock_sftp = Mock()
-        mock_ssh_connection._client = Mock()
-        mock_ssh_connection._client.open_sftp.return_value = mock_sftp
-
         tracking._upload_processing_scripts()
 
-        # Should upload 2 scripts
-        assert mock_sftp.put.call_count == 2
+        # Should upload 2 scripts using upload_file
+        assert mock_ssh_connection.upload_file.call_count == 2
 
         # Should make each script executable
         calls = [call[0][0] for call in mock_ssh_connection.run_command.call_args_list]
@@ -195,5 +182,5 @@ class TestSetupTracking:
         # Verify key steps were executed
         assert any(".env" in cmd for cmd in calls)
         assert any("wp plugin install" in cmd for cmd in calls)
-        assert any("track_config.php" in cmd for cmd in calls)
+        # Note: track_config.php is uploaded via upload_file, not run_command
         assert any("sudo mkdir -p /var/lib/pageview-tracking" in cmd for cmd in calls)

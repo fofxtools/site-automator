@@ -279,6 +279,80 @@ class TestSSHConnection:
 
     @patch("site_automator.ssh.resolve_ssh_host")
     @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_upload_file_success(self, mock_ssh_client, mock_resolve, tmp_path):
+        """Test successful file upload."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Mock SFTP
+        mock_sftp = Mock()
+        mock_client_instance.open_sftp.return_value = mock_sftp
+
+        # Mock run_command for mkdir
+        mock_stdout = Mock()
+        mock_stdout.channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b""
+        mock_stderr = Mock()
+        mock_stderr.read.return_value = b""
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        # Create a test file
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("test content")
+
+        ssh = SSHConnection(host="example.com")
+        ssh.upload_file(test_file, "/remote/path/test.txt")
+
+        # Verify mkdir was called
+        mock_client_instance.exec_command.assert_called_with("mkdir -p /remote/path")
+
+        # Verify SFTP put was called
+        mock_sftp.put.assert_called_once_with(str(test_file), "/remote/path/test.txt")
+        mock_sftp.close.assert_called_once()
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_upload_file_no_client_raises(
+        self, mock_ssh_client, mock_resolve, tmp_path
+    ):
+        """Test upload_file raises when client is not connected."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("test content")
+
+        ssh = SSHConnection(host="example.com")
+        ssh._client = None
+
+        with pytest.raises(RuntimeError, match="SSH client not connected"):
+            ssh.upload_file(test_file, "/remote/path/test.txt")
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_upload_file_not_found_raises(
+        self, mock_ssh_client, mock_resolve, tmp_path
+    ):
+        """Test upload_file raises when local file doesn't exist."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        non_existent_file = tmp_path / "does-not-exist.txt"
+
+        ssh = SSHConnection(host="example.com")
+
+        with pytest.raises(FileNotFoundError, match="Local file not found"):
+            ssh.upload_file(non_existent_file, "/remote/path/test.txt")
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
     def test_close_closes_client(self, mock_ssh_client, mock_resolve):
         """Test that close() closes the SSH client."""
         mock_resolve.return_value = ("192.168.1.1", None, None)
@@ -302,10 +376,6 @@ class TestSSHConnection:
         ssh = SSHConnection(host="example.com")
         ssh._client = None
         ssh.close()  # Should not raise
-
-
-class TestEnsureSwap:
-    """Test ensure_swap method."""
 
     @patch("site_automator.ssh.resolve_ssh_host")
     @patch("site_automator.ssh.paramiko.SSHClient")

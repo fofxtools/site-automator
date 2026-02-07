@@ -2,6 +2,7 @@
 
 import logging
 import shlex
+import tempfile
 from pathlib import Path
 
 from site_automator.wordops import WordOpsProvisioner
@@ -64,17 +65,8 @@ class PageviewTrackingSetup:
 
             # Always upload (overwrite if exists)
             logger.info(f"Uploading {filename} to {remote_path}")
-
-            # Upload file using SFTP
-            if not self.wordops.ssh._client:
-                raise RuntimeError("SSH client not connected")
-
-            sftp = self.wordops.ssh._client.open_sftp()
-            try:
-                sftp.put(str(local_path), remote_path)
-                logger.debug(f"Upload completed: {remote_path}")
-            finally:
-                sftp.close()
+            self.wordops.ssh.upload_file(local_path, remote_path)
+            logger.debug(f"Upload completed: {remote_path}")
 
         logger.info("Tracking resources upload completed")
 
@@ -250,19 +242,24 @@ return [
 ];
 """
 
-        # Write to track_config.php
+        # Write to track_config.php using upload_file
         config_file_path = (
             f"/var/www/{domain}/htdocs/wp-content/plugins/"
             f"pageview-tracking/track_config.php"
         )
-        config_file_escaped = shlex.quote(config_file_path)
-        php_config_escaped = shlex.quote(php_config)
 
         logger.debug(f"Writing track_config.php: {config_file_path}")
-        command = f"echo {php_config_escaped} > {config_file_escaped}"
-        self.wordops.ssh.run_command(command, check=True)
 
-        logger.info(f"track_config.php updated successfully for {domain}")
+        # Write to temp file and upload
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".php") as f:
+            f.write(php_config)
+            temp_path = Path(f.name)
+
+        try:
+            self.wordops.ssh.upload_file(temp_path, config_file_path)
+            logger.info(f"track_config.php updated successfully for {domain}")
+        finally:
+            temp_path.unlink()
 
     def _create_data_directory(self) -> None:
         """Create flat file storage directory with proper permissions.
@@ -336,17 +333,8 @@ return [
                 raise FileNotFoundError(f"Local script not found: {local_path}")
 
             logger.info(f"Uploading {script} to {remote_path}")
-
-            # Upload via SFTP
-            if not self.wordops.ssh._client:
-                raise RuntimeError("SSH client not connected")
-
-            sftp = self.wordops.ssh._client.open_sftp()
-            try:
-                sftp.put(str(local_path), remote_path)
-                logger.debug(f"Upload completed: {remote_path}")
-            finally:
-                sftp.close()
+            self.wordops.ssh.upload_file(local_path, remote_path)
+            logger.debug(f"Upload completed: {remote_path}")
 
             # Make executable
             command = f"chmod +x {shlex.quote(remote_path)}"

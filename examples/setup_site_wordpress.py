@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Test setup script for a site.
+"""Test setup script for a WordPress site.
 
-This script sets up a complete test site with generated content.
+This script sets up a complete WordPress test site with generated content.
 
 Usage:
-    python3 examples/setup_site.py --site-id example_com
+    python examples/setup_site_wordpress.py --site-id example_com
 
 With optional flags (caution: irreversible delete):
-    python3 examples/setup_site.py --site-id example_com --wipe --delete-local-content
+    python examples/setup_site_wordpress.py --site-id example_com --wipe --delete-local-content
 
 To reverse/cleanup:
     1. Set wipe=True and delete_local_content=True flags, then run this script again
@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from site_automator.utils import configure_logging
 from site_automator.sites import load_site_config
-from site_automator.workflows import setup_site
+from site_automator.workflows import setup_site_wordpress
 
 # Configure logging
 configure_logging()
@@ -57,7 +57,7 @@ def main() -> None:
 
     logger.info(f"Setting up site: {args.site_id} ({site['domain']})")
 
-    setup_site(
+    setup_site_wordpress(
         args.site_id,
         wipe=args.wipe,
         delete_local_content=args.delete_local_content,

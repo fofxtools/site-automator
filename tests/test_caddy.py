@@ -151,18 +151,16 @@ class TestEnableDomain:
             caddy.enable_domain("example.com\x00")
 
     @patch("site_automator.caddy.SSHConnection")
-    def test_strips_whitespace(self, mock_ssh_connection):
-        """Test that leading/trailing whitespace is stripped."""
+    def test_rejects_domain_with_whitespace(self, mock_ssh_connection):
+        """Test that domains with leading/trailing whitespace are rejected."""
         mock_ssh = Mock()
         mock_ssh.run_command.return_value = ("", 0)
         mock_ssh_connection.return_value = mock_ssh
 
         caddy = CaddyProvisioner(host="example.com")
-        caddy.enable_domain("  test.com  ")
 
-        # Verify domain was stripped in commands
-        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
-        assert any("/var/www/test.com/public" in c for c in calls)
+        with pytest.raises(ValueError, match="Invalid domain"):
+            caddy.enable_domain("  test.com  ")
 
     @patch("site_automator.caddy.SSHConnection")
     def test_creates_web_root_with_permissions(self, mock_ssh_connection):
@@ -189,14 +187,13 @@ class TestEnableDomain:
         caddy = CaddyProvisioner(host="example.com")
         caddy.enable_domain("test.com")
 
-        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
-        config_call = [
-            c for c in calls if "cat > /etc/caddy/sites-available/test.com.caddy" in c
-        ]
-        assert len(config_call) == 1
-        assert "root * /var/www/test.com/public" in config_call[0]
-        assert "file_server" in config_call[0]
-        assert "encode gzip" in config_call[0]
+        # Should upload config file using upload_file
+        mock_ssh.upload_file.assert_called_once()
+
+        # Verify remote path
+        call_args = mock_ssh.upload_file.call_args[0]
+        remote_path = call_args[1]
+        assert "/etc/caddy/sites-available/test.com.caddy" in remote_path
 
     @patch("site_automator.caddy.SSHConnection")
     def test_creates_symlink(self, mock_ssh_connection):

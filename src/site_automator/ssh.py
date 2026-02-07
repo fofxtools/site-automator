@@ -1,5 +1,7 @@
 import logging
 import os
+from pathlib import Path
+
 import paramiko
 
 logger = logging.getLogger(__name__)
@@ -99,6 +101,39 @@ class SSHConnection:
         # Return combined output if there's error output
         full_output = output if not error else f"{output}\n{error}".strip()
         return full_output, exit_code
+
+    def upload_file(self, local_path: Path | str, remote_path: str) -> None:
+        """Upload a file to the remote server using SFTP.
+
+        Args:
+            local_path: Path to the local file
+            remote_path: Destination path on the remote server
+
+        Raises:
+            RuntimeError: If SSH client is not connected
+            FileNotFoundError: If local file doesn't exist
+        """
+        if not self._client:
+            raise RuntimeError("SSH client not connected")
+
+        local_path = Path(local_path)
+        if not local_path.exists():
+            raise FileNotFoundError(f"Local file not found: {local_path}")
+
+        logger.info(f"Uploading {local_path} to {remote_path}")
+
+        # Ensure remote directory exists
+        remote_dir = os.path.dirname(remote_path)
+        if remote_dir:
+            self.run_command(f"mkdir -p {remote_dir}", check=True)
+
+        # Upload file using SFTP
+        sftp = self._client.open_sftp()
+        try:
+            sftp.put(str(local_path), remote_path)
+            logger.info(f"File uploaded successfully: {remote_path}")
+        finally:
+            sftp.close()
 
     def close(self) -> None:
         """Close SSH connection."""

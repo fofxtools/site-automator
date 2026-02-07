@@ -117,3 +117,22 @@ def configure_logging(
         logging.getLogger("paramiko").setLevel(logging.WARNING)
     if silence_httpx:
         logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+def validate_domain(domain: str) -> None:
+    """Validate domain name.
+
+    Args:
+        domain: Domain name to validate
+
+    Raises:
+        ValueError: If domain is invalid (empty, contains whitespace, path traversal, or null bytes)
+    """
+    if not domain:
+        raise ValueError("Invalid domain")
+    if domain != domain.strip():
+        raise ValueError("Invalid domain")
+    if domain.startswith(".") or domain.endswith("."):
+        raise ValueError("Invalid domain")
+    if "/" in domain or ".." in domain or "\x00" in domain:
+        raise ValueError("Invalid domain")

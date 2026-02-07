@@ -2,7 +2,7 @@
 """Set up DNS for a domain using registrar and DigitalOcean.
 
 Usage:
-    python3 examples/setup_dns.py --site-id example_com
+    python examples/setup_dns.py --site-id example_com
 """
 
 import argparse

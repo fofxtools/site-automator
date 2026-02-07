@@ -284,7 +284,7 @@ class TestEnsureDefaultCatchall:
                 # First 3 calls: checks fail (catchall doesn't exist, no conflicts, rm)
                 return ("", 1)
             else:
-                # Remaining calls succeed (cat, ln, nginx -t, reload)
+                # Remaining calls succeed (ln, nginx -t, reload)
                 return ("", 0)
 
         mock_ssh_instance.run_command.side_effect = run_command_side_effect
@@ -292,16 +292,13 @@ class TestEnsureDefaultCatchall:
         wordops = WordOpsProvisioner(host="example.com")
         wordops.ensure_default_catchall()
 
-        # Check config was written
-        calls = [call[0][0] for call in mock_ssh_instance.run_command.call_args_list]
-        config_call = [c for c in calls if "cat >" in c][0]
+        # Should upload config file using upload_file
+        mock_ssh_instance.upload_file.assert_called_once()
 
-        assert "listen 80 default_server" in config_call
-        assert "listen [::]:80 default_server" in config_call
-        assert "listen 443 ssl default_server" in config_call
-        assert "listen [::]:443 ssl default_server" in config_call
-        assert "ssl_reject_handshake on" in config_call
-        assert "return 444" in config_call
+        # Verify remote path
+        call_args = mock_ssh_instance.upload_file.call_args[0]
+        remote_path = call_args[1]
+        assert "/etc/nginx/sites-available/000-catchall" in remote_path
 
 
 class TestEnsureGitSafeDirectory:

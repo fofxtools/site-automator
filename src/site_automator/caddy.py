@@ -1,8 +1,11 @@
 """Caddy Provisioner - SSH-based static site provisioning with Caddy."""
 
 import logging
+import tempfile
+from pathlib import Path
 
 from site_automator.ssh import SSHConnection
+from site_automator.utils import validate_domain
 
 logger = logging.getLogger(__name__)
 
@@ -100,10 +103,7 @@ class CaddyProvisioner:
             ValueError: If domain is invalid
             RuntimeError: If site creation fails or validation fails
         """
-        # Validate domain input (prevent path traversal and empty values)
-        domain = domain.strip()
-        if not domain or "/" in domain or "\x00" in domain:
-            raise ValueError("Invalid domain")
+        validate_domain(domain)
 
         # Ensure Caddyfile structure is set up
         self.ensure_caddyfile_import()
@@ -121,10 +121,18 @@ class CaddyProvisioner:
     file_server
     encode gzip
 }}"""
-        self.ssh.run_command(
-            f"cat > /etc/caddy/sites-available/{domain}.caddy << 'EOF'\n{site_config}\nEOF",
-            check=True,
-        )
+
+        config_path = f"/etc/caddy/sites-available/{domain}.caddy"
+
+        # Write to temp file and upload
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".caddy") as f:
+            f.write(site_config)
+            temp_path = Path(f.name)
+
+        try:
+            self.ssh.upload_file(temp_path, config_path)
+        finally:
+            temp_path.unlink()
 
         # Ensure symlink exists
         self.ssh.run_command(
@@ -152,10 +160,7 @@ class CaddyProvisioner:
             ValueError: If domain is invalid
             RuntimeError: If site disabling fails or validation fails
         """
-        # Validate domain input (prevent path traversal and empty values)
-        domain = domain.strip()
-        if not domain or "/" in domain or "\x00" in domain:
-            raise ValueError("Invalid domain")
+        validate_domain(domain)
 
         logger.info(f"Disabling domain: {domain}")
 

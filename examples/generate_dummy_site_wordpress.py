@@ -2,7 +2,7 @@
 """Generate a dummy WordPress site with fake data using Faker.
 
 Usage:
-    python3 examples/generate_dummy_site.py --site-id example_com
+    python examples/generate_dummy_site.py --site-id example_com
 """
 
 import argparse

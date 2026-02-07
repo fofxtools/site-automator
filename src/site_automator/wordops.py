@@ -1,6 +1,8 @@
 """WordOps Provisioner - SSH-based WordPress site provisioning."""
 
 import logging
+import tempfile
+from pathlib import Path
 
 from site_automator.ssh import resolve_ssh_host, SSHConnection
 
@@ -184,10 +186,17 @@ server {{
     ssl_reject_handshake on;
 }}"""
 
-        self.ssh.run_command(
-            f"cat > /etc/nginx/sites-available/000-catchall << 'EOF'\n{config}\nEOF",
-            check=True,
-        )
+        config_path = "/etc/nginx/sites-available/000-catchall"
+
+        # Write to temp file and upload
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".conf") as f:
+            f.write(config)
+            temp_path = Path(f.name)
+
+        try:
+            self.ssh.upload_file(temp_path, config_path)
+        finally:
+            temp_path.unlink()
 
         self.ssh.run_command(
             "ln -sf /etc/nginx/sites-available/000-catchall /etc/nginx/sites-enabled/000-catchall",

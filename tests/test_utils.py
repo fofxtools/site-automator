@@ -2,11 +2,14 @@ import logging
 import os
 from unittest.mock import patch
 
+import pytest
+
 from site_automator.utils import (
     parse_numbered_list,
     clean_llm_text,
     parse_bool,
     configure_logging,
+    validate_domain,
 )
 
 
@@ -112,3 +115,56 @@ class TestConfigureLogging:
         # Loggers should not be at WARNING level (would be at root level)
         # We just verify the function doesn't crash and runs successfully
         assert logging.root.level == logging.INFO
+
+
+class TestValidateDomain:
+    """Test validate_domain function."""
+
+    def test_valid_domain(self):
+        """Test valid domain passes."""
+        validate_domain("example.com")
+
+    def test_rejects_leading_whitespace(self):
+        """Test domain with leading whitespace raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid domain"):
+            validate_domain("  example.com")
+
+    def test_rejects_trailing_whitespace(self):
+        """Test domain with trailing whitespace raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid domain"):
+            validate_domain("example.com  ")
+
+    def test_rejects_empty_string(self):
+        """Test empty string raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid domain"):
+            validate_domain("")
+
+    def test_rejects_whitespace_only(self):
+        """Test whitespace-only string raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid domain"):
+            validate_domain("   ")
+
+    def test_rejects_leading_dot(self):
+        """Test domain starting with . raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid domain"):
+            validate_domain(".example.com")
+
+    def test_rejects_trailing_dot(self):
+        """Test domain ending with . raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid domain"):
+            validate_domain("example.com.")
+
+    def test_rejects_slash(self):
+        """Test domain with slash raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid domain"):
+            validate_domain("example.com/path")
+
+    def test_rejects_double_dot(self):
+        """Test domain with .. raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid domain"):
+            validate_domain("example..com")
+
+    def test_rejects_null_byte(self):
+        """Test domain with null byte raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid domain"):
+            validate_domain("example.com\x00")

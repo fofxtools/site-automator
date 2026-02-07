@@ -4,12 +4,13 @@ import logging
 import os
 import secrets
 import shlex
-from urllib.parse import quote, urlencode
+from urllib.parse import urlencode
 
 import requests
 from dotenv import load_dotenv
 
 from site_automator.wordops import WordOpsProvisioner
+from base64 import b64decode
 
 logger = logging.getLogger(__name__)
 
@@ -51,32 +52,53 @@ def create_indexnow_key(domain: str, wordops: WordOpsProvisioner) -> str:
 def submit_indexnow(
     url: str,
     key: str,
-    use_scraperapi: bool = False,
+    use_zyte: bool = False,
 ) -> None:
     """Submit a URL to IndexNow for indexing.
 
     Args:
         url: Full URL to submit (e.g., "https://example.com/page1")
         key: IndexNow key for this domain (from create_indexnow_key)
-        use_scraperapi: If True, route request through ScraperAPI.
-                        Requires SCRAPERAPI_KEY environment variable.
+        use_zyte: If True, route request through Zyte API.
+                  Requires ZYTE_API_KEY environment variable.
 
     Raises:
-        ValueError: If use_scraperapi is True and SCRAPERAPI_KEY is not set
+        ValueError: If use_zyte is True and ZYTE_API_KEY is not set
         requests.HTTPError: If the API returns an error
     """
-    target = f"{INDEXNOW_URL}?{urlencode({'url': url, 'key': key})}"
+    indexnow_url = f"{INDEXNOW_URL}?{urlencode({'url': url, 'key': key})}"
 
-    if use_scraperapi:
-        scraperapi_key = os.getenv("SCRAPERAPI_KEY")
-        if not scraperapi_key:
-            raise ValueError("SCRAPERAPI_KEY environment variable is required")
-        target = f"https://api.scraperapi.com?api_key={scraperapi_key}&url={quote(target, safe='')}"
-        logger.info(f"Submitting to IndexNow via ScraperAPI: {url}")
+    if use_zyte:
+        zyte_api_key = os.getenv("ZYTE_API_KEY")
+        if not zyte_api_key:
+            raise ValueError("ZYTE_API_KEY environment variable is required")
+
+        logger.info(f"Submitting to IndexNow via Zyte API: {url}")
+
+        # Zyte API expects a POST request with JSON body
+        response = requests.post(
+            "https://api.zyte.com/v1/extract",
+            auth=(zyte_api_key, ""),
+            json={
+                "url": indexnow_url,
+                "httpResponseBody": True,
+            },
+        )
+        response.raise_for_status()
+
+        # Decode and log response body (if present)
+        data = response.json()
+        body_b64 = data.get("httpResponseBody")
+        if body_b64:
+            try:
+                decoded_bytes = b64decode(body_b64)
+                decoded = decoded_bytes.decode("utf-8", errors="ignore")
+                logger.debug(f"HTTP response body:\n{decoded}")
+            except Exception as e:
+                logger.warning(f"Failed to decode HTTP response body: {e}")
     else:
         logger.info(f"Submitting to IndexNow: {url}")
-
-    response = requests.get(target, timeout=30)
-    response.raise_for_status()
+        response = requests.get(indexnow_url)
+        response.raise_for_status()
 
     logger.info(f"IndexNow submission successful (HTTP {response.status_code})")

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Prepare WordOps server for site automation.
 
 Usage:
