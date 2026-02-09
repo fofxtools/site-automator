@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from site_automator.workflows import setup_site_wordpress
+from site_automator.workflows import setup_site_hugo, setup_site_wordpress
 
 
 def _setup_site_config(tmp_path: Path, site_id: str = "site1") -> str:
@@ -22,7 +22,7 @@ def _setup_site_config(tmp_path: Path, site_id: str = "site1") -> str:
 
 
 class TestSetupSiteWordpress:
-    """Test setup_site_wordpress function - critical path only."""
+    """Test setup_site_wordpress function."""
 
     @patch("site_automator.workflows.generate_articles_llm")
     @patch("site_automator.workflows.generate_topics_site_id")
@@ -36,7 +36,7 @@ class TestSetupSiteWordpress:
         mock_gen_articles,
         tmp_path,
     ):
-        """Test creating a new site from scratch (critical happy path)."""
+        """Test creating a new site from scratch (happy path)."""
         # Setup
         csv_path = _setup_site_config(tmp_path)
 
@@ -52,7 +52,7 @@ class TestSetupSiteWordpress:
         with patch.dict("os.environ", {"SITES_CONFIG_PATH": csv_path}):
             setup_site_wordpress("site1")
 
-        # Verify critical path
+        # Verify WordOps and WordPress calls
         mock_wordops_class.assert_called_once_with(host="test-server")
         mock_wordpress.site_exists.assert_called_once_with("example.com")
         mock_wordops.create_site.assert_called_once_with(
@@ -252,3 +252,208 @@ class TestSetupSiteWordpress:
         mock_gen_articles.assert_called_once()
         mock_wordpress.initial_setup.assert_called_once()
         mock_wordops.close.assert_called_once()
+
+
+class TestSetupSiteHugo:
+    """Test setup_site_hugo function."""
+
+    @patch("site_automator.workflows.generate_articles_llm")
+    @patch("site_automator.workflows.generate_topics_site_id")
+    @patch("site_automator.workflows.HugoDeployer")
+    @patch("site_automator.workflows.CaddyProvisioner")
+    def test_setup_without_wipe_correct_order(
+        self,
+        mock_caddy_class,
+        mock_hugo_class,
+        mock_gen_topics,
+        mock_gen_articles,
+        tmp_path,
+    ):
+        """Test setup without wipe follows correct order."""
+        # Setup
+        csv_content = (
+            "site_id,domain,server,prompts_file,seed_topic,cms,pages_per_site,posts_per_day,"
+            "llm_provider,llm_batch_mode,theme\n"
+            "site1,example.com,test-server,prompts.yaml,test topic,hugo,10,2,openai,false,ananke\n"
+        )
+        csv_path = tmp_path / "sites.csv"
+        csv_path.write_text(csv_content)
+
+        mock_caddy = Mock()
+        mock_ssh = Mock()
+        mock_caddy.ssh = mock_ssh
+        mock_caddy_class.return_value = mock_caddy
+
+        mock_hugo = Mock()
+        mock_hugo_class.return_value = mock_hugo
+
+        # Execute
+        with patch.dict("os.environ", {"SITES_CONFIG_PATH": str(csv_path)}):
+            setup_site_hugo("site1", wipe=False)
+
+        # Verify Caddy setup
+        mock_caddy_class.assert_called_once_with(host="test-server")
+        mock_caddy.enable_domain.assert_called_once_with("example.com")
+        mock_hugo.check_hugo_installed.assert_called_once()
+
+        # Verify wipe was NOT called
+        mock_hugo.wipe_site.assert_not_called()
+
+        # Verify ensure_site_initialized was called
+        mock_hugo.ensure_site_initialized.assert_called_once_with("example.com")
+
+        # Verify content generation
+        mock_gen_topics.assert_called_once_with("site1")
+        mock_gen_articles.assert_called_once_with("site1", add_hugo_frontmatter=True)
+
+        # Verify initial setup
+        mock_hugo.initial_setup.assert_called_once_with("example.com", "ananke")
+
+        # Verify cleanup
+        mock_caddy.close.assert_called_once()
+
+    @patch("site_automator.workflows.generate_articles_llm")
+    @patch("site_automator.workflows.generate_topics_site_id")
+    @patch("site_automator.workflows.HugoDeployer")
+    @patch("site_automator.workflows.CaddyProvisioner")
+    def test_setup_with_wipe_correct_order(
+        self,
+        mock_caddy_class,
+        mock_hugo_class,
+        mock_gen_topics,
+        mock_gen_articles,
+        tmp_path,
+    ):
+        """Test setup with wipe=True follows correct order: wipe THEN initialize."""
+        # Setup
+        csv_content = (
+            "site_id,domain,server,prompts_file,seed_topic,cms,pages_per_site,posts_per_day,"
+            "llm_provider,llm_batch_mode,theme\n"
+            "site1,example.com,test-server,prompts.yaml,test topic,hugo,10,2,openai,false,ananke\n"
+        )
+        csv_path = tmp_path / "sites.csv"
+        csv_path.write_text(csv_content)
+
+        mock_caddy = Mock()
+        mock_ssh = Mock()
+        mock_caddy.ssh = mock_ssh
+        mock_caddy_class.return_value = mock_caddy
+
+        mock_hugo = Mock()
+        mock_hugo_class.return_value = mock_hugo
+
+        # Execute with wipe=True
+        with patch.dict("os.environ", {"SITES_CONFIG_PATH": str(csv_path)}):
+            setup_site_hugo("site1", wipe=True)
+
+        # Verify wipe is called BEFORE ensure_site_initialized
+        call_order = []
+        for call in mock_hugo.method_calls:
+            if call[0] in ["wipe_site", "ensure_site_initialized", "initial_setup"]:
+                call_order.append(call[0])
+
+        assert call_order == [
+            "wipe_site",
+            "ensure_site_initialized",
+            "initial_setup",
+        ], f"Expected wipe → initialize → initial_setup, got {call_order}"
+
+        # Verify wipe was called with correct args
+        mock_hugo.wipe_site.assert_called_once_with(
+            "example.com", confirm=True, exclude_dirs=["public/stats"]
+        )
+
+        # Verify ensure_site_initialized was still called (after wipe)
+        mock_hugo.ensure_site_initialized.assert_called_once_with("example.com")
+
+        # Verify cleanup
+        mock_caddy.close.assert_called_once()
+
+    @patch("site_automator.workflows.shutil.rmtree")
+    @patch("site_automator.workflows.generate_articles_llm")
+    @patch("site_automator.workflows.generate_topics_site_id")
+    @patch("site_automator.workflows.HugoDeployer")
+    @patch("site_automator.workflows.CaddyProvisioner")
+    def test_deletes_local_content_when_flag_true(
+        self,
+        mock_caddy_class,
+        mock_hugo_class,
+        mock_gen_topics,
+        mock_gen_articles,
+        mock_rmtree,
+        tmp_path,
+    ):
+        """Test local content folder is deleted when delete_local_content=True."""
+        # Setup
+        csv_content = (
+            "site_id,domain,server,prompts_file,seed_topic,cms,pages_per_site,posts_per_day,"
+            "llm_provider,llm_batch_mode,theme\n"
+            "site1,example.com,test-server,prompts.yaml,test topic,hugo,10,2,openai,false,ananke\n"
+        )
+        csv_path = tmp_path / "sites.csv"
+        csv_path.write_text(csv_content)
+
+        content_path = tmp_path / "content"
+        site_dir = content_path / "site1"
+        site_dir.mkdir(parents=True, exist_ok=True)
+
+        mock_caddy = Mock()
+        mock_ssh = Mock()
+        mock_caddy.ssh = mock_ssh
+        mock_caddy_class.return_value = mock_caddy
+
+        mock_hugo = Mock()
+        mock_hugo_class.return_value = mock_hugo
+
+        # Execute with delete_local_content=True
+        with patch.dict(
+            "os.environ",
+            {
+                "SITES_CONFIG_PATH": str(csv_path),
+                "SITES_CONTENT_PATH": str(content_path),
+            },
+        ):
+            setup_site_hugo("site1", delete_local_content=True)
+
+        # Verify rmtree was called on the site directory
+        mock_rmtree.assert_called_once_with(site_dir)
+        mock_caddy.close.assert_called_once()
+
+    @patch("site_automator.workflows.generate_articles_llm")
+    @patch("site_automator.workflows.generate_topics_site_id")
+    @patch("site_automator.workflows.HugoDeployer")
+    @patch("site_automator.workflows.CaddyProvisioner")
+    def test_closes_connection_even_on_error(
+        self,
+        mock_caddy_class,
+        mock_hugo_class,
+        mock_gen_topics,
+        mock_gen_articles,
+        tmp_path,
+    ):
+        """Test that caddy.close() is called even when an error occurs."""
+        # Setup
+        csv_content = (
+            "site_id,domain,server,prompts_file,seed_topic,cms,pages_per_site,posts_per_day,"
+            "llm_provider,llm_batch_mode,theme\n"
+            "site1,example.com,test-server,prompts.yaml,test topic,hugo,10,2,openai,false,ananke\n"
+        )
+        csv_path = tmp_path / "sites.csv"
+        csv_path.write_text(csv_content)
+
+        mock_caddy = Mock()
+        mock_ssh = Mock()
+        mock_caddy.ssh = mock_ssh
+        mock_caddy_class.return_value = mock_caddy
+
+        mock_hugo = Mock()
+        mock_hugo.initial_setup.side_effect = Exception("Setup failed!")
+        mock_hugo_class.return_value = mock_hugo
+
+        # Execute and expect error
+        with patch.dict("os.environ", {"SITES_CONFIG_PATH": str(csv_path)}):
+            with pytest.raises(Exception, match="Setup failed!"):
+                setup_site_hugo("site1")
+
+        # Verify close was still called (cleanup in finally block)
+        mock_caddy.close.assert_called_once()

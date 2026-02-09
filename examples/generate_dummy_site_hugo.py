@@ -66,10 +66,13 @@ def populate_fake_content(hugo: HugoDeployer, domain: str, count: int = 20) -> N
     temp_dir = Path("/tmp/hugo_content")
     temp_dir.mkdir(exist_ok=True)
 
+    # Generate all markdown files first
     for i in range(count):
         slug = fake.slug()
-        markdown_path = generate_markdown_file(fake, temp_dir, slug)
-        hugo.deploy_content_file(domain, slug, markdown_path)
+        generate_markdown_file(fake, temp_dir, slug)
+
+    # Deploy entire directory with one rsync
+    hugo.deploy_content_directory(domain, temp_dir)
 
     logging.info(f"Deployed {count} articles to {domain}")
 

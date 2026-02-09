@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 from pathlib import Path
 
 import paramiko
@@ -134,6 +135,94 @@ class SSHConnection:
             logger.info(f"File uploaded successfully: {remote_path}")
         finally:
             sftp.close()
+
+    def upload_directory_rsync(
+        self,
+        local_dir: Path | str,
+        remote_dir: str,
+        *,
+        delete: bool = False,
+        exclude: list[str] | None = None,
+    ) -> None:
+        """Upload a directory to the remote server using rsync over SSH.
+
+        Syncs the contents of local_dir to remote_dir. If local_dir is empty
+        and delete=True, all remote files will be deleted (exact sync).
+
+        Args:
+            local_dir: Path to the local directory
+            remote_dir: Destination path on the remote server
+            delete: If True, delete remote files not present locally (default: False)
+            exclude: Optional list of exclude patterns (e.g., [".git/", "*.tmp"])
+
+        Raises:
+            RuntimeError: If rsync command fails
+            FileNotFoundError: If local directory doesn't exist
+        """
+        import shlex
+
+        local_dir = Path(local_dir)
+        if not local_dir.exists():
+            raise FileNotFoundError(f"Local directory not found: {local_dir}")
+        if not local_dir.is_dir():
+            raise ValueError(f"Path is not a directory: {local_dir}")
+
+        logger.info(f"Uploading directory {local_dir} to {remote_dir} via rsync")
+
+        # Ensure remote directory exists
+        self.run_command(f"mkdir -p {shlex.quote(remote_dir)}", check=True)
+
+        # Resolve SSH config for rsync
+        hostname, config_user, keyfile = resolve_ssh_host(self.host)
+        username = self.user or config_user or "root"
+
+        # Build rsync command
+        rsync_cmd = [
+            "rsync",
+            "-avz",  # archive, verbose, compress
+            "--stats",  # Show transfer statistics
+        ]
+
+        # Add delete flag if requested
+        if delete:
+            rsync_cmd.append("--delete")
+
+        # Add exclude patterns
+        if exclude:
+            for pattern in exclude:
+                rsync_cmd.extend(["--exclude", pattern])
+
+        # Build SSH command for rsync
+        ssh_cmd = ["ssh"]
+        if keyfile:
+            ssh_cmd.extend(["-i", keyfile])
+
+        rsync_cmd.extend(["-e", " ".join(ssh_cmd)])
+
+        # Add trailing slash to sync directory contents (not the directory itself)
+        local_path = str(local_dir).rstrip("/") + "/"
+        remote_path = f"{username}@{hostname}:{shlex.quote(remote_dir)}"
+
+        rsync_cmd.extend([local_path, remote_path])
+
+        # Execute rsync
+        logger.debug(f"Rsync command: {' '.join(rsync_cmd)}")
+        try:
+            result = subprocess.run(
+                rsync_cmd,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            logger.debug(f"Rsync output:\n{result.stdout}")
+            logger.info(f"Directory uploaded successfully: {remote_dir}")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Rsync failed: {e.stderr}")
+            raise RuntimeError(
+                f"Rsync failed with exit code {e.returncode}\n"
+                f"Command: {' '.join(rsync_cmd)}\n"
+                f"Error: {e.stderr}"
+            ) from e
 
     def close(self) -> None:
         """Close SSH connection."""

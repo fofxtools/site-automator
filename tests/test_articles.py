@@ -4,7 +4,57 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from site_automator.articles import generate_articles_llm
+from site_automator.articles import (
+    _articles_generation_path,
+    _articles_markdown_path,
+    generate_articles_llm,
+)
+
+
+class TestArticlesMarkdownPath:
+    """Test _articles_markdown_path helper function."""
+
+    def test_returns_correct_path(self, tmp_path):
+        """Test constructs correct markdown file path."""
+        content_path = tmp_path / "content"
+
+        with patch.dict("os.environ", {"SITES_CONTENT_PATH": str(content_path)}):
+            path = _articles_markdown_path("site1", "my-article")
+
+        expected = content_path / "site1" / "articles" / "markdown" / "my-article.md"
+        assert path == expected
+
+    def test_uses_default_content_path(self):
+        """Test uses default path when env var not set."""
+        with patch.dict("os.environ", {}, clear=True):
+            path = _articles_markdown_path("site1", "test")
+
+        assert str(path).startswith("storage/content")
+        assert path.name == "test.md"
+
+
+class TestArticlesGenerationPath:
+    """Test _articles_generation_path helper function."""
+
+    def test_returns_correct_path(self, tmp_path):
+        """Test constructs correct generation metadata path."""
+        content_path = tmp_path / "content"
+
+        with patch.dict("os.environ", {"SITES_CONTENT_PATH": str(content_path)}):
+            path = _articles_generation_path("site1", "my-article")
+
+        expected = (
+            content_path / "site1" / "articles" / "generation" / "my-article.json"
+        )
+        assert path == expected
+
+    def test_uses_default_content_path(self):
+        """Test uses default path when env var not set."""
+        with patch.dict("os.environ", {}, clear=True):
+            path = _articles_generation_path("site1", "test")
+
+        assert str(path).startswith("storage/content")
+        assert path.name == "test.json"
 
 
 class TestGenerateArticlesLLM:
@@ -176,3 +226,99 @@ class TestGenerateArticlesLLM:
         with patch.dict("os.environ", {"SITES_CONFIG_PATH": str(csv_file)}):
             with pytest.raises(ValueError, match="article_strategy is not 'llm'"):
                 generate_articles_llm("site1")
+
+    @patch("site_automator.articles.generate_completion_bulk_clean")
+    @patch("site_automator.articles.get_llm_client")
+    def test_adds_hugo_frontmatter_when_requested(
+        self, mock_get_llm, mock_generate_bulk, tmp_path
+    ):
+        """Test that Hugo frontmatter is added when flag is True."""
+        # Setup
+        csv_path = self._setup_site_config(tmp_path)
+        prompts_path = self._setup_prompts(tmp_path)
+        content_path = tmp_path / "content"
+        self._setup_topics(tmp_path)
+
+        # Mock LLM
+        mock_llm = Mock()
+        mock_llm.model = "gpt-4"
+        mock_get_llm.return_value = mock_llm
+        mock_generate_bulk.return_value = [
+            "Article content here.",
+            "Article content here.",
+            "Article content here.",
+        ]
+
+        # Execute with Hugo frontmatter flag
+        with patch.dict(
+            "os.environ",
+            {
+                "SITES_CONFIG_PATH": csv_path,
+                "SITES_PROMPTS_PATH": prompts_path,
+                "SITES_CONTENT_PATH": str(content_path),
+            },
+        ):
+            generate_articles_llm("site1", add_hugo_frontmatter=True)
+
+        # Verify frontmatter was added
+        markdown_dir = content_path / "site1" / "articles" / "markdown"
+        content = (markdown_dir / "topic-one.md").read_text()
+
+        # Check for frontmatter structure (YAML serialized)
+        assert content.startswith("---\n")
+        assert "title: Topic One" in content  # YAML doesn't quote simple strings
+        assert "date:" in content
+        assert "draft: true" in content
+        assert "---\n\nArticle content here." in content
+
+    @patch("site_automator.articles.generate_completion_bulk_clean")
+    @patch("site_automator.articles.get_llm_client")
+    def test_handles_quotes_in_hugo_frontmatter(
+        self, mock_get_llm, mock_generate_bulk, tmp_path
+    ):
+        """Test that quotes in titles are properly handled by YAML serialization."""
+        # Setup with a topic that has quotes in the title
+        csv_path = self._setup_site_config(tmp_path)
+        prompts_path = self._setup_prompts(tmp_path)
+        content_path = tmp_path / "content"
+
+        # Create topic with quotes in title
+        topics_data = [
+            {
+                "title": '"A Journey to the Heart of Buddhism: Visiting the Sacred Sites of Cambodia"',
+                "slug": "journey-to-buddhism",
+            }
+        ]
+        topics_file = content_path / "site1" / "topics.json"
+        topics_file.parent.mkdir(parents=True, exist_ok=True)
+        topics_file.write_text(json.dumps(topics_data))
+
+        # Mock LLM
+        mock_llm = Mock()
+        mock_llm.model = "gpt-4"
+        mock_get_llm.return_value = mock_llm
+        mock_generate_bulk.return_value = ["Article content here."]
+
+        # Execute with Hugo frontmatter flag
+        with patch.dict(
+            "os.environ",
+            {
+                "SITES_CONFIG_PATH": csv_path,
+                "SITES_PROMPTS_PATH": prompts_path,
+                "SITES_CONTENT_PATH": str(content_path),
+            },
+        ):
+            generate_articles_llm("site1", add_hugo_frontmatter=True)
+
+        # Verify frontmatter has properly handled quotes via YAML serialization
+        markdown_dir = content_path / "site1" / "articles" / "markdown"
+        content = (markdown_dir / "journey-to-buddhism.md").read_text()
+
+        # YAML serializer will quote strings containing quotes with single quotes
+        assert content.startswith("---\n")
+        assert (
+            "title: '\"A Journey to the Heart of Buddhism: Visiting the Sacred Sites of Cambodia\"'"
+            in content
+        )
+        assert "draft: true" in content
+        assert "---\n\nArticle content here." in content

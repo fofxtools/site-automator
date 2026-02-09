@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import yaml
 from dotenv import load_dotenv
 
 from site_automator.sites import load_site_config
@@ -32,12 +33,13 @@ def _articles_generation_path(site_id: str, slug: str) -> Path:
     return content_root / site_id / "articles" / "generation" / f"{slug}.json"
 
 
-def generate_articles_llm(site_id: str) -> None:
+def generate_articles_llm(site_id: str, add_hugo_frontmatter: bool = False) -> None:
     """
     Generate articles for a site using an LLM.
 
     Args:
         site_id: Site identifier
+        add_hugo_frontmatter: If True, prepend Hugo frontmatter with draft: true
 
     Behavior:
     - Reads site config from sites.csv
@@ -45,6 +47,7 @@ def generate_articles_llm(site_id: str) -> None:
     - Loads topics from topics.json
     - For each topic, if markdown file doesn't exist:
       - Generates article content using LLM
+      - Optionally prepends Hugo frontmatter (draft: true)
       - Writes markdown file
       - Writes generation metadata JSON
     - Resumable: skips topics that already have markdown files
@@ -138,6 +141,24 @@ def generate_articles_llm(site_id: str) -> None:
                 logger.warning(f"LLM generation failed for '{title}' ({slug})")
                 failed += 1
                 continue
+
+            # Prepend Hugo frontmatter if requested
+            if add_hugo_frontmatter:
+                timestamp = datetime.now(timezone.utc).isoformat()
+                # Use YAML serialization for safe escaping
+                frontmatter_data = {
+                    "title": title,
+                    "date": timestamp,
+                    "draft": True,
+                }
+                yaml_content = yaml.safe_dump(
+                    frontmatter_data,
+                    sort_keys=False,
+                    allow_unicode=True,
+                    default_flow_style=False,
+                ).strip()
+                frontmatter = f"---\n{yaml_content}\n---\n\n"
+                article_content = frontmatter + article_content
 
             # Write markdown file
             with markdown_path.open("w", encoding="utf-8") as f:

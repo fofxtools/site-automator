@@ -101,6 +101,10 @@ def generate_topics_site_id(
         remaining = target_count - len(all_topics)
         num_prompts = math.ceil(remaining / batch_size)
 
+        logger.info(
+            f"Sending {num_prompts} total prompts for bulk generation (batch {iteration})"
+        )
+
         # Generate multiple prompts
         prompts = [
             prompt_template.format(seed_topic=site["seed_topic"])

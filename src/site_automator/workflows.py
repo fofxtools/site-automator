@@ -6,6 +6,8 @@ import shutil
 from pathlib import Path
 
 from site_automator.articles import generate_articles_llm
+from site_automator.caddy import CaddyProvisioner
+from site_automator.hugo import HugoDeployer
 from site_automator.sites import load_site_config
 from site_automator.topics import generate_topics_site_id
 from site_automator.wordops import WordOpsProvisioner
@@ -81,3 +83,62 @@ def setup_site_wordpress(
 
     finally:
         wordops.close()
+
+
+def setup_site_hugo(
+    site_id: str,
+    *,
+    wipe: bool = False,
+    delete_local_content: bool = False,
+) -> None:
+    """Setup a Hugo site with generated content.
+
+    Args:
+        site_id: Site identifier
+        wipe: If True, wipe Hugo site files (preserving stats)
+        delete_local_content: If True, delete local content folder
+    """
+    site = load_site_config(site_id)
+    domain = site["domain"]
+    server = site["server"]
+    theme = site.get("theme", "ananke")
+
+    logger.info(f"Setting up Hugo site: {site_id} ({domain})")
+
+    caddy = CaddyProvisioner(host=server)
+    try:
+        # Provision domain with Caddy
+        caddy.enable_domain(domain)
+
+        hugo = HugoDeployer(caddy.ssh)
+
+        # Check Hugo is installed
+        hugo.check_hugo_installed()
+
+        if wipe:
+            logger.info("Wiping Hugo site files")
+            hugo.wipe_site(domain, confirm=True, exclude_dirs=["public/stats"])
+
+        if delete_local_content:
+            content_root = Path(os.getenv("SITES_CONTENT_PATH", "storage/content"))
+            site_dir = content_root / site_id
+            if site_dir.exists():
+                logger.info(f"Deleting site folder: {site_dir}")
+                shutil.rmtree(site_dir)
+
+        # Initialize site (after wipe, if applicable)
+        hugo.ensure_site_initialized(domain)
+
+        logger.info("Generating topics")
+        generate_topics_site_id(site_id)
+
+        logger.info("Generating articles")
+        generate_articles_llm(site_id, add_hugo_frontmatter=True)
+
+        logger.info("Configuring Hugo site")
+        hugo.initial_setup(domain, theme)
+
+        logger.info(f"Site setup complete: {site_id}")
+
+    finally:
+        caddy.close()

@@ -2,65 +2,22 @@
 """Daily WordPress article publisher with posts_per_day limit enforcement.
 
 Usage:
-    python3 scripts/publish_daily_wordpress.py --site-id <site_id>
+    python scripts/publish_daily_wordpress.py --site-id <site_id>
 """
 
 import argparse
-import json
 import logging
-import os
 import sys
-from datetime import datetime, timezone
-from pathlib import Path
 
 from site_automator.utils import configure_logging
 from site_automator.sites import load_site_config
-from site_automator.publisher import publish_posts_wordpress
+from site_automator.publisher import publish_posts_wordpress, _count_posts_published_today
 from site_automator.wordops import WordOpsProvisioner
 from site_automator.wordpress import WordPressDeployer
 
 configure_logging(console_level="INFO")
 
 logger = logging.getLogger(__name__)
-
-
-def count_posts_activated_today(site_id: str) -> int:
-    """Count posts activated today for a site.
-
-    Args:
-        site_id: Site identifier
-
-    Returns:
-        Number of posts activated today
-    """
-    content_root = Path(os.getenv("SITES_CONTENT_PATH", "storage/content"))
-    published_dir = content_root / site_id / "articles" / "published"
-
-    if not published_dir.exists():
-        return 0
-
-    today = datetime.now(timezone.utc).date()
-    count = 0
-
-    for pub_file in published_dir.glob("*.json"):
-        try:
-            with pub_file.open("r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            # Check if published_at exists and is from today
-            published_at = data.get("published_at")
-            if published_at:
-                published_dt = datetime.fromisoformat(published_at)
-                # Ensure timezone-aware comparison
-                if published_dt.tzinfo is None:
-                    published_dt = published_dt.replace(tzinfo=timezone.utc)
-                if published_dt.astimezone(timezone.utc).date() == today:
-                    count += 1
-        except (json.JSONDecodeError, ValueError, KeyError):
-            # Skip malformed files
-            continue
-
-    return count
 
 
 def main():
@@ -87,12 +44,12 @@ def main():
             f"(limit: {posts_per_day} posts/day, server: {server})"
         )
 
-        # Count posts already activated today
-        activated_today = count_posts_activated_today(site_id)
-        logger.info(f"Posts already activated today: {activated_today}")
+        # Count posts already published today
+        published_today = _count_posts_published_today(site_id)
+        logger.info(f"Posts already published today: {published_today}")
 
         # Calculate remaining quota
-        remaining = max(0, posts_per_day - activated_today)
+        remaining = max(0, posts_per_day - published_today)
         logger.info(f"Remaining quota for today: {remaining}")
 
         if remaining == 0:

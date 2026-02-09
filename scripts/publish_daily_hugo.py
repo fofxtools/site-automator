@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Daily WordPress article creator with posts_per_day limit enforcement.
+"""Daily Hugo article publisher with posts_per_day limit enforcement.
 
 Usage:
-    python scripts/create_daily_wordpress.py --site-id <site_id>
+    python scripts/publish_daily_hugo.py --site-id <site_id>
 """
 
 import argparse
@@ -10,10 +10,10 @@ import logging
 import sys
 
 from site_automator.utils import configure_logging
-from site_automator.publisher import create_posts_wordpress, _count_posts_created_today
 from site_automator.sites import load_site_config
-from site_automator.wordops import WordOpsProvisioner
-from site_automator.wordpress import WordPressDeployer
+from site_automator.publisher import publish_posts_hugo, _count_posts_published_today
+from site_automator.caddy import CaddyProvisioner
+from site_automator.hugo import HugoDeployer
 
 configure_logging(console_level="INFO")
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Create WordPress articles respecting daily limits"
+        description="Publish Hugo articles respecting daily limits"
     )
     parser.add_argument(
         "--site-id",
@@ -40,37 +40,37 @@ def main():
         server = site["server"]
 
         logger.info(
-            f"Starting daily creation for {site_id} "
+            f"Starting daily publishing for {site_id} "
             f"(limit: {posts_per_day} posts/day, server: {server})"
         )
 
-        # Count posts already created today
-        created_today = _count_posts_created_today(site_id)
-        logger.info(f"Posts already created today: {created_today}")
+        # Count posts already published today
+        published_today = _count_posts_published_today(site_id)
+        logger.info(f"Posts already published today: {published_today}")
 
         # Calculate remaining quota
-        remaining = max(0, posts_per_day - created_today)
+        remaining = max(0, posts_per_day - published_today)
         logger.info(f"Remaining quota for today: {remaining}")
 
         if remaining == 0:
             logger.info("Daily limit already reached, nothing to do")
             return 0
 
-        # Connect to WordPress
-        wordops = WordOpsProvisioner(host=server)
+        # Connect to server
+        caddy = CaddyProvisioner(host=server)
         try:
-            wordpress = WordPressDeployer(wordops)
+            hugo = HugoDeployer(caddy.ssh)
 
-            # Create articles up to remaining quota
-            create_posts_wordpress(site_id, wordpress, limit=remaining)
+            # Publish articles up to remaining quota
+            publish_posts_hugo(site_id, hugo, limit=remaining)
 
-            logger.info(f"Daily creation complete for {site_id}")
+            logger.info(f"Daily publishing complete for {site_id}")
             return 0
         finally:
-            wordops.close()
+            caddy.close()
 
     except Exception as e:
-        logger.error(f"Error creating for {site_id}: {e}", exc_info=True)
+        logger.error(f"Error publishing for {site_id}: {e}", exc_info=True)
         return 1
 
 

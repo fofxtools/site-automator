@@ -117,6 +117,45 @@ class HugoDeployer:
 
         logger.info(f"baseURL configured: {base_url}")
 
+    def ensure_publish_dir(self, domain: str) -> None:
+        """Ensure publishDir in hugo.toml is set to 'public'.
+
+        Args:
+            domain: Domain name for the Hugo site
+
+        Raises:
+            ValueError: If domain is invalid
+        """
+        validate_domain(domain)
+        logger.info(f"Ensuring publishDir in config: {domain}")
+
+        config_path = f"/var/www/{domain}/hugo.toml"
+        publish_dir = "public"
+
+        # Check if publishDir is already correct
+        output, _ = self.ssh.run_command(
+            f"grep '^publishDir' {config_path}",
+            check=False,
+        )
+
+        if f'publishDir = "{publish_dir}"' in output:
+            logger.info(f"publishDir already correct: {publish_dir}")
+            return
+
+        logger.info(f"Setting publishDir to: {publish_dir}")
+
+        # Remove any existing publishDir line, then append to end
+        self.ssh.run_command(
+            f"sed -i '/^publishDir/d' {config_path}",
+            check=True,
+        )
+        self.ssh.run_command(
+            f"sed -i '$a publishDir = \"{publish_dir}\"' {config_path}",
+            check=True,
+        )
+
+        logger.info(f"publishDir configured: {publish_dir}")
+
     def ensure_robots_txt(self, domain: str) -> None:
         """Ensure a basic robots.txt exists. With link to sitemap.
 
@@ -186,41 +225,6 @@ class HugoDeployer:
         )
 
         logger.info(f"Theme ensured: {theme}")
-
-    def deploy_content_file(
-        self,
-        domain: str,
-        slug: str,
-        markdown_path: Path,
-    ) -> None:
-        """Copy a generated article into Hugo content directory.
-
-        Args:
-            domain: Domain name for the Hugo site
-            slug: URL slug for the article
-            markdown_path: Local path to the markdown file
-
-        Raises:
-            ValueError: If domain or slug is invalid
-            FileNotFoundError: If markdown_path doesn't exist
-        """
-        validate_domain(domain)
-
-        # Validate slug by re-slugifying and comparing
-        if not slug or slug != slugify(slug):
-            raise ValueError("Invalid slug")
-
-        # Check if local file exists
-        if not markdown_path.exists():
-            raise FileNotFoundError(f"Markdown file not found: {markdown_path}")
-
-        logger.info(f"Deploying content file: {domain}/{slug}")
-
-        # Upload file to Hugo content directory
-        remote_path = f"/var/www/{domain}/content/{slug}.md"
-        self.ssh.upload_file(markdown_path, remote_path)
-
-        logger.info(f"Content file deployed: {slug}")
 
     def ensure_internal_links_partial(self, domain: str, count: int = 10) -> None:
         """Ensure a random internal links partial exists.
@@ -321,6 +325,70 @@ class HugoDeployer:
 
         logger.info(f"Single layout override created: {domain}")
 
+    def deploy_content_file(
+        self,
+        domain: str,
+        slug: str,
+        markdown_path: Path,
+    ) -> None:
+        """Copy a generated article into Hugo content directory.
+
+        Args:
+            domain: Domain name for the Hugo site
+            slug: URL slug for the article
+            markdown_path: Local path to the markdown file
+
+        Raises:
+            ValueError: If domain or slug is invalid
+            FileNotFoundError: If markdown_path doesn't exist
+        """
+        validate_domain(domain)
+
+        # Validate slug by re-slugifying and comparing
+        if not slug or slug != slugify(slug):
+            raise ValueError("Invalid slug")
+
+        # Check if local file exists
+        if not markdown_path.exists():
+            raise FileNotFoundError(f"Markdown file not found: {markdown_path}")
+
+        logger.info(f"Deploying content file: {domain}/{slug}")
+
+        # Upload file to Hugo content directory
+        remote_path = f"/var/www/{domain}/content/{slug}.md"
+        self.ssh.upload_file(markdown_path, remote_path)
+
+        logger.info(f"Content file deployed: {slug}")
+
+    def deploy_content_directory(
+        self,
+        domain: str,
+        local_content_dir: Path | str,
+        *,
+        delete: bool = False,
+    ) -> None:
+        """Bulk upload content directory to Hugo site using rsync.
+
+        Args:
+            domain: Domain name for the Hugo site
+            local_content_dir: Local directory containing markdown files
+            delete: If True, delete remote content not present locally (default: False)
+
+        Raises:
+            ValueError: If domain is invalid
+            FileNotFoundError: If local directory doesn't exist
+        """
+        validate_domain(domain)
+
+        logger.info(f"Deploying content directory to {domain}")
+
+        remote_content_dir = f"/var/www/{domain}/content"
+        self.ssh.upload_directory_rsync(
+            local_content_dir, remote_content_dir, delete=delete
+        )
+
+        logger.info(f"Content directory deployed: {domain}")
+
     def build_site(self, domain: str) -> None:
         """Run hugo build and output into /public.
 
@@ -344,3 +412,118 @@ class HugoDeployer:
             raise RuntimeError(f"Hugo build failed for {domain}")
 
         logger.info(f"Hugo site built: {domain}")
+
+    def wipe_site(
+        self,
+        domain: str,
+        *,
+        confirm: bool = False,
+        exclude_dirs: list[str] | None = None,
+    ) -> None:
+        """Wipe Hugo site files.
+
+        This is a destructive operation that deletes content, layouts,
+        themes, static files, and build output.
+
+        Args:
+            domain: Domain name of the site
+            confirm: Must be True to proceed. Prevents accidental wipes.
+            exclude_dirs: Optional list of paths to preserve (e.g., ["public/stats"]).
+                          Supports both top-level directories and nested paths.
+                          By default, wipes everything.
+
+        Raises:
+            ValueError: If domain is invalid or confirm is not True
+            RuntimeError: If any step fails
+        """
+        validate_domain(domain)
+
+        if not confirm:
+            raise ValueError(
+                "wipe_site() requires confirm=True. This destroys all site data."
+            )
+
+        # Default to no exclusions (wipe everything)
+        if exclude_dirs is None:
+            exclude_dirs = []
+
+        # Check if site directory exists
+        site_path = f"/var/www/{domain}"
+        stdout, _ = self.ssh.run_command(
+            f"test -d {site_path} && echo 'exists' || echo 'missing'"
+        )
+
+        if "missing" in stdout:
+            logger.info(f"Site directory does not exist, nothing to wipe: {domain}")
+            return
+
+        logger.info(
+            f"Wiping Hugo site for {domain}"
+            + (f" (preserving: {', '.join(exclude_dirs)})" if exclude_dirs else "")
+        )
+
+        # Build exclusion conditions for find command
+        if exclude_dirs:
+            # Build path exclusion conditions
+            path_exclusions = []
+            for path in exclude_dirs:
+                # Exclude the path itself
+                path_exclusions.append(f"! -path '/var/www/{domain}/{path}'")
+                # Exclude everything under the path
+                path_exclusions.append(f"! -path '/var/www/{domain}/{path}/*'")
+            exclusion_expr = " ".join(path_exclusions)
+
+            # Two-step deletion to properly handle nested exclusions:
+            # Step 1: Delete all files except those in excluded paths
+            delete_files_cmd = (
+                f"find /var/www/{domain} -type f {exclusion_expr} -delete"
+            )
+            self.ssh.run_command(delete_files_cmd, check=True)
+
+            # Step 2: Delete empty directories (won't delete parents of excluded paths)
+            delete_dirs_cmd = (
+                f"find /var/www/{domain} -depth -mindepth 1 -type d "
+                f"{exclusion_expr} -empty -delete"
+            )
+            self.ssh.run_command(delete_dirs_cmd, check=True)
+        else:
+            # No exclusions: delete everything in one command
+            delete_cmd = f"find /var/www/{domain} -mindepth 1 -delete"
+            self.ssh.run_command(delete_cmd, check=True)
+
+        logger.info(f"Hugo site wiped: {domain}")
+
+    def initial_setup(self, domain: str, theme: str = "ananke") -> None:
+        """Perform initial Hugo site setup after initialization.
+
+        This method orchestrates the complete initial configuration of a Hugo site,
+        including setting base URL, configuring publish directory, installing theme,
+        creating robots.txt, setting up internal linking, and ensuring correct permissions.
+
+        Steps performed:
+        - Set baseURL in hugo.toml
+        - Set publishDir in hugo.toml
+        - Install and configure theme
+        - Create robots.txt with sitemap link
+        - Create internal links partial template
+        - Create single layout override to include internal links
+        - Set correct ownership and permissions
+
+        Args:
+            domain: Domain name of the site
+            theme: Theme name to install (default: ananke)
+
+        Raises:
+            RuntimeError: If any setup step fails
+        """
+        logger.info(f"Starting initial setup for {domain}")
+
+        self.ensure_base_url(domain)
+        self.ensure_publish_dir(domain)
+        self.ensure_theme_installed(domain, theme)
+        self.ensure_robots_txt(domain)
+        self.ensure_internal_links_partial(domain)
+        self.ensure_single_layout_override(domain)
+        self.ensure_permissions(domain)
+
+        logger.info(f"Initial setup complete for {domain}")

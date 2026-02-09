@@ -4,7 +4,29 @@ from unittest.mock import patch
 
 import pytest
 
-from site_automator.topics import load_topics, generate_topics_site_id
+from site_automator.topics import _topics_path, load_topics, generate_topics_site_id
+
+
+class TestTopicsPath:
+    """Test _topics_path helper function."""
+
+    def test_returns_correct_path(self, tmp_path):
+        """Test constructs correct topics.json path."""
+        content_path = tmp_path / "content"
+
+        with patch.dict("os.environ", {"SITES_CONTENT_PATH": str(content_path)}):
+            path = _topics_path("site1")
+
+        expected = content_path / "site1" / "topics.json"
+        assert path == expected
+
+    def test_uses_default_content_path(self):
+        """Test uses default path when env var not set."""
+        with patch.dict("os.environ", {}, clear=True):
+            path = _topics_path("site1")
+
+        assert str(path).startswith("storage/content")
+        assert path.name == "topics.json"
 
 
 class TestLoadTopics:

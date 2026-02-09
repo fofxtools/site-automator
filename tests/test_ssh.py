@@ -351,6 +351,217 @@ class TestSSHConnection:
         with pytest.raises(FileNotFoundError, match="Local file not found"):
             ssh.upload_file(non_existent_file, "/remote/path/test.txt")
 
+    @patch("site_automator.ssh.subprocess.run")
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_upload_directory_rsync_success(
+        self, mock_ssh_client, mock_resolve, mock_subprocess, tmp_path
+    ):
+        """Test successful directory upload via rsync."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Mock run_command for mkdir
+        mock_stdout = Mock()
+        mock_stdout.channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b""
+        mock_stderr = Mock()
+        mock_stderr.read.return_value = b""
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        # Mock successful rsync
+        mock_result = Mock()
+        mock_result.stdout = "rsync output"
+        mock_subprocess.return_value = mock_result
+
+        # Create test directory
+        test_dir = tmp_path / "test_upload"
+        test_dir.mkdir()
+        (test_dir / "file.txt").write_text("content")
+
+        ssh = SSHConnection(host="example.com")
+        ssh.upload_directory_rsync(test_dir, "/remote/path")
+
+        # Verify mkdir was called
+        assert any(
+            "mkdir -p" in str(call)
+            for call in mock_client_instance.exec_command.call_args_list
+        )
+
+        # Verify rsync was called
+        mock_subprocess.assert_called_once()
+        call_args = mock_subprocess.call_args
+        rsync_cmd = call_args[0][0]
+
+        assert rsync_cmd[0] == "rsync"
+        assert "-avz" in rsync_cmd
+        assert "--stats" in rsync_cmd
+        assert rsync_cmd[-1] == "root@192.168.1.1:/remote/path"
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_upload_directory_rsync_not_found_raises(
+        self, mock_ssh_client, mock_resolve, tmp_path
+    ):
+        """Test upload_directory_rsync raises when directory doesn't exist."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        non_existent_dir = tmp_path / "does-not-exist"
+
+        ssh = SSHConnection(host="example.com")
+
+        with pytest.raises(FileNotFoundError, match="Local directory not found"):
+            ssh.upload_directory_rsync(non_existent_dir, "/remote/path")
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_upload_directory_rsync_not_a_directory_raises(
+        self, mock_ssh_client, mock_resolve, tmp_path
+    ):
+        """Test upload_directory_rsync raises when path is not a directory."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Create a file, not a directory
+        test_file = tmp_path / "file.txt"
+        test_file.write_text("content")
+
+        ssh = SSHConnection(host="example.com")
+
+        with pytest.raises(ValueError, match="Path is not a directory"):
+            ssh.upload_directory_rsync(test_file, "/remote/path")
+
+    @patch("site_automator.ssh.subprocess.run")
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_upload_directory_rsync_command_failure_raises(
+        self, mock_ssh_client, mock_resolve, mock_subprocess, tmp_path
+    ):
+        """Test upload_directory_rsync raises when rsync command fails."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Mock run_command for mkdir
+        mock_stdout = Mock()
+        mock_stdout.channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b""
+        mock_stderr = Mock()
+        mock_stderr.read.return_value = b""
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        # Mock rsync failure
+        from subprocess import CalledProcessError
+
+        mock_subprocess.side_effect = CalledProcessError(
+            returncode=1,
+            cmd=["rsync"],
+            stderr="rsync error",
+        )
+
+        # Create test directory
+        test_dir = tmp_path / "test_upload"
+        test_dir.mkdir()
+
+        ssh = SSHConnection(host="example.com")
+
+        with pytest.raises(RuntimeError, match="Rsync failed with exit code 1"):
+            ssh.upload_directory_rsync(test_dir, "/remote/path")
+
+    @patch("site_automator.ssh.subprocess.run")
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_upload_directory_rsync_with_delete(
+        self, mock_ssh_client, mock_resolve, mock_subprocess, tmp_path
+    ):
+        """Test upload_directory_rsync with delete flag."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Mock run_command
+        mock_stdout = Mock()
+        mock_stdout.channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b""
+        mock_stderr = Mock()
+        mock_stderr.read.return_value = b""
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        # Mock rsync
+        mock_result = Mock()
+        mock_result.stdout = "rsync output"
+        mock_subprocess.return_value = mock_result
+
+        # Create test directory
+        test_dir = tmp_path / "test_upload"
+        test_dir.mkdir()
+
+        ssh = SSHConnection(host="example.com")
+        ssh.upload_directory_rsync(test_dir, "/remote/path", delete=True)
+
+        # Verify --delete flag is in command
+        call_args = mock_subprocess.call_args
+        rsync_cmd = call_args[0][0]
+        assert "--delete" in rsync_cmd
+
+    @patch("site_automator.ssh.subprocess.run")
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_upload_directory_rsync_with_excludes(
+        self, mock_ssh_client, mock_resolve, mock_subprocess, tmp_path
+    ):
+        """Test upload_directory_rsync with exclude patterns."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Mock run_command
+        mock_stdout = Mock()
+        mock_stdout.channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b""
+        mock_stderr = Mock()
+        mock_stderr.read.return_value = b""
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        # Mock rsync
+        mock_result = Mock()
+        mock_result.stdout = "rsync output"
+        mock_subprocess.return_value = mock_result
+
+        # Create test directory
+        test_dir = tmp_path / "test_upload"
+        test_dir.mkdir()
+
+        ssh = SSHConnection(host="example.com")
+        ssh.upload_directory_rsync(test_dir, "/remote/path", exclude=[".git/", "*.tmp"])
+
+        # Verify exclude patterns are in command
+        call_args = mock_subprocess.call_args
+        rsync_cmd = call_args[0][0]
+        cmd_str = " ".join(rsync_cmd)
+        assert "--exclude .git/" in cmd_str
+        assert "--exclude *.tmp" in cmd_str
+
     @patch("site_automator.ssh.resolve_ssh_host")
     @patch("site_automator.ssh.paramiko.SSHClient")
     def test_close_closes_client(self, mock_ssh_client, mock_resolve):
