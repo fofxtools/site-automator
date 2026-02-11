@@ -27,7 +27,7 @@ def main() -> None:
     try:
         wordops.ensure_default_catchall()
         wordops.ssh.ensure_swap()
-        wordops.ensure_git_safe_directory()
+        wordops.ssh.ensure_git_safe_directory()
     finally:
         wordops.close()
 

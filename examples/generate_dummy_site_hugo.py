@@ -7,6 +7,7 @@ Usage:
 
 import argparse
 import logging
+import shutil
 from pathlib import Path
 from time import perf_counter
 
@@ -62,9 +63,11 @@ def populate_fake_content(hugo: HugoDeployer, domain: str, count: int = 20) -> N
     logging.info(f"Generating {count} fake articles for {domain}")
     fake = Faker()
 
-    # Create local temp directory for markdown files
+    # Create fresh temp directory for markdown files
     temp_dir = Path("/tmp/hugo_content")
-    temp_dir.mkdir(exist_ok=True)
+    if temp_dir.exists():
+        shutil.rmtree(temp_dir)
+    temp_dir.mkdir(parents=True)
 
     # Generate all markdown files first
     for i in range(count):
@@ -91,20 +94,16 @@ def main() -> None:
     site = load_site_config(args.site_id)
     domain = site["domain"]
     server = site["server"]
+    theme = site.get("theme", "ananke")
 
     ssh = SSHConnection(host=server)
     hugo = HugoDeployer(ssh)
 
     try:
-        # Initialize Hugo site
+        # Wipe and initialize Hugo site
         hugo.check_hugo_installed()
-        hugo.ensure_site_initialized(domain)
-        hugo.ensure_base_url(domain)
-        hugo.ensure_theme_installed(domain, theme="ananke")
-
-        # Setup internal linking
-        hugo.ensure_internal_links_partial(domain)
-        hugo.ensure_single_layout_override(domain)
+        hugo.wipe_site(domain, confirm=True, exclude_dirs=["public/stats"])
+        hugo.initial_setup(domain, theme=theme)
 
         # Generate and deploy content
         count = 20

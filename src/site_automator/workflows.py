@@ -126,9 +126,6 @@ def setup_site_hugo(
                 logger.info(f"Deleting site folder: {site_dir}")
                 shutil.rmtree(site_dir)
 
-        # Initialize site (after wipe, if applicable)
-        hugo.ensure_site_initialized(domain)
-
         logger.info("Generating topics")
         generate_topics_site_id(site_id)
 

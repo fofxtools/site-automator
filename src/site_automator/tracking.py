@@ -5,7 +5,7 @@ import shlex
 import tempfile
 from pathlib import Path
 
-from site_automator.wordops import WordOpsProvisioner
+from site_automator.ssh import SSHConnection
 
 logger = logging.getLogger(__name__)
 
@@ -13,15 +13,15 @@ logger = logging.getLogger(__name__)
 class PageviewTrackingSetup:
     """Setup pageview tracking plugin with flat file storage."""
 
-    wordops: WordOpsProvisioner
+    ssh: SSHConnection
 
-    def __init__(self, wordops: WordOpsProvisioner) -> None:
+    def __init__(self, ssh: SSHConnection) -> None:
         """Initialize PageviewTrackingSetup.
 
         Args:
-            wordops: WordOpsProvisioner instance
+            ssh: SSHConnection instance
         """
-        self.wordops = wordops
+        self.ssh = ssh
 
     def _upload_tracking_resources(self, remote_folder: str = "/shared") -> None:
         """Upload tracking plugin to remote server.
@@ -51,9 +51,7 @@ class PageviewTrackingSetup:
 
         # Ensure remote folder exists
         logger.debug(f"Ensuring remote folder exists: {remote_folder}")
-        self.wordops.ssh.run_command(
-            f"mkdir -p {shlex.quote(remote_folder)}", check=True
-        )
+        self.ssh.run_command(f"mkdir -p {shlex.quote(remote_folder)}", check=True)
 
         for filename in files:
             local_path = resources_dir / filename
@@ -65,7 +63,7 @@ class PageviewTrackingSetup:
 
             # Always upload (overwrite if exists)
             logger.info(f"Uploading {filename} to {remote_path}")
-            self.wordops.ssh.upload_file(local_path, remote_path)
+            self.ssh.upload_file(local_path, remote_path)
             logger.debug(f"Upload completed: {remote_path}")
 
         logger.info("Tracking resources upload completed")
@@ -94,7 +92,7 @@ class PageviewTrackingSetup:
         # Create .env file
         logger.debug(f"Creating .env file at: {env_file_path}")
         command = f"echo {env_content_escaped} > {env_file_path_escaped}"
-        self.wordops.ssh.run_command(command, check=True)
+        self.ssh.run_command(command, check=True)
 
         logger.info(f".env file created successfully at: {env_file_path}")
 
@@ -123,19 +121,20 @@ class PageviewTrackingSetup:
             f"wp plugin install {plugin_escaped} --activate --force --allow-root"
         )
 
-        self.wordops.ssh.run_command(command, check=True)
+        self.ssh.run_command(command, check=True)
         logger.debug(f"Plugin installed and activated: {plugin}")
 
         logger.info(f"Tracking plugin installed successfully for {domain}")
 
-    def _update_track_config(self, domain: str) -> None:
+    def _update_track_config(self, domain: str, config_path: str | None = None) -> None:
         """Update track_config.php with settings from .env file.
 
         Reads configuration from .env file and updates the track_config.php
-        file in the pageview-tracking plugin.
+        file in the pageview-tracking plugin. Automatically calculates the
+        relative path from track_config.php to the .env file based on the
+        config_path location.
 
         Environment variables:
-        - TRACKING_ENV_FILE: Path to .env file (default: '../../../../.env')
         - TRACKING_DATA_ROOT: Data root directory (default: '/var/lib/pageview-tracking')
         - TRACKING_EXCLUDE_IPS: Comma-delimited IP addresses (becomes array)
         - TRACKING_EXCLUDE_IPS_CIDR: Comma-delimited CIDR ranges (becomes array)
@@ -144,6 +143,9 @@ class PageviewTrackingSetup:
 
         Args:
             domain: Domain name
+            config_path: Full path to track_config.php file. If None, defaults to
+                        WordPress plugin path (/var/www/{domain}/htdocs/wp-content/plugins/
+                        pageview-tracking/track_config.php)
 
         Raises:
             RuntimeError: If config update fails
@@ -156,7 +158,6 @@ class PageviewTrackingSetup:
         logger.debug("Reading local .env file for tracking configuration")
 
         # Get config values from local environment (with defaults)
-        env_file = os.getenv("TRACKING_ENV_FILE", "../../../../.env")
         data_root = os.getenv("TRACKING_DATA_ROOT", "/var/lib/pageview-tracking")
         exclude_ips = os.getenv("TRACKING_EXCLUDE_IPS", "")
         exclude_ips_cidr = os.getenv("TRACKING_EXCLUDE_IPS_CIDR", "")
@@ -164,6 +165,18 @@ class PageviewTrackingSetup:
         exclude_user_agents_substring = os.getenv(
             "TRACKING_EXCLUDE_USER_AGENTS_SUBSTRING", ""
         )
+
+        # Default to WordPress config file path if not specified
+        config_file_path = (
+            config_path
+            or f"/var/www/{domain}/htdocs/wp-content/plugins/pageview-tracking/track_config.php"
+        )
+
+        # Auto-calculate relative path from track_config.php to .env
+        env_file_location = f"/var/www/{domain}/.env"
+        config_dir = os.path.dirname(config_file_path)
+        env_file = os.path.relpath(env_file_location, config_dir)
+        logger.debug(f"Calculated relative path to .env: {env_file}")
 
         # Convert comma-delimited strings to PHP arrays
         def to_php_array(csv_string: str) -> str:
@@ -242,12 +255,6 @@ return [
 ];
 """
 
-        # Write to track_config.php using upload_file
-        config_file_path = (
-            f"/var/www/{domain}/htdocs/wp-content/plugins/"
-            f"pageview-tracking/track_config.php"
-        )
-
         logger.debug(f"Writing track_config.php: {config_file_path}")
 
         # Write to temp file and upload
@@ -256,7 +263,7 @@ return [
             temp_path = Path(f.name)
 
         try:
-            self.wordops.ssh.upload_file(temp_path, config_file_path)
+            self.ssh.upload_file(temp_path, config_file_path)
             logger.info(f"track_config.php updated successfully for {domain}")
         finally:
             temp_path.unlink()
@@ -296,7 +303,7 @@ return [
 
         for command in commands:
             logger.debug(f"Executing: {command}")
-            self.wordops.ssh.run_command(command, check=True)
+            self.ssh.run_command(command, check=True)
 
         logger.info("Flat file storage directory created successfully")
 
@@ -333,12 +340,12 @@ return [
                 raise FileNotFoundError(f"Local script not found: {local_path}")
 
             logger.info(f"Uploading {script} to {remote_path}")
-            self.wordops.ssh.upload_file(local_path, remote_path)
+            self.ssh.upload_file(local_path, remote_path)
             logger.debug(f"Upload completed: {remote_path}")
 
             # Make executable
             command = f"chmod +x {shlex.quote(remote_path)}"
-            self.wordops.ssh.run_command(command, check=True)
+            self.ssh.run_command(command, check=True)
 
         logger.info("Python processing scripts uploaded successfully")
 
@@ -361,10 +368,10 @@ return [
             f"(crontab -l 2>/dev/null; echo {shlex.quote(cron_line)}) | crontab -"
         )
 
-        self.wordops.ssh.run_command(command, check=True)
+        self.ssh.run_command(command, check=True)
         logger.info("Cron job setup completed")
 
-    def setup_tracking(self, domain: str) -> None:
+    def setup_tracking_wordpress(self, domain: str) -> None:
         """Setup complete pageview tracking system for a domain.
 
         This method:
@@ -377,7 +384,6 @@ return [
         - Sets up cron job for log processing
 
         Environment variables (optional):
-        - TRACKING_ENV_FILE: Path to .env file (default: '../../../../.env')
         - TRACKING_DATA_ROOT: Data root directory (default: '/var/lib/pageview-tracking')
         - TRACKING_EXCLUDE_IPS: Comma-delimited IP addresses to exclude
         - TRACKING_EXCLUDE_IPS_CIDR: Comma-delimited CIDR ranges to exclude
@@ -414,3 +420,73 @@ return [
         self._setup_cron_job()
 
         logger.info(f"Pageview tracking setup completed successfully for {domain}")
+
+    def setup_tracking_hugo(self, domain: str) -> None:
+        """Setup pageview tracking for Hugo static site.
+
+        Deploys tracking files to Hugo's static directory and configures
+        backend processing. Hugo will copy files from /static/ to /public/
+        during site builds.
+
+        This method:
+        - Uploads tracking plugin files to /static/pageview-tracking/
+        - Creates .env file in site parent directory
+        - Creates flat file storage directory (/var/lib/pageview-tracking)
+        - Uploads Python processing scripts
+        - Sets up cron job for log processing
+
+        Note: Caddy must be configured to handle PHP files via php-fpm.
+        Note: Include tracking script in Hugo base template manually:
+              <script src="/pageview-tracking/track_pageview.js"></script>
+
+        Args:
+            domain: Domain name of the site (e.g., "example.com")
+
+        Raises:
+            RuntimeError: If setup fails
+        """
+        logger.info(f"Setting up Hugo pageview tracking for {domain}")
+
+        # Create tracking directory in Hugo's static folder
+        tracking_dir = f"/var/www/{domain}/static/pageview-tracking"
+        self.ssh.run_command(f"mkdir -p {tracking_dir}", check=True)
+        logger.info(f"Created tracking directory: {tracking_dir}")
+
+        # Upload entire plugin directory using rsync
+        local_plugin_dir = (
+            Path(__file__).parent.parent.parent
+            / "pageview-tracking/php/plugins/pageview-tracking"
+        )
+
+        logger.info("Uploading tracking files via rsync...")
+        self.ssh.upload_directory_rsync(
+            local_plugin_dir,
+            tracking_dir,
+            exclude=["pageview-tracking.php"],  # Skip WordPress plugin main file
+        )
+        logger.info("Tracking files uploaded successfully")
+
+        # Create .env file
+        self._create_env_file(domain)
+
+        # Update track_config.php
+        hugo_config_path = f"{tracking_dir}/track_config.php"
+        self._update_track_config(domain, hugo_config_path)
+
+        # Create flat file storage directory
+        self._create_data_directory()
+
+        # Upload Python processing scripts
+        self._upload_processing_scripts()
+
+        # Setup cron job for log processing
+        self._setup_cron_job()
+
+        logger.info(f"Hugo pageview tracking setup completed for {domain}")
+        logger.info("Next steps:")
+        logger.info("  - Ensure Caddy is configured to handle PHP files via php-fpm")
+        logger.info(
+            "  - Add to Hugo base template: "
+            "<script src='/pageview-tracking/track_pageview.js'></script>"
+        )
+        logger.info("  - Rebuild Hugo site to deploy tracking files to /public/")

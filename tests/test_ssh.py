@@ -656,3 +656,66 @@ class TestSSHConnection:
         # 5. swapon
         # 6. grep/echo fstab
         assert mock_client_instance.exec_command.call_count == 6
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_ensure_git_safe_directory_configures_wildcard(
+        self, mock_ssh_client, mock_resolve
+    ):
+        """Test that git safe.directory is configured with wildcard."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Mock successful git config command
+        mock_stdout = Mock()
+        mock_stdout.channel.recv_exit_status.return_value = 0
+        mock_stdout.read.return_value = b""
+        mock_stderr = Mock()
+        mock_stderr.read.return_value = b""
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        ssh = SSHConnection(host="example.com")
+        ssh.ensure_git_safe_directory()
+
+        # Verify git config command was called with wildcard
+        git_config_call = None
+        for call in mock_client_instance.exec_command.call_args_list:
+            if "git config --system --add safe.directory" in str(call):
+                git_config_call = call
+                break
+
+        assert git_config_call is not None
+        command = git_config_call[0][0]
+        assert "git config --system --add safe.directory '*'" in command
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_ensure_git_safe_directory_raises_on_failure(
+        self, mock_ssh_client, mock_resolve
+    ):
+        """Test that failure to configure git raises RuntimeError."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        # Mock failed git config command
+        mock_stdout = Mock()
+        mock_stdout.channel.recv_exit_status.return_value = 1
+        mock_stdout.read.return_value = b""
+        mock_stderr = Mock()
+        mock_stderr.read.return_value = b"git config failed"
+        mock_client_instance.exec_command.return_value = (
+            None,
+            mock_stdout,
+            mock_stderr,
+        )
+
+        ssh = SSHConnection(host="example.com")
+
+        with pytest.raises(RuntimeError, match="Command failed with exit code 1"):
+            ssh.ensure_git_safe_directory()

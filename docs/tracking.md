@@ -16,9 +16,6 @@ Set up flat file-based pageview tracking for WordPress sites.
 Add tracking configuration to `.env`:
 
 ```bash
-# Environment file path (optional - defaults to '../../../../.env')
-TRACKING_ENV_FILE=../../../../.env
-
 # Data storage directory (optional - defaults to '/var/lib/pageview-tracking')
 TRACKING_DATA_ROOT=/var/lib/pageview-tracking
 
@@ -36,15 +33,15 @@ from site_automator.wordops import WordOpsProvisioner
 from site_automator.tracking import PageviewTrackingSetup
 
 wordops = WordOpsProvisioner(host="your-server-alias")
-tracking = PageviewTrackingSetup(wordops)
+tracking = PageviewTrackingSetup(wordops.ssh)
 
 # Set up complete tracking system
-tracking.setup_tracking("example.com")
+tracking.setup_tracking_wordpress("example.com")
 ```
 
 ## What Gets Created
 
-The `setup_tracking()` method:
+The `setup_tracking_wordpress()` method:
 
 - **Resource Files** - Uploads plugin to `/shared/` (if not already present)
 - **Data Directory** - Creates `/var/lib/pageview-tracking/` with subdirectories:
@@ -97,12 +94,12 @@ from site_automator.wordops import WordOpsProvisioner
 from site_automator.tracking import PageviewTrackingSetup
 
 wordops = WordOpsProvisioner(host="your-server-alias")
-tracking = PageviewTrackingSetup(wordops)
+tracking = PageviewTrackingSetup(wordops.ssh)
 
 try:
     # Set up tracking with default flat file storage
     # and exclusion rules from .env
-    tracking.setup_tracking("example.com")
+    tracking.setup_tracking_wordpress("example.com")
 
     print("Tracking setup completed successfully")
 

@@ -299,9 +299,6 @@ class TestSetupSiteHugo:
         # Verify wipe was NOT called
         mock_hugo.wipe_site.assert_not_called()
 
-        # Verify ensure_site_initialized was called
-        mock_hugo.ensure_site_initialized.assert_called_once_with("example.com")
-
         # Verify content generation
         mock_gen_topics.assert_called_once_with("site1")
         mock_gen_articles.assert_called_once_with("site1", add_hugo_frontmatter=True)
@@ -346,25 +343,21 @@ class TestSetupSiteHugo:
         with patch.dict("os.environ", {"SITES_CONFIG_PATH": str(csv_path)}):
             setup_site_hugo("site1", wipe=True)
 
-        # Verify wipe is called BEFORE ensure_site_initialized
+        # Verify wipe is called BEFORE initial_setup
         call_order = []
         for call in mock_hugo.method_calls:
-            if call[0] in ["wipe_site", "ensure_site_initialized", "initial_setup"]:
+            if call[0] in ["wipe_site", "initial_setup"]:
                 call_order.append(call[0])
 
         assert call_order == [
             "wipe_site",
-            "ensure_site_initialized",
             "initial_setup",
-        ], f"Expected wipe → initialize → initial_setup, got {call_order}"
+        ], f"Expected wipe → initial_setup, got {call_order}"
 
         # Verify wipe was called with correct args
         mock_hugo.wipe_site.assert_called_once_with(
             "example.com", confirm=True, exclude_dirs=["public/stats"]
         )
-
-        # Verify ensure_site_initialized was still called (after wipe)
-        mock_hugo.ensure_site_initialized.assert_called_once_with("example.com")
 
         # Verify cleanup
         mock_caddy.close.assert_called_once()

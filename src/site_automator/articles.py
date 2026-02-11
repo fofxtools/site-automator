@@ -33,6 +33,34 @@ def _articles_generation_path(site_id: str, slug: str) -> Path:
     return content_root / site_id / "articles" / "generation" / f"{slug}.json"
 
 
+def _strip_leading_title_heading(content: str, expected_title: str) -> str:
+    """Remove leading Markdown heading (any level) if it matches the expected title."""
+    stripped = content.lstrip()
+    lines = stripped.splitlines()
+
+    if not lines:
+        return content
+
+    first_line = lines[0].strip()
+
+    if first_line.startswith("#"):
+        # Count leading #'s
+        i = 0
+        while i < len(first_line) and first_line[i] == "#":
+            i += 1
+
+        # Must have a space after hashes to be a valid heading
+        if i > 0 and len(first_line) > i and first_line[i] == " ":
+            heading_text = first_line[i + 1 :].strip()
+
+            if heading_text.lower() == expected_title.lower():
+                # Remove heading and any immediate blank line
+                remaining = "\n".join(lines[1:]).lstrip("\n")
+                return remaining
+
+    return content
+
+
 def generate_articles_llm(site_id: str, add_hugo_frontmatter: bool = False) -> None:
     """
     Generate articles for a site using an LLM.
@@ -141,6 +169,8 @@ def generate_articles_llm(site_id: str, add_hugo_frontmatter: bool = False) -> N
                 logger.warning(f"LLM generation failed for '{title}' ({slug})")
                 failed += 1
                 continue
+
+            article_content = _strip_leading_title_heading(article_content, title)
 
             # Prepend Hugo frontmatter if requested
             if add_hugo_frontmatter:

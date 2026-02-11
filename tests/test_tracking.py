@@ -5,8 +5,8 @@ from site_automator.tracking import PageviewTrackingSetup
 
 @pytest.fixture
 def tracking(wordops):
-    """Create a PageviewTrackingSetup using a WordOpsProvisioner instance."""
-    return PageviewTrackingSetup(wordops)
+    """Create a PageviewTrackingSetup using the SSHConnection from a WordOpsProvisioner instance."""
+    return PageviewTrackingSetup(wordops.ssh)
 
 
 class TestUploadTrackingResources:
@@ -60,7 +60,6 @@ class TestUpdateTrackConfig:
     @patch.dict(
         "os.environ",
         {
-            "TRACKING_ENV_FILE": "../../../../.env",
             "TRACKING_DATA_ROOT": "/var/lib/pageview-tracking",
             "TRACKING_EXCLUDE_IPS": "127.0.0.1,192.168.1.1",
             "TRACKING_EXCLUDE_IPS_CIDR": "10.0.0.0/8",
@@ -70,6 +69,16 @@ class TestUpdateTrackConfig:
     )
     def test_update_track_config_success(self, tracking, mock_ssh_connection):
         """Test _update_track_config creates config file with env values."""
+        # Capture file content when upload_file is called
+        uploaded_content = None
+
+        def capture_upload(local_path, remote_path):
+            nonlocal uploaded_content
+            with open(local_path, "r") as f:
+                uploaded_content = f.read()
+
+        mock_ssh_connection.upload_file.side_effect = capture_upload
+
         tracking._update_track_config("example.com")
 
         # Should upload file using upload_file
@@ -80,6 +89,45 @@ class TestUpdateTrackConfig:
         remote_path = call_args[1]
         assert "track_config.php" in remote_path
         assert "example.com" in remote_path
+
+        # Verify WordPress default path calculates correct relative path
+        # WordPress: htdocs/wp-content/plugins/pageview-tracking/ -> 4 levels up
+        assert uploaded_content is not None
+        assert "'env_file' => '../../../../.env'" in uploaded_content
+
+    @patch.dict(
+        "os.environ",
+        {
+            "TRACKING_DATA_ROOT": "/var/lib/pageview-tracking",
+        },
+    )
+    def test_update_track_config_custom_path(self, tracking, mock_ssh_connection):
+        """Test _update_track_config with custom config path."""
+        # Capture file content when upload_file is called
+        uploaded_content = None
+
+        def capture_upload(local_path, remote_path):
+            nonlocal uploaded_content
+            with open(local_path, "r") as f:
+                uploaded_content = f.read()
+
+        mock_ssh_connection.upload_file.side_effect = capture_upload
+
+        custom_path = "/var/www/example.com/static/pageview-tracking/track_config.php"
+        tracking._update_track_config("example.com", config_path=custom_path)
+
+        # Should upload file using upload_file
+        mock_ssh_connection.upload_file.assert_called_once()
+
+        # Verify custom path was used
+        call_args = mock_ssh_connection.upload_file.call_args[0]
+        remote_path = call_args[1]
+        assert remote_path == custom_path
+
+        # Verify Hugo path calculates correct relative path
+        # Hugo: static/pageview-tracking/ -> 2 levels up
+        assert uploaded_content is not None
+        assert "'env_file' => '../../.env'" in uploaded_content
 
 
 class TestCreateDataDirectory:
@@ -148,8 +196,8 @@ class TestSetupCronJob:
         assert "crontab" in call_args
 
 
-class TestSetupTracking:
-    """Test setup_tracking method."""
+class TestSetupTrackingWordPress:
+    """Test setup_tracking_wordpress method."""
 
     @patch("site_automator.tracking.PageviewTrackingSetup._setup_cron_job")
     @patch("site_automator.tracking.PageviewTrackingSetup._upload_processing_scripts")
@@ -157,7 +205,6 @@ class TestSetupTracking:
     @patch.dict(
         "os.environ",
         {
-            "TRACKING_ENV_FILE": "../../../../.env",
             "TRACKING_DATA_ROOT": "/var/lib/pageview-tracking",
             "TRACKING_EXCLUDE_IPS": "",
             "TRACKING_EXCLUDE_IPS_CIDR": "",
@@ -166,11 +213,11 @@ class TestSetupTracking:
         },
         clear=True,
     )
-    def test_setup_tracking_with_defaults(
+    def test_setup_tracking_wordpress_with_defaults(
         self, mock_upload, mock_upload_scripts, mock_cron, tracking, mock_ssh_connection
     ):
-        """Test setup_tracking executes all steps."""
-        tracking.setup_tracking("example.com")
+        """Test setup_tracking_wordpress executes all steps."""
+        tracking.setup_tracking_wordpress("example.com")
 
         # Should call all mocked methods
         mock_upload.assert_called_once()
@@ -184,3 +231,51 @@ class TestSetupTracking:
         assert any("wp plugin install" in cmd for cmd in calls)
         # Note: track_config.php is uploaded via upload_file, not run_command
         assert any("sudo mkdir -p /var/lib/pageview-tracking" in cmd for cmd in calls)
+
+
+class TestSetupTrackingHugo:
+    """Test setup_tracking_hugo method."""
+
+    @patch("site_automator.tracking.PageviewTrackingSetup._setup_cron_job")
+    @patch("site_automator.tracking.PageviewTrackingSetup._upload_processing_scripts")
+    @patch("site_automator.tracking.PageviewTrackingSetup._create_data_directory")
+    @patch("site_automator.tracking.PageviewTrackingSetup._update_track_config")
+    @patch("site_automator.tracking.PageviewTrackingSetup._create_env_file")
+    def test_setup_tracking_hugo_critical_path(
+        self,
+        mock_create_env,
+        mock_update_config,
+        mock_create_data,
+        mock_upload_scripts,
+        mock_cron,
+        tracking,
+        mock_ssh_connection,
+    ):
+        """Test setup_tracking_hugo executes all steps with correct paths."""
+        tracking.setup_tracking_hugo("example.com")
+
+        # Verify tracking directory creation
+        calls = [call[0][0] for call in mock_ssh_connection.run_command.call_args_list]
+        assert any(
+            "mkdir -p /var/www/example.com/static/pageview-tracking" in cmd
+            for cmd in calls
+        )
+
+        # Verify rsync upload was called
+        mock_ssh_connection.upload_directory_rsync.assert_called_once()
+        rsync_args = mock_ssh_connection.upload_directory_rsync.call_args
+        assert "pageview-tracking" in str(rsync_args[0][0])  # Local path
+        assert (
+            "/var/www/example.com/static/pageview-tracking" == rsync_args[0][1]
+        )  # Remote path
+        assert rsync_args[1]["exclude"] == ["pageview-tracking.php"]
+
+        # Verify all backend setup methods were called
+        mock_create_env.assert_called_once_with("example.com")
+        mock_update_config.assert_called_once_with(
+            "example.com",
+            "/var/www/example.com/static/pageview-tracking/track_config.php",
+        )
+        mock_create_data.assert_called_once()
+        mock_upload_scripts.assert_called_once()
+        mock_cron.assert_called_once()

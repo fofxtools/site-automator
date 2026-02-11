@@ -967,8 +967,8 @@ class WordPressDeployer:
         self.delete_themes(domain, ["twentytwentythree", "twentytwentyfour"])
 
         # Setup pageview tracking
-        tracking = PageviewTrackingSetup(self.wordops)
-        tracking.setup_tracking(domain)
+        tracking = PageviewTrackingSetup(self.wordops.ssh)
+        tracking.setup_tracking_wordpress(domain)
 
         # Install and activate plugins
         plugin_slugs = [
@@ -982,7 +982,7 @@ class WordPressDeployer:
         requests.get(f"https://{domain}/wp-admin")
 
         # Create IndexNow key
-        indexnow_key = create_indexnow_key(domain, self.wordops)
+        indexnow_key = create_indexnow_key(domain, self.wordops.ssh)
         logger.info(f"Created IndexNow key: {indexnow_key}")
 
         logger.info(f"Initial setup complete for {domain}")

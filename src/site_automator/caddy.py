@@ -50,6 +50,38 @@ class CaddyProvisioner:
         # Graceful reload
         self.ssh.run_command("caddy reload --config /etc/caddy/Caddyfile", check=True)
 
+    def _generate_config(self, domain: str) -> str:
+        """Generate Caddy site configuration.
+
+        Creates a Caddy config with:
+        - PHP 8.3 FPM support
+        - JSON access logging with rotation (GoAccess compatible)
+        - Static file serving with gzip
+
+        Args:
+            domain: Domain name (e.g., "example.com")
+
+        Returns:
+            Caddy configuration string
+        """
+        return f"""{domain} {{
+    root * /var/www/{domain}/public
+
+    php_fastcgi unix//run/php/php8.3-fpm.sock
+
+    encode gzip
+    file_server
+
+    log {{
+        output file /var/log/caddy/{domain}-access.log {{
+            roll_size 100MiB
+            roll_keep 20
+            roll_keep_for 87600h
+        }}
+        format json
+    }}
+}}"""
+
     def ensure_caddyfile_import(self) -> None:
         """Set up import directive structure (idempotent).
 
@@ -115,13 +147,13 @@ class CaddyProvisioner:
         self.ssh.run_command(f"chown -R caddy:caddy /var/www/{domain}", check=True)
         self.ssh.run_command(f"chmod -R 755 /var/www/{domain}", check=True)
 
-        # Always write site config (ensures it's up to date)
-        site_config = f"""{domain} {{
-    root * /var/www/{domain}/public
-    file_server
-    encode gzip
-}}"""
+        # Ensure log directory exists with correct permissions
+        self.ssh.run_command("mkdir -p /var/log/caddy", check=True)
+        self.ssh.run_command("chown -R caddy:caddy /var/log/caddy", check=True)
+        self.ssh.run_command("chmod -R 755 /var/log/caddy", check=True)
 
+        # Generate and write site config
+        site_config = self._generate_config(domain)
         config_path = f"/etc/caddy/sites-available/{domain}.caddy"
 
         # Write to temp file and upload

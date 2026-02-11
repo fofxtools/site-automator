@@ -35,5 +35,5 @@ def wordpress(wordops):
 
 @pytest.fixture
 def tracking(wordops):
-    """Create a PageviewTrackingSetup using a WordOpsProvisioner instance."""
-    return PageviewTrackingSetup(wordops)
+    """Create a PageviewTrackingSetup using the SSHConnection from a WordOpsProvisioner instance."""
+    return PageviewTrackingSetup(wordops.ssh)

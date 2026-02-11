@@ -129,7 +129,7 @@ This is because WordOps runs as `root` but creates repositories as `www-data`. C
 
 ```python
 # Configure git safe.directory
-wordops.ensure_git_safe_directory()
+wordops.ssh.ensure_git_safe_directory()
 ```
 
 ## Complete Example
@@ -156,7 +156,7 @@ try:
     wordops.ensure_default_catchall()
 
     # Configure git safe.directory
-    wordops.ensure_git_safe_directory()
+    wordops.ssh.ensure_git_safe_directory()
 
 finally:
     wordops.close()

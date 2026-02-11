@@ -1,12 +1,16 @@
 """Hugo Deployer - SSH-based Hugo static site deployment."""
 
 import logging
+import tomllib
 from pathlib import Path
+from typing import cast
 
 from slugify import slugify
+import tempfile
 
 from site_automator.ssh import SSHConnection
 from site_automator.utils import validate_domain
+from site_automator.tracking import PageviewTrackingSetup
 
 logger = logging.getLogger(__name__)
 
@@ -15,14 +19,235 @@ class HugoDeployer:
     """Deploy Hugo static sites via SSH."""
 
     ssh: SSHConnection
+    themes: dict[str, str]
 
-    def __init__(self, ssh: SSHConnection) -> None:
+    def __init__(self, ssh: SSHConnection, themes_file: Path | None = None) -> None:
         """Initialize HugoDeployer.
 
         Args:
             ssh: SSH connection to the server
+            themes_file: Path to themes.toml config (optional)
         """
         self.ssh = ssh
+        self.themes = self._load_themes(themes_file)
+
+    def _load_themes(self, themes_file: Path | None) -> dict[str, str]:
+        """Load theme registry from TOML config.
+
+        Args:
+            themes_file: Path to themes.toml, defaults to config/themes.toml
+
+        Returns:
+            Dictionary mapping theme names to git URLs
+
+        Raises:
+            FileNotFoundError: If themes file doesn't exist
+            RuntimeError: If no themes defined in file
+        """
+        if themes_file is None:
+            # Navigate from src/site_automator/hugo.py to config/themes.toml
+            themes_file = Path(__file__).parent.parent.parent / "config" / "themes.toml"
+
+        if not themes_file.exists():
+            raise FileNotFoundError(f"Theme registry not found: {themes_file}")
+
+        with themes_file.open("rb") as f:
+            data = tomllib.load(f)
+
+        themes_raw = data.get("themes", {})
+        if not themes_raw:
+            raise RuntimeError(f"No themes defined in {themes_file}")
+
+        # Validate that all values are strings
+        themes = cast(dict[str, str], themes_raw)
+
+        logger.info(f"Loaded {len(themes)} themes from {themes_file}")
+        return themes
+
+    def _inject_tracking_into_baseof(self, content: str) -> str:
+        """Insert tracking partial before </body> if not already present."""
+        if "pageview-tracking.html" in content:
+            return content  # Already injected (idempotent)
+
+        # Add newline before insertion for clean formatting
+        insertion = '\n  {{ partial "pageview-tracking.html" . }}\n'
+
+        if "</body>" in content:
+            return content.replace("</body>", insertion + "</body>", 1)
+
+        raise RuntimeError(
+            "Theme baseof.html missing </body> tag - cannot inject tracking"
+        )
+
+    def _inject_internal_links_into_single(self, content: str) -> str:
+        """Insert internal-links partial into single.html if not already present.
+
+        Injects before closing tags to ensure it stays within the main content area.
+        This ensures the internal links inherit the theme's styling and layout constraints.
+
+        Strategy:
+        1. Try </main> tag (Hermit-v2)
+        2. Try </article> tag (Ananke, BeautifulHugo)
+        3. Try before last {{ end }} in {{ define "main" }} block
+        4. Append at end (last resort)
+
+        Args:
+            content: The single.html template content
+
+        Returns:
+            Modified content with internal-links partial injected
+        """
+        if "internal-links.html" in content:
+            return content  # Already injected (idempotent)
+
+        insertion = '      {{- partial "internal-links.html" . -}}\n'
+
+        # STRATEGY 1: Inject before </main> tag (Hermit-v2)
+        if "</main>" in content:
+            logger.info("Injecting internal-links before </main> tag")
+            return content.replace("</main>", insertion + "    </main>", 1)
+
+        # STRATEGY 2: Inject before </article> tag (Ananke, BeautifulHugo)
+        if "</article>" in content:
+            logger.info("Injecting internal-links before </article> tag")
+            return content.replace("</article>", insertion + "    </article>", 1)
+
+        # STRATEGY 3: Inject before the LAST {{ end }} in the {{ define "main" }} block
+        # This avoids injecting inside conditional blocks
+        # Find the {{ define "main" }} block
+        import re
+
+        main_block_pattern = r'(\{\{\s*define\s+"main"\s*\}\})(.*?)(\{\{\s*end\s*\}\})'
+        match = re.search(main_block_pattern, content, re.DOTALL)
+        if match:
+            logger.info(
+                'Injecting internal-links before {{ define "main" }} block\'s {{ end }}'
+            )
+            # Inject before the {{ end }} that closes the main block
+            before = content[: match.start(3)]
+            end_tag = match.group(3)
+            after = content[match.end(3) :]
+            return before + insertion + end_tag + after
+
+        # STRATEGY 4: Append at end (last resort)
+        logger.warning(
+            'Could not find </main>, </article>, or {{ define "main" }} block. '
+            "Appending internal-links at end of file."
+        )
+        return content + insertion
+
+    def _find_theme_baseof(self, site_root: str, theme: str) -> str | None:
+        """Find theme's baseof.html in standard locations.
+
+        Checks in Hugo's standard lookup order:
+        1. layouts/baseof.html (modern themes)
+        2. layouts/_default/baseof.html (legacy themes)
+
+        Args:
+            site_root: Site root directory path
+            theme: Theme name
+
+        Returns:
+            Path to baseof.html if found, None otherwise
+        """
+        candidates = [
+            f"{site_root}/themes/{theme}/layouts/baseof.html",
+            f"{site_root}/themes/{theme}/layouts/_default/baseof.html",
+        ]
+
+        for path in candidates:
+            _, exit_code = self.ssh.run_command(f'test -f "{path}"', check=False)
+            if exit_code == 0:
+                logger.info(f"Found theme baseof: {path}")
+                return path
+
+        logger.warning(
+            f"No baseof.html found for theme '{theme}' in standard locations"
+        )
+        return None
+
+    def _generate_minimal_baseof_with_tracking(self) -> str:
+        """Generate minimal baseof.html for themes without one.
+
+        Uses blocks instead of partials for maximum theme compatibility.
+        """
+        return """<!DOCTYPE html>
+<html lang="{{ .Site.Language.Lang | default "en" }}">
+<head>
+  {{ block "head" . }}{{ end }}
+</head>
+<body>
+  {{ block "main" . }}{{ end }}
+  {{ partial "pageview-tracking.html" . }}
+</body>
+</html>
+    """
+
+    def _create_tracking_partial(self, domain: str) -> None:
+        """Create Hugo tracking partial."""
+        site_root = f"/var/www/{domain}"
+        partials_dir = f"{site_root}/layouts/partials"
+
+        self.ssh.run_command(f"mkdir -p {partials_dir}", check=True)
+
+        # Pixel before JS - works even if JS fails (bots)
+        partial_content = """<!-- Pageview Tracking -->
+<img src="/pageview-tracking/pixel.php?url={{ .RelPermalink }}"
+  alt="" width="1" height="1" style="display:none;" />
+<script src="/pageview-tracking/track_pageview.js" defer></script>
+    """
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".html") as f:
+            f.write(partial_content)
+            temp_path = Path(f.name)
+
+        try:
+            self.ssh.upload_file(temp_path, f"{partials_dir}/pageview-tracking.html")
+            logger.info(f"Created tracking partial for {domain}")
+        finally:
+            temp_path.unlink()
+
+    def _create_baseof_with_tracking(self, domain: str, theme: str) -> None:
+        """Create site-level baseof.html with tracking.
+
+        Searches for theme's baseof.html in standard locations and injects tracking.
+        If theme has no baseof, creates a minimal one with warning.
+
+        Args:
+            domain: Site domain
+            theme: Theme name (e.g., "hugo-theme-stack")
+        """
+        site_root = f"/var/www/{domain}"
+        site_layout_dir = f"{site_root}/layouts/_default"
+
+        self.ssh.run_command(f"mkdir -p {site_layout_dir}", check=True)
+
+        # Find theme baseof in standard locations
+        theme_baseof = self._find_theme_baseof(site_root, theme)
+
+        if theme_baseof:
+            # Read and patch theme's baseof
+            content, _ = self.ssh.run_command(f'cat "{theme_baseof}"', check=True)
+            patched = self._inject_tracking_into_baseof(content)
+            logger.info(f"Copied and patched theme baseof for {domain}")
+        else:
+            # Theme has no baseof - create minimal one with warning
+            logger.warning(
+                f"Theme '{theme}' has no baseof.html in standard locations. "
+                f"Creating minimal layout for {domain}. Site may lose theme styling."
+            )
+            patched = self._generate_minimal_baseof_with_tracking()
+
+        # Upload to site layouts
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".html") as f:
+            f.write(patched)
+            temp_path = Path(f.name)
+
+        try:
+            site_baseof = f"{site_layout_dir}/baseof.html"
+            self.ssh.upload_file(temp_path, site_baseof)
+        finally:
+            temp_path.unlink()
 
     def check_hugo_installed(self) -> None:
         """Raise error if Hugo is not installed on server.
@@ -179,10 +404,11 @@ class HugoDeployer:
 
         Args:
             domain: Domain name for the Hugo site
-            theme: Theme name (default: ananke)
+            theme: Theme name from themes.toml (default: ananke)
 
         Raises:
             ValueError: If domain is invalid
+            RuntimeError: If theme not found in registry
         """
         validate_domain(domain)
         logger.info(f"Ensuring theme installed: {domain} ({theme})")
@@ -193,9 +419,19 @@ class HugoDeployer:
         # Ensure theme directory exists
         _, exit_code = self.ssh.run_command(f"test -d {theme_path}", check=False)
         if exit_code != 0:
-            logger.info(f"Installing theme: {theme}")
+            # Look up theme URL from registry
+            try:
+                repo_url = self.themes[theme]
+            except KeyError:
+                available = ", ".join(sorted(self.themes.keys()))
+                raise RuntimeError(
+                    f"Theme '{theme}' not found in themes.toml. "
+                    f"Available themes: {available}"
+                )
+
+            logger.info(f"Installing theme: {theme} from {repo_url}")
             self.ssh.run_command(
-                f"git clone https://github.com/theNewDynamic/gohugo-theme-{theme}.git {theme_path}",
+                f"git clone {repo_url} {theme_path}",
                 check=True,
             )
         else:
@@ -279,11 +515,15 @@ class HugoDeployer:
 
         logger.info(f"Internal links partial created: {domain}")
 
-    def ensure_single_layout_override(self, domain: str) -> None:
+    def ensure_single_layout_override(self, domain: str, theme: str) -> None:
         """Ensure article layout includes internal links block.
+
+        Searches for theme's single.html (in same directory as baseof.html) and patches it.
+        If theme has no single.html, creates a minimal one with warning.
 
         Args:
             domain: Domain name for the Hugo site
+            theme: Theme name (e.g., "hermit-v2")
 
         Raises:
             ValueError: If domain is invalid
@@ -291,16 +531,44 @@ class HugoDeployer:
         validate_domain(domain)
         logger.info(f"Ensuring single layout override: {domain}")
 
+        site_root = f"/var/www/{domain}"
+        site_layout_dir = f"{site_root}/layouts/_default"
+
         # Check if layout already exists
-        check_cmd = f"test -f /var/www/{domain}/layouts/_default/single.html"
+        check_cmd = f"test -f {site_layout_dir}/single.html"
         _, exit_code = self.ssh.run_command(check_cmd, check=False)
 
         if exit_code == 0:
             logger.info(f"Single layout override already exists: {domain}")
             return
 
-        # Create layout content that includes internal links partial
-        layout_content = """{{- define "main" -}}
+        # Create layouts directory
+        self.ssh.run_command(f"mkdir -p {site_layout_dir}", check=True)
+
+        # Find theme's baseof to determine where single.html should be
+        baseof_path = self._find_theme_baseof(site_root, theme)
+        theme_single = None
+
+        if baseof_path:
+            # Check for single.html in same directory as baseof.html
+            single_path = baseof_path.replace("baseof.html", "single.html")
+            _, exit_code = self.ssh.run_command(f'test -f "{single_path}"', check=False)
+            if exit_code == 0:
+                theme_single = single_path
+                logger.info(f"Found theme single.html: {single_path}")
+
+        if theme_single:
+            # Read and patch theme's single.html
+            content, _ = self.ssh.run_command(f'cat "{theme_single}"', check=True)
+            patched = self._inject_internal_links_into_single(content)
+            logger.info(f"Copied and patched theme single.html for {domain}")
+        else:
+            # Theme has no single.html - create minimal one with warning
+            logger.warning(
+                f"Theme '{theme}' has no single.html. "
+                f"Creating minimal layout for {domain}. Site may lose theme styling."
+            )
+            patched = """{{- define "main" -}}
 <article>
   <header>
     <h1>{{ .Title }}</h1>
@@ -312,18 +580,26 @@ class HugoDeployer:
 </article>
 {{- end -}}"""
 
-        logger.info(f"Creating single layout override: {domain}")
+        # Upload to site layouts
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".html") as f:
+            f.write(patched)
+            temp_path = Path(f.name)
 
-        # Create layouts directory
-        self.ssh.run_command(f"mkdir -p /var/www/{domain}/layouts/_default", check=True)
+        try:
+            self.ssh.upload_file(temp_path, f"{site_layout_dir}/single.html")
+            logger.info(f"Single layout override created: {domain}")
+        finally:
+            temp_path.unlink()
 
-        # Write layout file using heredoc
-        self.ssh.run_command(
-            f"cat > /var/www/{domain}/layouts/_default/single.html << 'EOF'\n{layout_content}\nEOF",
-            check=True,
-        )
+    def setup_tracking(self, domain: str, theme: str) -> None:
+        """Setup pageview tracking for Hugo site.
 
-        logger.info(f"Single layout override created: {domain}")
+        Args:
+            domain: Site domain
+            theme: Theme name for baseof.html detection
+        """
+        self._create_tracking_partial(domain)
+        self._create_baseof_with_tracking(domain, theme)
 
     def deploy_content_file(
         self,
@@ -494,19 +770,20 @@ class HugoDeployer:
         logger.info(f"Hugo site wiped: {domain}")
 
     def initial_setup(self, domain: str, theme: str = "ananke") -> None:
-        """Perform initial Hugo site setup after initialization.
+        """Perform complete initial Hugo site setup.
 
-        This method orchestrates the complete initial configuration of a Hugo site,
-        including setting base URL, configuring publish directory, installing theme,
-        creating robots.txt, setting up internal linking, and ensuring correct permissions.
+        This method orchestrates the complete initial setup of a Hugo site,
+        from initialization through full configuration.
 
         Steps performed:
+        - Initialize Hugo site skeleton (if not already initialized)
         - Set baseURL in hugo.toml
         - Set publishDir in hugo.toml
         - Install and configure theme
         - Create robots.txt with sitemap link
         - Create internal links partial template
         - Create single layout override to include internal links
+        - Setup pageview tracking
         - Set correct ownership and permissions
 
         Args:
@@ -518,12 +795,18 @@ class HugoDeployer:
         """
         logger.info(f"Starting initial setup for {domain}")
 
+        self.ensure_site_initialized(domain)
         self.ensure_base_url(domain)
         self.ensure_publish_dir(domain)
         self.ensure_theme_installed(domain, theme)
         self.ensure_robots_txt(domain)
         self.ensure_internal_links_partial(domain)
-        self.ensure_single_layout_override(domain)
+        self.ensure_single_layout_override(domain, theme)
+        self.setup_tracking(domain, theme)
         self.ensure_permissions(domain)
+
+        # Setup pageview tracking
+        tracking = PageviewTrackingSetup(self.ssh)
+        tracking.setup_tracking_hugo(domain)
 
         logger.info(f"Initial setup complete for {domain}")

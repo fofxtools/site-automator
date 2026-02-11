@@ -37,11 +37,15 @@ def main() -> None:
     site = load_site_config(args.site_id)
     domain = site["domain"]
     server = site["server"]
+    cms = site["cms"]
+
+    # Determine webroot based on CMS
+    webroot = "public" if cms == "hugo" else "htdocs"
 
     wordops = WordOpsProvisioner(host=server)
     try:
         # Create IndexNow key file
-        key = create_indexnow_key(domain, wordops)
+        key = create_indexnow_key(domain, wordops.ssh, webroot=webroot)
 
         # Submit homepage URL
         homepage_url = f"https://{domain}/"

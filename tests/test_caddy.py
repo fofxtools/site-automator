@@ -58,6 +58,77 @@ class TestReloadCaddy:
         assert calls[1] == "caddy reload --config /etc/caddy/Caddyfile"
 
 
+class TestGenerateConfig:
+    """Test _generate_config method."""
+
+    @patch("site_automator.caddy.SSHConnection")
+    def test_includes_domain(self, mock_ssh_connection):
+        """Test that generated config includes the domain."""
+        caddy = CaddyProvisioner(host="example.com")
+        config = caddy._generate_config("test.com")
+
+        assert "test.com {" in config
+
+    @patch("site_automator.caddy.SSHConnection")
+    def test_includes_root_directive(self, mock_ssh_connection):
+        """Test that generated config includes root directive."""
+        caddy = CaddyProvisioner(host="example.com")
+        config = caddy._generate_config("test.com")
+
+        assert "root * /var/www/test.com/public" in config
+
+    @patch("site_automator.caddy.SSHConnection")
+    def test_includes_php_fastcgi(self, mock_ssh_connection):
+        """Test that generated config includes PHP-FPM."""
+        caddy = CaddyProvisioner(host="example.com")
+        config = caddy._generate_config("test.com")
+
+        assert "php_fastcgi unix//run/php/php8.3-fpm.sock" in config
+
+    @patch("site_automator.caddy.SSHConnection")
+    def test_includes_encode_gzip(self, mock_ssh_connection):
+        """Test that generated config includes gzip encoding."""
+        caddy = CaddyProvisioner(host="example.com")
+        config = caddy._generate_config("test.com")
+
+        assert "encode gzip" in config
+
+    @patch("site_automator.caddy.SSHConnection")
+    def test_includes_file_server(self, mock_ssh_connection):
+        """Test that generated config includes file_server."""
+        caddy = CaddyProvisioner(host="example.com")
+        config = caddy._generate_config("test.com")
+
+        assert "file_server" in config
+
+    @patch("site_automator.caddy.SSHConnection")
+    def test_includes_log_block(self, mock_ssh_connection):
+        """Test that generated config includes log block."""
+        caddy = CaddyProvisioner(host="example.com")
+        config = caddy._generate_config("test.com")
+
+        assert "log {" in config
+        assert "format json" in config
+
+    @patch("site_automator.caddy.SSHConnection")
+    def test_includes_log_file_path(self, mock_ssh_connection):
+        """Test that generated config includes correct log file path."""
+        caddy = CaddyProvisioner(host="example.com")
+        config = caddy._generate_config("test.com")
+
+        assert "output file /var/log/caddy/test.com-access.log" in config
+
+    @patch("site_automator.caddy.SSHConnection")
+    def test_includes_log_rotation(self, mock_ssh_connection):
+        """Test that generated config includes log rotation settings."""
+        caddy = CaddyProvisioner(host="example.com")
+        config = caddy._generate_config("test.com")
+
+        assert "roll_size 100MiB" in config
+        assert "roll_keep 20" in config
+        assert "roll_keep_for 87600h" in config
+
+
 class TestEnsureCaddyfileImport:
     """Test ensure_caddyfile_import method."""
 
@@ -176,6 +247,21 @@ class TestEnableDomain:
         assert "mkdir -p /var/www/test.com/public" in calls
         assert "chown -R caddy:caddy /var/www/test.com" in calls
         assert "chmod -R 755 /var/www/test.com" in calls
+
+    @patch("site_automator.caddy.SSHConnection")
+    def test_creates_log_directory_with_permissions(self, mock_ssh_connection):
+        """Test that log directory is created with correct permissions."""
+        mock_ssh = Mock()
+        mock_ssh.run_command.return_value = ("", 0)
+        mock_ssh_connection.return_value = mock_ssh
+
+        caddy = CaddyProvisioner(host="example.com")
+        caddy.enable_domain("test.com")
+
+        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
+        assert "mkdir -p /var/log/caddy" in calls
+        assert "chown -R caddy:caddy /var/log/caddy" in calls
+        assert "chmod -R 755 /var/log/caddy" in calls
 
     @patch("site_automator.caddy.SSHConnection")
     def test_writes_site_config(self, mock_ssh_connection):

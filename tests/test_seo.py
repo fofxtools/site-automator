@@ -8,9 +8,9 @@ from site_automator.seo import create_indexnow_key, submit_indexnow
 class TestCreateIndexnowKey:
     """Test create_indexnow_key function."""
 
-    def test_generates_key_and_writes_file(self, wordops, mock_ssh_connection):
+    def test_generates_key_and_writes_file(self, mock_ssh_connection):
         """Test key is generated and written to the webroot."""
-        key = create_indexnow_key("example.com", wordops)
+        key = create_indexnow_key("example.com", mock_ssh_connection)
 
         assert len(key) == 32
         assert key.isalnum()
@@ -18,6 +18,17 @@ class TestCreateIndexnowKey:
         cmd = mock_ssh_connection.run_command.call_args[0][0]
         assert f"{key}.txt" in cmd
         assert "/var/www/example.com/htdocs/" in cmd
+
+    def test_generates_key_with_custom_webroot(self, mock_ssh_connection):
+        """Test key is generated with custom webroot."""
+        key = create_indexnow_key("example.com", mock_ssh_connection, webroot="public")
+
+        assert len(key) == 32
+        assert key.isalnum()
+
+        cmd = mock_ssh_connection.run_command.call_args[0][0]
+        assert f"{key}.txt" in cmd
+        assert "/var/www/example.com/public/" in cmd
 
 
 class TestSubmitIndexnow:

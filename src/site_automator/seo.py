@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 import requests
 from dotenv import load_dotenv
 
-from site_automator.wordops import WordOpsProvisioner
+from site_automator.ssh import SSHConnection
 from base64 import b64decode
 
 logger = logging.getLogger(__name__)
@@ -19,16 +19,20 @@ load_dotenv()
 INDEXNOW_URL = "https://www.bing.com/indexnow"
 
 
-def create_indexnow_key(domain: str, wordops: WordOpsProvisioner) -> str:
+def create_indexnow_key(
+    domain: str, ssh: SSHConnection, webroot: str = "htdocs"
+) -> str:
     """Generate an IndexNow key and write the verification file to the site webroot.
 
     Generates a random 32-character hex key and writes it to
-    /var/www/{domain}/htdocs/{key}.txt. IndexNow requires this file
+    /var/www/{domain}/{webroot}/{key}.txt. IndexNow requires this file
     to verify domain ownership.
 
     Args:
         domain: Domain name (e.g., "example.com")
-        wordops: WordOpsProvisioner instance for remote file operations
+        ssh: SSHConnection instance for remote file operations
+        webroot: Web document root folder (default: "htdocs")
+                 Common values: "htdocs" (Nginx), "public" (Caddy)
 
     Returns:
         The generated key string. Store this for use with submit_indexnow().
@@ -38,12 +42,12 @@ def create_indexnow_key(domain: str, wordops: WordOpsProvisioner) -> str:
     """
     key = secrets.token_hex(16)
 
-    key_file = f"/var/www/{domain}/htdocs/{key}.txt"
+    key_file = f"/var/www/{domain}/{webroot}/{key}.txt"
     key_escaped = shlex.quote(key)
     key_file_escaped = shlex.quote(key_file)
 
     logger.info(f"Creating IndexNow key file for {domain}")
-    wordops.ssh.run_command(f"echo {key_escaped} > {key_file_escaped}", check=True)
+    ssh.run_command(f"echo {key_escaped} > {key_file_escaped}", check=True)
     logger.info(f"IndexNow key file created: {key_file}")
 
     return key

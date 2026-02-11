@@ -865,11 +865,11 @@ class TestInitialSetup:
         )
 
         # Verify tracking setup was called
-        mock_tracking_class.assert_called_once_with(wordpress.wordops)
-        mock_tracking.setup_tracking.assert_called_once_with("test.com")
+        mock_tracking_class.assert_called_once_with(wordpress.wordops.ssh)
+        mock_tracking.setup_tracking_wordpress.assert_called_once_with("test.com")
 
         # Verify wp-admin was visited to trigger plugin initialization
         mock_requests_get.assert_called_once_with("https://test.com/wp-admin")
 
         # Verify IndexNow key was created
-        mock_create_indexnow.assert_called_once_with("test.com", wordpress.wordops)
+        mock_create_indexnow.assert_called_once_with("test.com", wordpress.wordops.ssh)

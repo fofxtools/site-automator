@@ -7,6 +7,7 @@ import pytest
 from site_automator.articles import (
     _articles_generation_path,
     _articles_markdown_path,
+    _strip_leading_title_heading,
     generate_articles_llm,
 )
 
@@ -55,6 +56,96 @@ class TestArticlesGenerationPath:
 
         assert str(path).startswith("storage/content")
         assert path.name == "test.json"
+
+
+class TestStripLeadingTitleHeading:
+    """Test _strip_leading_title_heading helper function."""
+
+    def test_strips_h1_when_matches_title(self):
+        """Test strips H1 heading when it matches expected title."""
+        content = "# My Great Title\n\nThis is the content."
+        result = _strip_leading_title_heading(content, "My Great Title")
+        assert result == "This is the content."
+
+    def test_strips_h2_when_matches_title(self):
+        """Test strips H2 heading when it matches expected title."""
+        content = "## My Great Title\n\nThis is the content."
+        result = _strip_leading_title_heading(content, "My Great Title")
+        assert result == "This is the content."
+
+    def test_strips_h3_when_matches_title(self):
+        """Test strips H3 heading when it matches expected title."""
+        content = "### My Great Title\n\nThis is the content."
+        result = _strip_leading_title_heading(content, "My Great Title")
+        assert result == "This is the content."
+
+    def test_does_not_strip_when_heading_does_not_match(self):
+        """Test does not strip heading when it doesn't match expected title."""
+        content = "# Different Title\n\nThis is the content."
+        result = _strip_leading_title_heading(content, "My Great Title")
+        assert result == "# Different Title\n\nThis is the content."
+
+    def test_case_insensitive_matching(self):
+        """Test title matching is case-insensitive."""
+        content = "# my GREAT title\n\nContent here."
+        result = _strip_leading_title_heading(content, "My Great Title")
+        assert result == "Content here."
+
+    def test_preserves_content_without_heading(self):
+        """Test returns content unchanged when no heading present."""
+        content = "Just some content without a heading."
+        result = _strip_leading_title_heading(content, "My Title")
+        assert result == "Just some content without a heading."
+
+    def test_preserves_indentation_after_stripping(self):
+        """Test preserves indentation in content after stripping heading."""
+        content = "# Title\n\n    def function():\n        return True"
+        result = _strip_leading_title_heading(content, "Title")
+        assert result == "    def function():\n        return True"
+
+    def test_handles_leading_whitespace(self):
+        """Test handles content with leading whitespace before heading."""
+        content = "\n\n# My Title\n\nContent here."
+        result = _strip_leading_title_heading(content, "My Title")
+        assert result == "Content here."
+
+    def test_requires_space_after_hashes(self):
+        """Test does not strip heading without space after hashes (invalid markdown)."""
+        content = "#NotAHeading\n\nContent here."
+        result = _strip_leading_title_heading(content, "NotAHeading")
+        assert result == "#NotAHeading\n\nContent here."
+
+    def test_strips_multiple_blank_lines_after_heading(self):
+        """Test strips blank lines immediately after heading."""
+        content = "# Title\n\n\n\nContent here."
+        result = _strip_leading_title_heading(content, "Title")
+        assert result == "Content here."
+
+    def test_handles_empty_content(self):
+        """Test handles empty content gracefully."""
+        content = ""
+        result = _strip_leading_title_heading(content, "Title")
+        assert result == ""
+
+    def test_handles_only_heading(self):
+        """Test handles content that is only a heading."""
+        content = "# My Title"
+        result = _strip_leading_title_heading(content, "My Title")
+        assert result == ""
+
+    def test_does_not_strip_second_heading(self):
+        """Test only strips the first heading, not subsequent ones."""
+        content = "# Title\n\n## Section\n\nContent."
+        result = _strip_leading_title_heading(content, "Title")
+        assert result == "## Section\n\nContent."
+
+    def test_handles_title_with_special_characters(self):
+        """Test handles titles with special characters."""
+        content = "# A Brief History: From 1800-1900 (Part 1)\n\nContent here."
+        result = _strip_leading_title_heading(
+            content, "A Brief History: From 1800-1900 (Part 1)"
+        )
+        assert result == "Content here."
 
 
 class TestGenerateArticlesLLM:
@@ -322,3 +413,106 @@ class TestGenerateArticlesLLM:
         )
         assert "draft: true" in content
         assert "---\n\nArticle content here." in content
+
+    @patch("site_automator.articles.generate_completion_bulk_clean")
+    @patch("site_automator.articles.get_llm_client")
+    def test_strips_title_heading_from_generated_content(
+        self, mock_get_llm, mock_generate_bulk, tmp_path
+    ):
+        """Test that leading title headings are stripped from LLM output."""
+        # Setup
+        csv_path = self._setup_site_config(tmp_path)
+        prompts_path = self._setup_prompts(tmp_path)
+        content_path = tmp_path / "content"
+        self._setup_topics(tmp_path)
+
+        # Mock LLM - return content with title heading that matches topic title
+        mock_llm = Mock()
+        mock_llm.model = "gpt-4"
+        mock_get_llm.return_value = mock_llm
+        mock_generate_bulk.return_value = [
+            "# Topic One\n\nThis is the article content.",
+            "## Topic Two\n\nThis is another article.",
+            "### Topic Three\n\nYet another article.",
+        ]
+
+        # Execute
+        with patch.dict(
+            "os.environ",
+            {
+                "SITES_CONFIG_PATH": csv_path,
+                "SITES_PROMPTS_PATH": prompts_path,
+                "SITES_CONTENT_PATH": str(content_path),
+            },
+        ):
+            generate_articles_llm("site1")
+
+        # Verify markdown files have titles stripped
+        markdown_dir = content_path / "site1" / "articles" / "markdown"
+
+        # H1 should be stripped
+        content_one = (markdown_dir / "topic-one.md").read_text()
+        assert content_one == "This is the article content."
+        assert "# Topic One" not in content_one
+
+        # H2 should be stripped
+        content_two = (markdown_dir / "topic-two.md").read_text()
+        assert content_two == "This is another article."
+        assert "## Topic Two" not in content_two
+
+        # H3 should be stripped
+        content_three = (markdown_dir / "topic-three.md").read_text()
+        assert content_three == "Yet another article."
+        assert "### Topic Three" not in content_three
+
+    @patch("site_automator.articles.generate_completion_bulk_clean")
+    @patch("site_automator.articles.get_llm_client")
+    def test_strips_title_heading_with_hugo_frontmatter(
+        self, mock_get_llm, mock_generate_bulk, tmp_path
+    ):
+        """Test that title heading is stripped even when Hugo frontmatter is added."""
+        # Setup
+        csv_path = self._setup_site_config(tmp_path)
+        prompts_path = self._setup_prompts(tmp_path)
+        content_path = tmp_path / "content"
+        self._setup_topics(tmp_path)
+
+        # Mock LLM - return content with title heading
+        mock_llm = Mock()
+        mock_llm.model = "gpt-4"
+        mock_get_llm.return_value = mock_llm
+        mock_generate_bulk.return_value = [
+            "# Topic One\n\nArticle body here.",
+            "# Topic Two\n\nAnother article.",
+            "# Topic Three\n\nYet another.",
+        ]
+
+        # Execute with Hugo frontmatter
+        with patch.dict(
+            "os.environ",
+            {
+                "SITES_CONFIG_PATH": csv_path,
+                "SITES_PROMPTS_PATH": prompts_path,
+                "SITES_CONTENT_PATH": str(content_path),
+            },
+        ):
+            generate_articles_llm("site1", add_hugo_frontmatter=True)
+
+        # Verify title is in frontmatter but NOT in body
+        markdown_dir = content_path / "site1" / "articles" / "markdown"
+        content = (markdown_dir / "topic-one.md").read_text()
+
+        # Should have frontmatter with title
+        assert content.startswith("---\n")
+        assert "title: Topic One" in content
+        assert "draft: true" in content
+
+        # Body should NOT have the title heading
+        assert content.endswith("Article body here.")
+        # Count occurrences - title should only appear in frontmatter, not in body
+        _ = content.split("\n")
+        # Find where frontmatter ends
+        frontmatter_end = content.find("---", 4)  # Find second ---
+        body = content[frontmatter_end + 3 :]
+        assert "# Topic One" not in body
+        assert body.strip() == "Article body here."

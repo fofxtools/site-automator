@@ -261,3 +261,19 @@ class SSHConnection:
         )
 
         logger.info(f"Swap file created successfully: {size_gb}GB")
+
+    def ensure_git_safe_directory(self) -> None:
+        """Configure git to allow WordOps to manage site configs.
+
+        Git blocks operations in repositories owned by another user.
+        WordOps creates site config repos as www-data but runs commands as root,
+        which can trigger "dubious ownership" errors.
+
+        Set safe.directory='*' at the system level so automation can
+        operate on WordOps-managed repositories without git failures.
+
+        This should be run once during initial server setup.
+        """
+        logger.info("Configuring git safe.directory for WordOps")
+        self.run_command("git config --system --add safe.directory '*'", check=True)
+        logger.info("Git safe.directory configured")

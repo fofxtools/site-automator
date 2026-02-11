@@ -69,22 +69,6 @@ class WordOpsProvisioner:
         self.ssh.run_command("systemctl restart nginx", check=True)
         logger.info("Nginx restarted successfully")
 
-    def ensure_git_safe_directory(self) -> None:
-        """Configure git to allow WordOps to manage site configs.
-
-        Git blocks operations in repositories owned by another user.
-        WordOps creates site config repos as www-data but runs commands as root,
-        which can trigger "dubious ownership" errors.
-
-        Set safe.directory='*' at the system level so automation can
-        operate on WordOps-managed repositories without git failures.
-
-        This should be run once during initial server setup.
-        """
-        logger.info("Configuring git safe.directory for WordOps")
-        self.ssh.run_command("git config --system --add safe.directory '*'", check=True)
-        logger.info("Git safe.directory configured")
-
     def ensure_ssl(self, domain: str) -> bool:
         """Enable SSL for domain if not already enabled.
 
