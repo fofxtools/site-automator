@@ -13,6 +13,10 @@ from site_automator.topics import load_topics
 from site_automator.prompts import load_prompt
 from site_automator.llm import generate_completion_bulk_clean, get_llm_client
 
+RESERVED_SLUGS = {
+    "stats",
+}
+
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -31,6 +35,11 @@ def _articles_generation_path(site_id: str, slug: str) -> Path:
     """Get path to article generation metadata file."""
     content_root = Path(os.getenv("SITES_CONTENT_PATH", "storage/content"))
     return content_root / site_id / "articles" / "generation" / f"{slug}.json"
+
+
+def _resolve_slug(slug: str) -> str:
+    """Apply reserved slug transformations."""
+    return f"{slug}-post" if slug in RESERVED_SLUGS else slug
 
 
 def _strip_leading_title_heading(content: str, expected_title: str) -> str:
@@ -124,6 +133,7 @@ def generate_articles_llm(site_id: str, add_hugo_frontmatter: bool = False) -> N
 
     for topic in topics:
         slug = topic["slug"]
+        slug = _resolve_slug(slug)
         markdown_path = _articles_markdown_path(site_id, slug)
 
         if markdown_path.exists():
@@ -164,6 +174,7 @@ def generate_articles_llm(site_id: str, add_hugo_frontmatter: bool = False) -> N
         ):
             title = topic["title"]
             slug = topic["slug"]
+            slug = _resolve_slug(slug)
 
             if article_content is None:
                 logger.warning(f"LLM generation failed for '{title}' ({slug})")

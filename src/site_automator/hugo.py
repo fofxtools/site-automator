@@ -12,6 +12,7 @@ import re
 from site_automator.ssh import SSHConnection
 from site_automator.utils import validate_domain
 from site_automator.tracking import PageviewTrackingSetup
+from site_automator.sites import load_site_config_by_domain
 
 logger = logging.getLogger(__name__)
 
@@ -442,84 +443,6 @@ class HugoDeployer:
         self.ssh.run_command(f"chmod -R 755 /var/www/{domain}", check=True)
         logger.info(f"Permissions set: {domain}")
 
-    def ensure_base_url(self, domain: str) -> None:
-        """Ensure baseURL in hugo.toml is set to the domain.
-
-        Args:
-            domain: Domain name for the Hugo site
-
-        Raises:
-            ValueError: If domain is invalid
-        """
-        validate_domain(domain)
-        logger.info(f"Ensuring baseURL in config: {domain}")
-
-        config_path = f"/var/www/{domain}/hugo.toml"
-        base_url = f"https://{domain}/"
-
-        # Check if baseURL is already correct
-        output, _ = self.ssh.run_command(
-            f"grep '^baseURL' {config_path}",
-            check=False,
-        )
-
-        if base_url in output:
-            logger.info(f"baseURL already correct: {base_url}")
-            return
-
-        logger.info(f"Setting baseURL to: {base_url}")
-
-        # Remove any existing baseURL line, then insert at top
-        self.ssh.run_command(
-            f"sed -i '/^baseURL/d' {config_path}",
-            check=True,
-        )
-        self.ssh.run_command(
-            f"sed -i \"1ibaseURL = '{base_url}'\" {config_path}",
-            check=True,
-        )
-
-        logger.info(f"baseURL configured: {base_url}")
-
-    def ensure_publish_dir(self, domain: str) -> None:
-        """Ensure publishDir in hugo.toml is set to 'public'.
-
-        Args:
-            domain: Domain name for the Hugo site
-
-        Raises:
-            ValueError: If domain is invalid
-        """
-        validate_domain(domain)
-        logger.info(f"Ensuring publishDir in config: {domain}")
-
-        config_path = f"/var/www/{domain}/hugo.toml"
-        publish_dir = "public"
-
-        # Check if publishDir is already correct
-        output, _ = self.ssh.run_command(
-            f"grep '^publishDir' {config_path}",
-            check=False,
-        )
-
-        if f'publishDir = "{publish_dir}"' in output:
-            logger.info(f"publishDir already correct: {publish_dir}")
-            return
-
-        logger.info(f"Setting publishDir to: {publish_dir}")
-
-        # Remove any existing publishDir line, then append to end
-        self.ssh.run_command(
-            f"sed -i '/^publishDir/d' {config_path}",
-            check=True,
-        )
-        self.ssh.run_command(
-            f"sed -i '$a publishDir = \"{publish_dir}\"' {config_path}",
-            check=True,
-        )
-
-        logger.info(f"publishDir configured: {publish_dir}")
-
     def ensure_robots_txt(self, domain: str) -> None:
         """Ensure a basic robots.txt exists. With link to sitemap.
 
@@ -539,7 +462,7 @@ class HugoDeployer:
         logger.info(f"robots.txt created: {domain}")
 
     def ensure_theme_installed(self, domain: str, theme: str = "ananke") -> None:
-        """Install Hugo theme if missing and ensure it's configured.
+        """Install Hugo theme if missing.
 
         Args:
             domain: Domain name for the Hugo site
@@ -553,7 +476,6 @@ class HugoDeployer:
         logger.info(f"Ensuring theme installed: {domain} ({theme})")
 
         theme_path = f"/var/www/{domain}/themes/{theme}"
-        config_path = f"/var/www/{domain}/hugo.toml"
 
         # Ensure theme directory exists
         _, exit_code = self.ssh.run_command(f"test -d {theme_path}", check=False)
@@ -576,30 +498,43 @@ class HugoDeployer:
         else:
             logger.info(f"Theme directory exists: {theme}")
 
-        # Ensure theme is in config (idempotent check)
-        output, _ = self.ssh.run_command(
-            f"grep '^theme' {config_path}",
-            check=False,
-        )
-
-        # Check if already correct (single quotes)
-        if f"theme = '{theme}'" in output:
-            logger.info(f"Theme already in config: {theme}")
-            logger.info(f"Theme ensured: {theme}")
-            return
-
-        # Remove any existing theme line, add correct one
-        logger.info(f"Adding theme to config: {theme}")
-        self.ssh.run_command(
-            f"sed -i '/^theme = /d' {config_path}",
-            check=True,
-        )
-        self.ssh.run_command(
-            f"echo \"theme = '{theme}'\" >> {config_path}",
-            check=True,
-        )
-
         logger.info(f"Theme ensured: {theme}")
+
+    def write_hugo_config(self, domain: str, theme: str, title: str) -> None:
+        """Write complete hugo.toml configuration (overwrites existing).
+
+        Args:
+            domain: Domain name for the site
+            theme: Theme name (e.g., "ananke")
+            title: Site title
+        """
+        validate_domain(domain)
+        logger.info(f"Writing hugo.toml for {domain}")
+
+        base_url = f"https://{domain}/"
+
+        # Inline config template
+        config_content = f"""baseURL = '{base_url}'
+languageCode = 'en-us'
+title = '{title}'
+publishDir = 'public'
+theme = '{theme}'
+
+[permalinks]
+  posts = "/:slug/"
+"""
+
+        # Use tempfile + upload_file pattern
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".toml") as f:
+            f.write(config_content)
+            temp_path = Path(f.name)
+
+        try:
+            config_path = f"/var/www/{domain}/hugo.toml"
+            self.ssh.upload_file(temp_path, config_path)
+            logger.info(f"hugo.toml written for {domain}")
+        finally:
+            temp_path.unlink()
 
     def ensure_internal_links_partial(self, domain: str, count: int = 10) -> None:
         """Ensure a random internal links partial exists.
@@ -912,9 +847,8 @@ class HugoDeployer:
 
         Steps performed:
         - Initialize Hugo site skeleton (if not already initialized)
-        - Set baseURL in hugo.toml
-        - Set publishDir in hugo.toml
-        - Install and configure theme
+        - Install theme
+        - Write hugo.toml configuration
         - Create robots.txt with sitemap link
         - Create internal links partial template
         - Create single layout override to include internal links
@@ -930,10 +864,13 @@ class HugoDeployer:
         """
         logger.info(f"Starting initial setup for {domain}")
 
+        # Load site config to get title
+        site_config = load_site_config_by_domain(domain)
+        title = site_config.get("site_title", domain)
+
         self.ensure_site_initialized(domain)
-        self.ensure_base_url(domain)
-        self.ensure_publish_dir(domain)
         self.ensure_theme_installed(domain, theme)
+        self.write_hugo_config(domain, theme, title)
         self.ensure_robots_txt(domain)
         self.ensure_internal_links_partial(domain)
         self.ensure_single_layout_override(domain, theme)

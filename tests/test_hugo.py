@@ -675,8 +675,8 @@ class TestEnsurePermissions:
         assert any("chown -R www-data:www-data" in c for c in calls)
 
 
-class TestEnsureBaseUrl:
-    """Test ensure_base_url method."""
+class TestWriteHugoConfig:
+    """Test write_hugo_config method."""
 
     def test_validates_domain(self):
         """Test that domain is validated."""
@@ -684,85 +684,51 @@ class TestEnsureBaseUrl:
         hugo = HugoDeployer(mock_ssh)
 
         with pytest.raises(ValueError, match="Invalid domain"):
-            hugo.ensure_base_url("invalid/domain")
+            hugo.write_hugo_config("invalid/domain", "ananke", "Test Site")
 
-    def test_skips_if_already_correct(self):
-        """Test that baseURL update is skipped if already correct."""
+    def test_writes_complete_config(self, tmp_path):
+        """Test that complete hugo.toml is written with all required fields."""
         mock_ssh = Mock()
-        mock_ssh.run_command.return_value = ("baseURL = 'https://example.com/'", 0)
+
+        # Capture uploaded content
+        uploaded_content = None
+
+        def capture_upload(local_path, remote_path):
+            nonlocal uploaded_content
+            with open(local_path, "r") as f:
+                uploaded_content = f.read()
+
+        mock_ssh.upload_file.side_effect = capture_upload
 
         hugo = HugoDeployer(mock_ssh)
-        hugo.ensure_base_url("example.com")
+        hugo.write_hugo_config("example.com", "ananke", "My Test Site")
 
-        # Should only check, not update
-        assert mock_ssh.run_command.call_count == 1
+        # Verify upload_file was called
+        assert mock_ssh.upload_file.called
+        call_args = mock_ssh.upload_file.call_args
+        assert call_args[0][1] == "/var/www/example.com/hugo.toml"
 
-    def test_sets_base_url_when_missing(self):
-        """Test that baseURL is set when missing or incorrect."""
+        # Verify content has all required fields
+        assert uploaded_content is not None
+        assert "baseURL = 'https://example.com/'" in uploaded_content
+        assert "languageCode = 'en-us'" in uploaded_content
+        assert "title = 'My Test Site'" in uploaded_content
+        assert "publishDir = 'public'" in uploaded_content
+        assert "theme = 'ananke'" in uploaded_content
+        assert "[permalinks]" in uploaded_content
+        assert 'posts = "/:slug/"' in uploaded_content
+
+    def test_overwrites_existing_config(self):
+        """Test that config is always overwritten (no checking)."""
         mock_ssh = Mock()
-        # First call (grep) returns wrong/missing baseURL
-        # Subsequent calls (sed commands) succeed
-        mock_ssh.run_command.side_effect = [
-            ("baseURL = 'https://wrong-domain.com/'", 0),  # grep (wrong baseURL)
-            ("", 0),
-            ("", 0),
-        ]
 
         hugo = HugoDeployer(mock_ssh)
-        hugo.ensure_base_url("example.com")
+        hugo.write_hugo_config("example.com", "hermit-v2", "Another Site")
 
-        # Should check, delete old, insert new
-        assert mock_ssh.run_command.call_count == 3
-        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
-
-        # Verify deletion and insertion
-        assert any("sed -i '/^baseURL/d'" in c for c in calls)
-        assert any("sed -i \"1ibaseURL = 'https://example.com/'\"" in c for c in calls)
-
-
-class TestEnsurePublishDir:
-    """Test ensure_publish_dir method."""
-
-    def test_validates_domain(self):
-        """Test that domain is validated."""
-        mock_ssh = Mock()
-        hugo = HugoDeployer(mock_ssh)
-
-        with pytest.raises(ValueError, match="Invalid domain"):
-            hugo.ensure_publish_dir("invalid/domain")
-
-    def test_skips_if_already_correct(self):
-        """Test that publishDir update is skipped if already correct."""
-        mock_ssh = Mock()
-        mock_ssh.run_command.return_value = ('publishDir = "public"', 0)
-
-        hugo = HugoDeployer(mock_ssh)
-        hugo.ensure_publish_dir("example.com")
-
-        # Should only check, not update
-        assert mock_ssh.run_command.call_count == 1
-
-    def test_sets_publish_dir_when_missing(self):
-        """Test that publishDir is set when missing or incorrect."""
-        mock_ssh = Mock()
-        # First call (grep) returns wrong/missing publishDir
-        # Subsequent calls (sed commands) succeed
-        mock_ssh.run_command.side_effect = [
-            ('publishDir = "dist"', 0),  # grep (wrong publishDir)
-            ("", 0),
-            ("", 0),
-        ]
-
-        hugo = HugoDeployer(mock_ssh)
-        hugo.ensure_publish_dir("example.com")
-
-        # Should check, delete old, insert new
-        assert mock_ssh.run_command.call_count == 3
-        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
-
-        # Verify deletion and insertion
-        assert any("sed -i '/^publishDir/d'" in c for c in calls)
-        assert any('publishDir = "public"' in c for c in calls)
+        # Should only call upload_file, no grep/sed commands
+        assert mock_ssh.upload_file.called
+        # run_command should not be called (no checking)
+        assert not mock_ssh.run_command.called
 
 
 class TestEnsureRobotsTxt:
@@ -802,31 +768,27 @@ class TestEnsureThemeInstalled:
         with pytest.raises(ValueError, match="Invalid domain"):
             hugo.ensure_theme_installed("invalid/domain")
 
-    def test_skips_if_already_correct(self):
-        """Test that theme setup is skipped if already correct."""
+    def test_skips_if_theme_already_installed(self):
+        """Test that theme installation is skipped if directory already exists."""
         mock_ssh = Mock()
-        # Theme dir exists and theme in config with single quotes
-        mock_ssh.run_command.side_effect = [
-            ("", 0),  # test -d (theme dir exists)
-            ("theme = 'ananke'", 0),  # grep (theme in config)
-        ]
+        # Theme dir exists
+        mock_ssh.run_command.return_value = ("", 0)  # test -d (theme dir exists)
 
         hugo = HugoDeployer(mock_ssh)
         hugo.ensure_theme_installed("example.com", theme="ananke")
 
-        # Should check dir and config, then return
-        assert mock_ssh.run_command.call_count == 2
+        # Should only check dir, then return (no git clone, no config manipulation)
+        assert mock_ssh.run_command.call_count == 1
+        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
+        assert "test -d" in calls[0]
 
-    def test_clones_theme_and_adds_to_config(self):
-        """Test that theme is cloned and added to config when missing."""
+    def test_clones_theme_when_missing(self):
+        """Test that theme is cloned when directory doesn't exist."""
         mock_ssh = Mock()
-        # Theme dir doesn't exist, config doesn't have theme
+        # Theme dir doesn't exist
         mock_ssh.run_command.side_effect = [
             ("", 1),  # test -d (theme dir missing)
             ("", 0),  # git clone
-            ("", 0),  # grep (no theme in config)
-            ("", 0),  # sed delete
-            ("", 0),  # echo add
         ]
 
         hugo = HugoDeployer(mock_ssh)
@@ -834,33 +796,8 @@ class TestEnsureThemeInstalled:
 
         calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
 
-        # Verify git clone
+        # Verify git clone was called
         assert any("git clone" in c and "gohugo-theme-ananke" in c for c in calls)
-
-        # Verify theme added to config
-        assert any("echo \"theme = 'ananke'\"" in c for c in calls)
-
-    def test_adds_to_config_when_dir_exists_but_not_configured(self):
-        """Test that theme is added to config when dir exists but not configured."""
-        mock_ssh = Mock()
-        # Theme dir exists but not in config
-        mock_ssh.run_command.side_effect = [
-            ("", 0),  # test -d (theme dir exists)
-            ("", 0),  # grep (no theme in config)
-            ("", 0),  # sed delete
-            ("", 0),  # echo add
-        ]
-
-        hugo = HugoDeployer(mock_ssh)
-        hugo.ensure_theme_installed("example.com", theme="ananke")
-
-        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
-
-        # Should NOT git clone (dir exists)
-        assert not any("git clone" in c for c in calls)
-
-        # Should add to config
-        assert any("echo \"theme = 'ananke'\"" in c for c in calls)
 
     def test_raises_error_for_unknown_theme(self):
         """Test that RuntimeError is raised for theme not in registry."""
@@ -1646,11 +1583,17 @@ class TestWipeSite:
 class TestInitialSetup:
     """Test initial_setup method."""
 
+    @patch("site_automator.hugo.load_site_config_by_domain")
     @patch("site_automator.hugo.PageviewTrackingSetup")
-    def test_orchestrates_all_configuration_steps(self, mock_tracking_class):
+    def test_orchestrates_all_configuration_steps(
+        self, mock_tracking_class, mock_load_config
+    ):
         """Test initial_setup calls all expected methods with correct parameters."""
         mock_ssh = Mock()
         hugo = HugoDeployer(mock_ssh)
+
+        # Mock site config
+        mock_load_config.return_value = {"site_title": "Test Site"}
 
         # Setup tracking mock
         mock_tracking = Mock()
@@ -1659,9 +1602,8 @@ class TestInitialSetup:
         # Mock all the configuration methods
         with (
             patch.object(hugo, "ensure_site_initialized") as mock_init,
-            patch.object(hugo, "ensure_base_url") as mock_base_url,
-            patch.object(hugo, "ensure_publish_dir") as mock_publish_dir,
             patch.object(hugo, "ensure_theme_installed") as mock_theme,
+            patch.object(hugo, "write_hugo_config") as mock_write_config,
             patch.object(hugo, "ensure_robots_txt") as mock_robots,
             patch.object(hugo, "ensure_internal_links_partial") as mock_links,
             patch.object(hugo, "ensure_single_layout_override") as mock_layout,
@@ -1673,10 +1615,12 @@ class TestInitialSetup:
             hugo.initial_setup(domain="example.com", theme="ananke")
 
             # Verify all methods were called with correct parameters
+            mock_load_config.assert_called_once_with("example.com")
             mock_init.assert_called_once_with("example.com")
-            mock_base_url.assert_called_once_with("example.com")
-            mock_publish_dir.assert_called_once_with("example.com")
             mock_theme.assert_called_once_with("example.com", "ananke")
+            mock_write_config.assert_called_once_with(
+                "example.com", "ananke", "Test Site"
+            )
             mock_robots.assert_called_once_with("example.com")
             mock_links.assert_called_once_with("example.com")
             mock_layout.assert_called_once_with("example.com", "ananke")

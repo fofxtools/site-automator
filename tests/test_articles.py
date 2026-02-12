@@ -7,6 +7,7 @@ import pytest
 from site_automator.articles import (
     _articles_generation_path,
     _articles_markdown_path,
+    _resolve_slug,
     _strip_leading_title_heading,
     generate_articles_llm,
 )
@@ -56,6 +57,24 @@ class TestArticlesGenerationPath:
 
         assert str(path).startswith("storage/content")
         assert path.name == "test.json"
+
+
+class TestResolveSlug:
+    """Test _resolve_slug helper function."""
+
+    def test_returns_slug_unchanged_when_not_reserved(self):
+        """Test returns slug as-is when not in RESERVED_SLUGS."""
+        assert _resolve_slug("my-article") == "my-article"
+        assert _resolve_slug("about") == "about"
+        assert _resolve_slug("contact") == "contact"
+
+    def test_appends_post_when_reserved(self):
+        """Test appends -post suffix when slug is reserved."""
+        assert _resolve_slug("stats") == "stats-post"
+
+    def test_handles_empty_string(self):
+        """Test handles empty string."""
+        assert _resolve_slug("") == ""
 
 
 class TestStripLeadingTitleHeading:
@@ -516,3 +535,52 @@ class TestGenerateArticlesLLM:
         body = content[frontmatter_end + 3 :]
         assert "# Topic One" not in body
         assert body.strip() == "Article body here."
+
+    @patch("site_automator.articles.generate_completion_bulk_clean")
+    @patch("site_automator.articles.get_llm_client")
+    def test_handles_reserved_slugs(self, mock_get_llm, mock_generate_bulk, tmp_path):
+        """Test that reserved slugs get -post suffix appended."""
+        # Setup
+        csv_path = self._setup_site_config(tmp_path)
+        prompts_path = self._setup_prompts(tmp_path)
+        content_path = tmp_path / "content"
+
+        # Create topics with reserved slug
+        topics_data = [
+            {"title": "Statistics Page", "slug": "stats"},
+            {"title": "Normal Page", "slug": "normal"},
+        ]
+        topics_file = content_path / "site1" / "topics.json"
+        topics_file.parent.mkdir(parents=True, exist_ok=True)
+        topics_file.write_text(json.dumps(topics_data))
+
+        # Mock LLM
+        mock_llm = Mock()
+        mock_llm.model = "gpt-4"
+        mock_get_llm.return_value = mock_llm
+        mock_generate_bulk.return_value = ["Article content.", "Article content."]
+
+        # Execute
+        with patch.dict(
+            "os.environ",
+            {
+                "SITES_CONFIG_PATH": csv_path,
+                "SITES_PROMPTS_PATH": prompts_path,
+                "SITES_CONTENT_PATH": str(content_path),
+            },
+        ):
+            generate_articles_llm("site1")
+
+        # Verify reserved slug got -post suffix
+        markdown_dir = content_path / "site1" / "articles" / "markdown"
+        assert (markdown_dir / "stats-post.md").exists()
+        assert not (markdown_dir / "stats.md").exists()
+
+        # Verify normal slug unchanged
+        assert (markdown_dir / "normal.md").exists()
+
+        # Verify metadata has modified slug
+        gen_dir = content_path / "site1" / "articles" / "generation"
+        metadata = json.loads((gen_dir / "stats-post.json").read_text())
+        assert metadata["slug"] == "stats-post"
+        assert metadata["title"] == "Statistics Page"
