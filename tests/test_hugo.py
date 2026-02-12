@@ -8,6 +8,143 @@ import pytest
 from site_automator.hugo import HugoDeployer
 
 
+class TestLoadThemes:
+    """Test _load_themes method."""
+
+    def test_loads_themes_from_default_config(self, tmp_path):
+        """Test that themes are loaded from default config/themes.toml."""
+        # Create a mock themes.toml
+        themes_content = """
+[themes]
+ananke = "https://github.com/theNewDynamic/gohugo-theme-ananke.git"
+hermit-v2 = "https://github.com/1bl4z3r/hermit-V2.git"
+"""
+        themes_file = tmp_path / "themes.toml"
+        themes_file.write_text(themes_content)
+
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh, themes_file=themes_file)
+
+        assert len(hugo.themes) == 2
+        assert (
+            hugo.themes["ananke"]
+            == "https://github.com/theNewDynamic/gohugo-theme-ananke.git"
+        )
+        assert hugo.themes["hermit-v2"] == "https://github.com/1bl4z3r/hermit-V2.git"
+
+    def test_raises_error_when_file_not_found(self):
+        """Test that FileNotFoundError is raised when themes file doesn't exist."""
+        mock_ssh = Mock()
+
+        with pytest.raises(FileNotFoundError, match="Theme registry not found"):
+            HugoDeployer(mock_ssh, themes_file=Path("/nonexistent/themes.toml"))
+
+    def test_raises_error_when_no_themes_defined(self, tmp_path):
+        """Test that RuntimeError is raised when no themes are defined."""
+        # Create empty themes.toml
+        themes_file = tmp_path / "themes.toml"
+        themes_file.write_text("[themes]\n")
+
+        mock_ssh = Mock()
+
+        with pytest.raises(RuntimeError, match="No themes defined"):
+            HugoDeployer(mock_ssh, themes_file=themes_file)
+
+
+class TestIsHugoContentRendering:
+    """Test _is_hugo_content_rendering static method."""
+
+    def test_detects_direct_content_rendering(self):
+        """Test that direct .Content rendering is detected."""
+        assert HugoDeployer._is_hugo_content_rendering("{{ .Content }}")
+        assert HugoDeployer._is_hugo_content_rendering("  {{ .Content }}  ")
+        assert HugoDeployer._is_hugo_content_rendering("{{- .Content -}}")
+
+    def test_detects_content_with_pipes(self):
+        """Test that .Content with piped functions is detected."""
+        assert HugoDeployer._is_hugo_content_rendering("{{ .Content | safeHTML }}")
+        assert HugoDeployer._is_hugo_content_rendering(
+            '{{ .Content | replaceRE "pattern" "replacement" }}'
+        )
+
+    def test_ignores_if_content_conditional(self):
+        """Test that {{ if .Content }} is not considered rendering."""
+        assert not HugoDeployer._is_hugo_content_rendering("{{ if .Content }}")
+        assert not HugoDeployer._is_hugo_content_rendering("{{- if .Content -}}")
+
+    def test_ignores_with_content_block(self):
+        """Test that {{ with .Content }} is not considered rendering."""
+        assert not HugoDeployer._is_hugo_content_rendering("{{ with .Content }}")
+        assert not HugoDeployer._is_hugo_content_rendering("{{- with .Content -}}")
+
+    def test_ignores_lines_without_content(self):
+        """Test that lines without .Content return False."""
+        assert not HugoDeployer._is_hugo_content_rendering("<div>Hello</div>")
+        assert not HugoDeployer._is_hugo_content_rendering("{{ .Title }}")
+        assert not HugoDeployer._is_hugo_content_rendering("")
+
+    def test_ignores_content_as_part_of_word(self):
+        """Test that .ContentType or similar is not matched."""
+        assert not HugoDeployer._is_hugo_content_rendering("{{ .ContentType }}")
+
+
+class TestFindHugoBlockEnd:
+    """Test _find_hugo_block_end static method."""
+
+    def test_finds_simple_block_end(self):
+        """Test finding {{ end }} for simple block."""
+        lines = [
+            "{{ if .Params.tags }}\n",
+            "  <div>Tags</div>\n",
+            "{{ end }}\n",
+        ]
+        result = HugoDeployer._find_hugo_block_end(lines, 0)
+        assert result == 2
+
+    def test_finds_nested_block_end(self):
+        """Test finding {{ end }} with nested blocks."""
+        lines = [
+            "{{ if .Params.tags }}\n",
+            "  {{ range .Params.tags }}\n",
+            "    <a>{{ . }}</a>\n",
+            "  {{ end }}\n",
+            "{{ end }}\n",
+        ]
+        result = HugoDeployer._find_hugo_block_end(lines, 0)
+        assert result == 4  # Outer {{ end }}
+
+    def test_finds_define_block_end(self):
+        """Test finding {{ end }} for {{ define }} block."""
+        lines = [
+            '{{ define "main" }}\n',
+            "  <main>\n",
+            "    {{ .Content }}\n",
+            "  </main>\n",
+            "{{ end }}\n",
+        ]
+        result = HugoDeployer._find_hugo_block_end(lines, 0)
+        assert result == 4
+
+    def test_handles_whitespace_variations(self):
+        """Test that whitespace variations are handled."""
+        lines = [
+            "{{- if .Params.tags -}}\n",
+            "  <div>Tags</div>\n",
+            "{{- end -}}\n",
+        ]
+        result = HugoDeployer._find_hugo_block_end(lines, 0)
+        assert result == 2
+
+    def test_returns_none_when_no_end_found(self):
+        """Test that None is returned when {{ end }} is missing."""
+        lines = [
+            "{{ if .Params.tags }}\n",
+            "  <div>Tags</div>\n",
+        ]
+        result = HugoDeployer._find_hugo_block_end(lines, 0)
+        assert result is None
+
+
 class TestInjectTrackingIntoBaseof:
     """Test _inject_tracking_into_baseof method."""
 
@@ -361,6 +498,24 @@ class TestCreateBaseofWithTracking:
         assert uploaded_content.index("pageview-tracking") < uploaded_content.index(
             "</body>"
         )
+
+
+class TestSetupTracking:
+    """Test setup_tracking method."""
+
+    def test_calls_both_setup_methods(self):
+        """Test that setup_tracking calls both _create_tracking_partial and _create_baseof_with_tracking."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        with (
+            patch.object(hugo, "_create_tracking_partial") as mock_create_partial,
+            patch.object(hugo, "_create_baseof_with_tracking") as mock_create_baseof,
+        ):
+            hugo.setup_tracking("example.com", "ananke")
+
+            mock_create_partial.assert_called_once_with("example.com")
+            mock_create_baseof.assert_called_once_with("example.com", "ananke")
 
 
 class TestCheckHugoInstalled:
@@ -813,23 +968,20 @@ class TestEnsureSingleLayoutOverride:
         assert "internal-links.html" in uploaded_content
         assert '{{- define "main" -}}' in uploaded_content
 
-    def test_injects_before_main_tag_not_footer(self):
-        """Test that internal-links partial is injected before </main>, not in footer."""
+    def test_injects_after_content_rendering(self):
+        """Test that internal-links partial is injected after .Content rendering (PASS 1)."""
         mock_ssh = Mock()
-        # Hermit-v2 style template with .Content piped through replaceRE
+        # Template with direct .Content rendering
         theme_single_content = """{{ define "main" }}
 <main class="site-main">
   <h1>{{ .Title }}</h1>
   <div class="content">
-    {{ .Content | replaceRE "pattern" "replacement" | safeHTML }}
+    {{ .Content }}
   </div>
+  <div class="comments">Comments here</div>
 </main>
-{{ end }}
-
-{{ define "footer" }}<footer id="site-footer">{{- partial "footer.html" . -}}</footer>
 {{ end }}"""
 
-        # Capture uploaded content
         uploaded_content = None
 
         def capture_upload(local_path, remote_path):
@@ -849,43 +1001,36 @@ class TestEnsureSingleLayoutOverride:
         hugo = HugoDeployer(mock_ssh)
         hugo.ensure_single_layout_override("example.com", "hermit-v2")
 
-        # Verify upload_file was called
-        assert mock_ssh.upload_file.called
         assert uploaded_content is not None
-
-        # Verify internal-links partial is present
         assert "internal-links.html" in uploaded_content
 
-        # Verify it's injected BEFORE </main> tag, not in footer
+        # Critical: partial must be AFTER .Content but BEFORE comments
+        content_pos = uploaded_content.find("{{ .Content }}")
         partial_pos = uploaded_content.find("internal-links.html")
-        main_close_pos = uploaded_content.find("</main>")
-        footer_start_pos = uploaded_content.find('{{ define "footer" }}')
+        comments_pos = uploaded_content.find("Comments here")
 
-        assert partial_pos != -1, "Partial not found in output"
-        assert main_close_pos != -1, "</main> tag not found"
-        assert footer_start_pos != -1, "Footer block not found"
+        assert content_pos != -1, ".Content not found"
+        assert partial_pos != -1, "Partial not found"
+        assert comments_pos != -1, "Comments not found"
 
-        # Critical assertions: partial must be before </main> and before footer
         assert (
-            partial_pos < main_close_pos
-        ), f"Partial at {partial_pos} should be before </main> at {main_close_pos}"
+            content_pos < partial_pos
+        ), f"Partial at {partial_pos} should be AFTER .Content at {content_pos}"
         assert (
-            partial_pos < footer_start_pos
-        ), f"Partial at {partial_pos} should be before footer at {footer_start_pos}"
+            partial_pos < comments_pos
+        ), f"Partial at {partial_pos} should be BEFORE comments at {comments_pos}"
 
-    def test_injects_before_article_tag_ananke(self):
-        """Test that internal-links partial is injected before </article> for Ananke theme."""
+    def test_injects_after_with_content_block(self):
+        """Test that internal-links partial is injected after {{ with .Content }} block (PASS 2)."""
         mock_ssh = Mock()
-        # Ananke style template (no <main>, uses <article>)
+        # Template with {{ with .Content }} wrapper
         theme_single_content = """{{ define "main" }}
-  <article class="flex-l mw7 center">
-    <header class="mt4 w-100">
-      <h1 class="f1 athelas mt3 mb1">{{- .Title -}}</h1>
-    </header>
-    <div class="nested-copy-line-height lh-copy serif f4">
-      {{- .Content -}}
-      {{- partials.Include "tags.html" . -}}
-    </div>
+  <article class="post">
+    <h1>{{ .Title }}</h1>
+    {{ with .Content }}
+      <div class="content">{{ . }}</div>
+    {{ end }}
+    <div class="sidebar">Sidebar here</div>
   </article>
 {{ end }}"""
 
@@ -906,42 +1051,46 @@ class TestEnsureSingleLayoutOverride:
         ]
 
         hugo = HugoDeployer(mock_ssh)
-        hugo.ensure_single_layout_override("example.com", "ananke")
+        hugo.ensure_single_layout_override("example.com", "terminal")
 
         assert uploaded_content is not None
         assert "internal-links.html" in uploaded_content
 
-        # Verify it's injected BEFORE </article> tag
+        # Critical: partial must be AFTER {{ with .Content }} block but BEFORE sidebar
+        with_start = uploaded_content.find("{{ with .Content }}")
+        with_end = uploaded_content.find("{{ end }}", with_start)
         partial_pos = uploaded_content.find("internal-links.html")
-        article_close_pos = uploaded_content.find("</article>")
+        sidebar_pos = uploaded_content.find("Sidebar here")
 
+        assert with_start != -1, "{{ with .Content }} not found"
+        assert with_end != -1, "{{ end }} not found"
         assert partial_pos != -1, "Partial not found"
-        assert article_close_pos != -1, "</article> not found"
+        assert sidebar_pos != -1, "Sidebar not found"
+
         assert (
-            partial_pos < article_close_pos
-        ), f"Partial at {partial_pos} should be before </article> at {article_close_pos}"
+            with_end < partial_pos
+        ), f"Partial at {partial_pos} should be AFTER {{ with .Content }} block end at {with_end}"
+        assert (
+            partial_pos < sidebar_pos
+        ), f"Partial at {partial_pos} should be BEFORE sidebar at {sidebar_pos}"
 
-    def test_injects_before_article_tag_beautifulhugo(self):
-        """Test that internal-links partial is injected before </article> for BeautifulHugo theme."""
+    def test_injects_after_content_not_inside_conditionals(self):
+        """Test that partial is injected after .Content, not inside conditional blocks."""
         mock_ssh = Mock()
-        # BeautifulHugo style template (no <main>, uses <article>)
+        # Template with .Content followed by conditional block
         theme_single_content = """{{ define "main" }}
-<div class="container" role="main">
-  <div class="row">
-    <div class="col-lg-8">
-      <article role="main" class="blog-post">
-        {{ .Content }}
+<div class="container">
+  <article class="blog-post">
+    {{ .Content }}
 
-        {{ if .Params.tags }}
-          <div class="blog-tags">
-            {{ range .Params.tags }}
-              <a href="/tags/{{ . }}/">{{ . }}</a>
-            {{ end }}
-          </div>
+    {{ if .Params.tags }}
+      <div class="blog-tags">
+        {{ range .Params.tags }}
+          <a href="/tags/{{ . }}/">{{ . }}</a>
         {{ end }}
-      </article>
-    </div>
-  </div>
+      </div>
+    {{ end }}
+  </article>
 </div>
 {{ end }}"""
 
@@ -967,26 +1116,69 @@ class TestEnsureSingleLayoutOverride:
         assert uploaded_content is not None
         assert "internal-links.html" in uploaded_content
 
-        # Verify it's injected BEFORE </article> tag
+        # Critical: partial must be AFTER .Content but NOT inside {{ if .Params.tags }}
+        content_pos = uploaded_content.find("{{ .Content }}")
         partial_pos = uploaded_content.find("internal-links.html")
-        article_close_pos = uploaded_content.find("</article>")
-
-        # Make sure it's NOT inside the {{ if .Params.tags }} block
         tags_if_start = uploaded_content.find("{{ if .Params.tags }}")
         tags_if_end = uploaded_content.find("{{ end }}", tags_if_start)
 
+        assert content_pos != -1, ".Content not found"
         assert partial_pos != -1, "Partial not found"
-        assert article_close_pos != -1, "</article> not found"
+        assert tags_if_start != -1, "{{ if .Params.tags }} not found"
+
         assert (
-            partial_pos < article_close_pos
-        ), f"Partial at {partial_pos} should be before </article> at {article_close_pos}"
+            content_pos < partial_pos
+        ), f"Partial at {partial_pos} should be AFTER .Content at {content_pos}"
 
         # Critical: Make sure it's NOT inside the tags conditional
-        if tags_if_start != -1 and tags_if_end != -1:
-            assert not (tags_if_start < partial_pos < tags_if_end), (
-                f"Partial should NOT be inside {{ if .Params.tags }} block "
-                f"(block: {tags_if_start}-{tags_if_end}, partial: {partial_pos})"
-            )
+        assert not (tags_if_start < partial_pos < tags_if_end), (
+            f"Partial should NOT be inside {{ if .Params.tags }} block "
+            f"(block: {tags_if_start}-{tags_if_end}, partial: {partial_pos})"
+        )
+
+    def test_structural_fallback_when_no_content_tag(self):
+        """Test structural fallback (PASS 3) when .Content is not directly rendered."""
+        mock_ssh = Mock()
+        # Template without direct .Content rendering (uses custom partial)
+        theme_single_content = """{{ define "main" }}
+<main class="site-main">
+  <h1>{{ .Title }}</h1>
+  {{ partial "render-content.html" . }}
+  <div class="footer-nav">Navigation</div>
+</main>
+{{ end }}"""
+
+        uploaded_content = None
+
+        def capture_upload(local_path, remote_path):
+            nonlocal uploaded_content
+            with open(local_path, "r") as f:
+                uploaded_content = f.read()
+
+        mock_ssh.upload_file.side_effect = capture_upload
+        mock_ssh.run_command.side_effect = [
+            ("", 1),  # test -f site single.html (doesn't exist)
+            ("", 0),  # mkdir
+            ("", 0),  # test -f baseof layouts/ (exists)
+            ("", 0),  # test -f theme single.html (exists)
+            (theme_single_content, 0),  # cat theme single.html
+        ]
+
+        hugo = HugoDeployer(mock_ssh)
+        hugo.ensure_single_layout_override("example.com", "custom-theme")
+
+        assert uploaded_content is not None
+        assert "internal-links.html" in uploaded_content
+
+        # Should fall back to injecting before </main>
+        partial_pos = uploaded_content.find("internal-links.html")
+        main_close_pos = uploaded_content.find("</main>")
+
+        assert partial_pos != -1, "Partial not found"
+        assert main_close_pos != -1, "</main> not found"
+        assert (
+            partial_pos < main_close_pos
+        ), f"Partial at {partial_pos} should be before </main> at {main_close_pos}"
 
 
 class TestDeployContentFile:

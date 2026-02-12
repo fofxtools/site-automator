@@ -7,6 +7,7 @@ from typing import cast
 
 from slugify import slugify
 import tempfile
+import re
 
 from site_automator.ssh import SSHConnection
 from site_automator.utils import validate_domain
@@ -64,8 +65,55 @@ class HugoDeployer:
         logger.info(f"Loaded {len(themes)} themes from {themes_file}")
         return themes
 
+    @staticmethod
+    def _is_hugo_content_rendering(line: str) -> bool:
+        """Return True if the line renders .Content (not just references it)."""
+        if not re.search(r"\.Content(?![A-Za-z])", line):
+            return False
+
+        stripped = line.strip()
+
+        # Exclude control flow that references .Content but does not render it
+        if re.search(r"\{\{-?\s*if\s+\.Content\s*-?\}\}", stripped):
+            return False
+        if re.search(r"\{\{-?\s*with\s+\.Content\s*-?\}\}", stripped):
+            return False
+
+        return True
+
+    @staticmethod
+    def _find_hugo_block_end(lines: list[str], start: int) -> int | None:
+        """Find the matching {{ end }} for a Hugo template block using depth tracking.
+
+        Args:
+            lines: List of template lines
+            start: Index to start searching from
+
+        Returns:
+            Index of the matching {{ end }} line, or None if not found"""
+        depth = 0
+        opener = re.compile(r"\{\{-?\s*(?:if|with|range|define|block)\b")
+        closer = re.compile(r"\{\{-?\s*end\s*-?\}\}")
+
+        for i in range(start, len(lines)):
+            depth += len(opener.findall(lines[i]))
+            depth -= len(closer.findall(lines[i]))
+            if depth <= 0:
+                return i
+
+        return None
+
     def _inject_tracking_into_baseof(self, content: str) -> str:
-        """Insert tracking partial before </body> if not already present."""
+        """Insert tracking partial before </body> if not already present.
+
+        Args:
+            content: The baseof.html template content
+
+        Returns:
+            Modified content with tracking partial injected
+
+        Raises:
+            RuntimeError: If </body> tag is missing"""
         if "pageview-tracking.html" in content:
             return content  # Already injected (idempotent)
 
@@ -73,6 +121,7 @@ class HugoDeployer:
         insertion = '\n  {{ partial "pageview-tracking.html" . }}\n'
 
         if "</body>" in content:
+            logger.info("Injecting pageview tracking before </body>")
             return content.replace("</body>", insertion + "</body>", 1)
 
         raise RuntimeError(
@@ -80,61 +129,100 @@ class HugoDeployer:
         )
 
     def _inject_internal_links_into_single(self, content: str) -> str:
-        """Insert internal-links partial into single.html if not already present.
+        """Insert internal-links partial into single.html at the optimal location.
 
-        Injects before closing tags to ensure it stays within the main content area.
-        This ensures the internal links inherit the theme's styling and layout constraints.
+        Uses a cascade strategy to find the best injection point, prioritizing
+        semantic placement (after .Content) over structural fallbacks (before
+        closing tags). This ensures internal links appear in the correct location
+        across different Hugo themes.
 
-        Strategy:
-        1. Try </main> tag (Hermit-v2)
-        2. Try </article> tag (Ananke, BeautifulHugo)
-        3. Try before last {{ end }} in {{ define "main" }} block
-        4. Append at end (last resort)
+        Strategy cascade (first match wins):
+            1. After direct .Content rendering (optimal - right after article content)
+            2. After {{ with .Content }} block (handles wrapped content)
+            3. Before </article> or </main> tag (structural fallback)
+            4. Before {{ define "main" }} block's {{ end }} (last resort)
+            5. Raise error (no silent append)
 
         Args:
             content: The single.html template content
 
         Returns:
             Modified content with internal-links partial injected
+
+        Raises:
+            RuntimeError: If no safe injection point can be found
         """
+
         if "internal-links.html" in content:
-            return content  # Already injected (idempotent)
+            return content  # Idempotent
 
-        insertion = '      {{- partial "internal-links.html" . -}}\n'
+        PARTIAL = '{{ partial "internal-links.html" . }}'
+        lines = content.splitlines(keepends=True)
 
-        # STRATEGY 1: Inject before </main> tag (Hermit-v2)
-        if "</main>" in content:
-            logger.info("Injecting internal-links before </main> tag")
-            return content.replace("</main>", insertion + "    </main>", 1)
+        def next_line_is_else(idx: int) -> bool:
+            for j in range(idx + 1, len(lines)):
+                stripped = lines[j].strip()
+                if stripped:
+                    return bool(re.match(r"\{\{-?\s*else", stripped))
+            return False
 
-        # STRATEGY 2: Inject before </article> tag (Ananke, BeautifulHugo)
-        if "</article>" in content:
-            logger.info("Injecting internal-links before </article> tag")
-            return content.replace("</article>", insertion + "    </article>", 1)
+        # PASS 1 — After direct .Content rendering
+        for i, line in enumerate(lines):
+            if self._is_hugo_content_rendering(line) and not next_line_is_else(i):
+                indent = line[: len(line) - len(line.lstrip())]
+                lines.insert(i + 1, f"{indent}{PARTIAL}\n")
+                logger.info("Injecting internal-links after .Content rendering")
+                return "".join(lines)
 
-        # STRATEGY 3: Inject before the LAST {{ end }} in the {{ define "main" }} block
-        # This avoids injecting inside conditional blocks
-        # Find the {{ define "main" }} block
-        import re
+        # PASS 2 — After {{ with .Content }} block end
+        for i, line in enumerate(lines):
+            if re.search(r"\{\{-?\s*with\s+\.Content\s*-?\}\}", line.strip()):
+                end_i = self._find_hugo_block_end(lines, i)
+                if end_i is not None:
+                    indent = lines[end_i][
+                        : len(lines[end_i]) - len(lines[end_i].lstrip())
+                    ]
+                    lines.insert(end_i + 1, f"{indent}{PARTIAL}\n")
+                    logger.info(
+                        "Injecting internal-links after {{ with .Content }} block"
+                    )
+                    return "".join(lines)
 
-        main_block_pattern = r'(\{\{\s*define\s+"main"\s*\}\})(.*?)(\{\{\s*end\s*\}\})'
-        match = re.search(main_block_pattern, content, re.DOTALL)
-        if match:
-            logger.info(
-                'Injecting internal-links before {{ define "main" }} block\'s {{ end }}'
-            )
-            # Inject before the {{ end }} that closes the main block
-            before = content[: match.start(3)]
-            end_tag = match.group(3)
-            after = content[match.end(3) :]
-            return before + insertion + end_tag + after
+        # PASS 3 — Structural fallback before </article> or </main>
+        for tag in ("</article>", "</main>"):
+            for i in range(len(lines) - 1, -1, -1):
+                if tag in lines[i]:
+                    indent = lines[i][: len(lines[i]) - len(lines[i].lstrip())] + "  "
+                    lines.insert(i, f"{indent}{PARTIAL}\n")
+                    logger.info(f"Injecting internal-links before {tag} tag")
+                    return "".join(lines)
 
-        # STRATEGY 4: Append at end (last resort)
-        logger.warning(
-            'Could not find </main>, </article>, or {{ define "main" }} block. '
-            "Appending internal-links at end of file."
+        # PASS 4 — Before {{ end }} of {{ define "main" }}
+        define_main = re.compile(r'\{\{-?\s*define\s+"main"')
+        for i, line in enumerate(lines):
+            if define_main.search(line):
+                end_i = self._find_hugo_block_end(lines, i)
+                if end_i is not None:
+                    indent = (
+                        lines[end_i][: len(lines[end_i]) - len(lines[end_i].lstrip())]
+                        + "    "
+                    )
+                    for j in range(end_i - 1, i, -1):
+                        if lines[j].strip():
+                            indent = lines[j][: len(lines[j]) - len(lines[j].lstrip())]
+                            break
+
+                    lines.insert(end_i, f"{indent}{PARTIAL}\n")
+                    logger.info(
+                        'Injecting internal-links before {{ define "main" }} block\'s {{ end }}'
+                    )
+                    return "".join(lines)
+
+        # FAIL — No valid injection point found
+        raise RuntimeError(
+            "Could not find safe injection point in single.html. "
+            "Manual layout override required."
         )
-        return content + insertion
 
     def _find_theme_baseof(self, site_root: str, theme: str) -> str | None:
         """Find theme's baseof.html in standard locations.
