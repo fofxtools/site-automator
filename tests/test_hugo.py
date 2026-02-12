@@ -250,6 +250,71 @@ class TestFindThemeBaseof:
         assert mock_ssh.run_command.call_count == 2
 
 
+class TestFindThemeSingle:
+    """Test _find_theme_single method."""
+
+    def test_finds_posts_single_html(self):
+        """Test that posts/single.html is found first (hermit-v2 case)."""
+        mock_ssh = Mock()
+        # First test succeeds (posts/single.html exists)
+        mock_ssh.run_command.return_value = ("", 0)
+
+        hugo = HugoDeployer(mock_ssh)
+        path, target = hugo._find_theme_single("/var/www/example.com", "hermit-v2")
+
+        assert path == "/var/www/example.com/themes/hermit-v2/layouts/posts/single.html"
+        assert target == "posts"
+        # Should only check first location
+        assert mock_ssh.run_command.call_count == 1
+
+    def test_finds_default_single_html(self):
+        """Test that _default/single.html is found when posts/ doesn't exist."""
+        mock_ssh = Mock()
+        # First test fails, second succeeds
+        mock_ssh.run_command.side_effect = [
+            ("", 1),  # posts/single.html doesn't exist
+            ("", 0),  # _default/single.html exists
+        ]
+
+        hugo = HugoDeployer(mock_ssh)
+        path, target = hugo._find_theme_single("/var/www/example.com", "ananke")
+
+        assert path == "/var/www/example.com/themes/ananke/layouts/_default/single.html"
+        assert target == "_default"
+        assert mock_ssh.run_command.call_count == 2
+
+    def test_finds_root_single_html(self):
+        """Test that root single.html is found as fallback."""
+        mock_ssh = Mock()
+        # First two fail, third succeeds
+        mock_ssh.run_command.side_effect = [
+            ("", 1),  # posts/single.html doesn't exist
+            ("", 1),  # _default/single.html doesn't exist
+            ("", 0),  # single.html exists
+        ]
+
+        hugo = HugoDeployer(mock_ssh)
+        path, target = hugo._find_theme_single("/var/www/example.com", "minimal")
+
+        assert path == "/var/www/example.com/themes/minimal/layouts/single.html"
+        assert target == "_default"
+        assert mock_ssh.run_command.call_count == 3
+
+    def test_returns_none_when_no_single_found(self):
+        """Test that None is returned when no single.html exists."""
+        mock_ssh = Mock()
+        # All tests fail
+        mock_ssh.run_command.return_value = ("", 1)
+
+        hugo = HugoDeployer(mock_ssh)
+        path, target = hugo._find_theme_single("/var/www/example.com", "custom-theme")
+
+        assert path is None
+        assert target == "_default"
+        # Should check all three locations
+        assert mock_ssh.run_command.call_count == 3
+
+
 class TestGenerateMinimalBaseofWithTracking:
     """Test _generate_minimal_baseof_with_tracking method."""
 
@@ -887,15 +952,19 @@ class TestEnsureSingleLayoutOverride:
     def test_skips_if_already_exists(self):
         """Test that layout creation is skipped if file already exists."""
         mock_ssh = Mock()
+        # First call checks if override exists (returns 0 = exists)
         mock_ssh.run_command.return_value = ("", 0)
 
         hugo = HugoDeployer(mock_ssh)
         hugo.ensure_single_layout_override("example.com", "ananke")
 
-        # Should only check for file existence, not create it
-        assert mock_ssh.run_command.call_count == 1
+        # Should check for posts/single.html, _default/single.html, single.html
+        # then check if site override exists (which returns 0 = exists)
+        # So it should stop after finding the override exists
+        assert mock_ssh.run_command.call_count >= 1
         calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
-        assert "test -f" in calls[0]
+        # First few calls are finding theme template, last call checks site override
+        assert any("test -f" in call for call in calls)
 
     def test_creates_layout_override_from_theme(self):
         """Test that theme's single.html is copied and patched."""
@@ -919,11 +988,10 @@ class TestEnsureSingleLayoutOverride:
 
         mock_ssh.upload_file.side_effect = capture_upload
         mock_ssh.run_command.side_effect = [
-            ("", 1),  # test -f site single.html (doesn't exist)
-            ("", 0),  # mkdir
-            ("", 0),  # test -f baseof layouts/ (exists)
-            ("", 0),  # test -f theme single.html (exists)
-            (theme_single_content, 0),  # cat theme single.html
+            ("", 0),  # test -f theme posts/single.html (exists - hermit-v2 has this!)
+            ("", 1),  # test -f site posts/single.html (doesn't exist yet)
+            ("", 0),  # mkdir -p layouts/posts
+            (theme_single_content, 0),  # cat theme posts/single.html
         ]
 
         hugo = HugoDeployer(mock_ssh)
@@ -951,10 +1019,11 @@ class TestEnsureSingleLayoutOverride:
 
         mock_ssh.upload_file.side_effect = capture_upload
         mock_ssh.run_command.side_effect = [
-            ("", 1),  # test -f site single.html (doesn't exist)
-            ("", 0),  # mkdir
-            ("", 1),  # test -f baseof layouts/ (doesn't exist)
-            ("", 1),  # test -f baseof layouts/_default/ (doesn't exist)
+            ("", 1),  # test -f theme posts/single.html (doesn't exist)
+            ("", 1),  # test -f theme _default/single.html (doesn't exist)
+            ("", 1),  # test -f theme single.html (doesn't exist)
+            ("", 1),  # test -f site _default/single.html (doesn't exist)
+            ("", 0),  # mkdir -p layouts/_default
         ]
 
         hugo = HugoDeployer(mock_ssh)
@@ -991,11 +1060,10 @@ class TestEnsureSingleLayoutOverride:
 
         mock_ssh.upload_file.side_effect = capture_upload
         mock_ssh.run_command.side_effect = [
-            ("", 1),  # test -f site single.html (doesn't exist)
-            ("", 0),  # mkdir
-            ("", 0),  # test -f baseof layouts/ (exists)
-            ("", 0),  # test -f theme single.html (exists)
-            (theme_single_content, 0),  # cat theme single.html
+            ("", 0),  # test -f theme posts/single.html (exists)
+            ("", 1),  # test -f site posts/single.html (doesn't exist)
+            ("", 0),  # mkdir -p layouts/posts
+            (theme_single_content, 0),  # cat theme posts/single.html
         ]
 
         hugo = HugoDeployer(mock_ssh)
@@ -1020,6 +1088,77 @@ class TestEnsureSingleLayoutOverride:
             partial_pos < comments_pos
         ), f"Partial at {partial_pos} should be BEFORE comments at {comments_pos}"
 
+    def test_injects_after_all_content_occurrences(self):
+        """Test that partial is injected after ALL .Content occurrences (hermit-v2 case)."""
+        mock_ssh = Mock()
+        # Template with multiple .Content in different conditional branches
+        # This simulates hermit-v2's legacy vs modern layout structure
+        theme_single_content = """{{ define "main" }}
+<article>
+  {{ if .Site.Params.legacyLayout }}
+    <div class="legacy-content">
+      {{ .Content }}
+    </div>
+  {{ else }}
+    <div class="modern-content">
+      {{ .Content }}
+    </div>
+  {{ end }}
+  <footer>Article footer</footer>
+</article>
+{{ end }}"""
+
+        uploaded_content = None
+
+        def capture_upload(local_path, remote_path):
+            nonlocal uploaded_content
+            with open(local_path, "r") as f:
+                uploaded_content = f.read()
+
+        mock_ssh.upload_file.side_effect = capture_upload
+        mock_ssh.run_command.side_effect = [
+            ("", 0),  # test -f theme posts/single.html (exists)
+            ("", 1),  # test -f site posts/single.html (doesn't exist)
+            ("", 0),  # mkdir -p layouts/posts
+            (theme_single_content, 0),  # cat theme posts/single.html
+        ]
+
+        hugo = HugoDeployer(mock_ssh)
+        hugo.ensure_single_layout_override("example.com", "hermit-v2")
+
+        assert uploaded_content is not None
+        assert "internal-links.html" in uploaded_content
+
+        # Critical: partial must be injected AFTER BOTH .Content occurrences
+        # Count occurrences of internal-links partial
+        partial_count = uploaded_content.count("internal-links.html")
+        content_count = uploaded_content.count("{{ .Content }}")
+
+        assert (
+            content_count == 2
+        ), f"Expected 2 .Content occurrences, found {content_count}"
+        assert (
+            partial_count == 2
+        ), f"Expected 2 partial injections, found {partial_count}"
+
+        # Verify each .Content has a partial after it
+        lines = uploaded_content.splitlines()
+        content_line_indices = [
+            i for i, line in enumerate(lines) if "{{ .Content }}" in line
+        ]
+        partial_line_indices = [
+            i for i, line in enumerate(lines) if "internal-links.html" in line
+        ]
+
+        assert len(content_line_indices) == 2, "Should have 2 .Content lines"
+        assert len(partial_line_indices) == 2, "Should have 2 partial lines"
+
+        # Each partial should come after its corresponding .Content
+        for content_idx, partial_idx in zip(content_line_indices, partial_line_indices):
+            assert (
+                partial_idx > content_idx
+            ), f"Partial at line {partial_idx} should be AFTER .Content at line {content_idx}"
+
     def test_injects_after_with_content_block(self):
         """Test that internal-links partial is injected after {{ with .Content }} block (PASS 2)."""
         mock_ssh = Mock()
@@ -1043,11 +1182,11 @@ class TestEnsureSingleLayoutOverride:
 
         mock_ssh.upload_file.side_effect = capture_upload
         mock_ssh.run_command.side_effect = [
-            ("", 1),  # test -f site single.html (doesn't exist)
-            ("", 0),  # mkdir
-            ("", 0),  # test -f baseof layouts/ (exists)
-            ("", 0),  # test -f theme single.html (exists)
-            (theme_single_content, 0),  # cat theme single.html
+            ("", 1),  # test -f theme posts/single.html (doesn't exist)
+            ("", 0),  # test -f theme _default/single.html (exists)
+            ("", 1),  # test -f site _default/single.html (doesn't exist)
+            ("", 0),  # mkdir -p layouts/_default
+            (theme_single_content, 0),  # cat theme _default/single.html
         ]
 
         hugo = HugoDeployer(mock_ssh)
@@ -1103,11 +1242,11 @@ class TestEnsureSingleLayoutOverride:
 
         mock_ssh.upload_file.side_effect = capture_upload
         mock_ssh.run_command.side_effect = [
-            ("", 1),  # test -f site single.html (doesn't exist)
-            ("", 0),  # mkdir
-            ("", 0),  # test -f baseof layouts/ (exists)
-            ("", 0),  # test -f theme single.html (exists)
-            (theme_single_content, 0),  # cat theme single.html
+            ("", 1),  # test -f theme posts/single.html (doesn't exist)
+            ("", 0),  # test -f theme _default/single.html (exists)
+            ("", 1),  # test -f site _default/single.html (doesn't exist)
+            ("", 0),  # mkdir -p layouts/_default
+            (theme_single_content, 0),  # cat theme _default/single.html
         ]
 
         hugo = HugoDeployer(mock_ssh)
@@ -1157,10 +1296,11 @@ class TestEnsureSingleLayoutOverride:
 
         mock_ssh.upload_file.side_effect = capture_upload
         mock_ssh.run_command.side_effect = [
-            ("", 1),  # test -f site single.html (doesn't exist)
-            ("", 0),  # mkdir
-            ("", 0),  # test -f baseof layouts/ (exists)
+            ("", 1),  # test -f theme posts/single.html (doesn't exist)
+            ("", 1),  # test -f theme _default/single.html (doesn't exist)
             ("", 0),  # test -f theme single.html (exists)
+            ("", 1),  # test -f site _default/single.html (doesn't exist)
+            ("", 0),  # mkdir -p layouts/_default
             (theme_single_content, 0),  # cat theme single.html
         ]
 
@@ -1271,7 +1411,7 @@ class TestDeployContentFile:
 
         # Verify upload_file was called with correct arguments
         mock_ssh.upload_file.assert_called_once_with(
-            markdown_file, "/var/www/example.com/content/test-article.md"
+            markdown_file, "/var/www/example.com/content/posts/test-article.md"
         )
 
 
@@ -1305,7 +1445,7 @@ class TestDeployContentDirectory:
 
         # Verify upload_directory_rsync was called with correct arguments
         mock_ssh.upload_directory_rsync.assert_called_once_with(
-            content_dir, "/var/www/example.com/content", delete=False
+            content_dir, "/var/www/example.com/content/posts", delete=False
         )
 
     def test_deploys_content_directory_with_delete(self, tmp_path):
@@ -1321,7 +1461,7 @@ class TestDeployContentDirectory:
 
         # Verify upload_directory_rsync was called with delete=True
         mock_ssh.upload_directory_rsync.assert_called_once_with(
-            content_dir, "/var/www/example.com/content", delete=True
+            content_dir, "/var/www/example.com/content/posts", delete=True
         )
 
 

@@ -167,12 +167,22 @@ class HugoDeployer:
             return False
 
         # PASS 1 — After direct .Content rendering
+        # Inject after ALL .Content occurrences to handle templates with
+        # multiple conditional branches (e.g., hermit-v2's legacy vs modern layout)
+        injected = False
+        offset = 0  # Track line insertions
         for i, line in enumerate(lines):
             if self._is_hugo_content_rendering(line) and not next_line_is_else(i):
                 indent = line[: len(line) - len(line.lstrip())]
-                lines.insert(i + 1, f"{indent}{PARTIAL}\n")
-                logger.info("Injecting internal-links after .Content rendering")
-                return "".join(lines)
+                lines.insert(i + 1 + offset, f"{indent}{PARTIAL}\n")
+                offset += 1
+                injected = True
+                logger.info(
+                    f"Injecting internal-links after .Content rendering (occurrence {offset})"
+                )
+
+        if injected:
+            return "".join(lines)
 
         # PASS 2 — After {{ with .Content }} block end
         for i, line in enumerate(lines):
@@ -253,6 +263,47 @@ class HugoDeployer:
             f"No baseof.html found for theme '{theme}' in standard locations"
         )
         return None
+
+    def _find_theme_single(self, site_root: str, theme: str) -> tuple[str | None, str]:
+        """Find theme's single.html following Hugo's template lookup order.
+
+        For content in the posts/ section, Hugo's lookup order is:
+        1. layouts/posts/single.html (section-specific)
+        2. layouts/_default/single.html (default)
+        3. layouts/single.html (root)
+
+        This method returns the FIRST match found, along with the target
+        section where we should create our override.
+
+        Args:
+            site_root: Site root directory path
+            theme: Theme name
+
+        Returns:
+            Tuple of (template_path, target_section) where:
+            - template_path: Path to theme's single.html if found, None otherwise
+            - target_section: Either "posts" or "_default" indicating where to
+              create the site-level override
+        """
+        # Check in Hugo's priority order for posts/ section
+        candidates = [
+            (f"{site_root}/themes/{theme}/layouts/posts/single.html", "posts"),
+            (f"{site_root}/themes/{theme}/layouts/_default/single.html", "_default"),
+            (f"{site_root}/themes/{theme}/layouts/single.html", "_default"),
+        ]
+
+        for path, target in candidates:
+            _, exit_code = self.ssh.run_command(f'test -f "{path}"', check=False)
+            if exit_code == 0:
+                logger.info(
+                    f"Found theme single.html: {path} (will override at {target})"
+                )
+                return path, target
+
+        logger.warning(
+            f"No single.html found for theme '{theme}' in standard locations"
+        )
+        return None, "_default"
 
     def _generate_minimal_baseof_with_tracking(self) -> str:
         """Generate minimal baseof.html for themes without one.
@@ -606,8 +657,11 @@ class HugoDeployer:
     def ensure_single_layout_override(self, domain: str, theme: str) -> None:
         """Ensure article layout includes internal links block.
 
-        Searches for theme's single.html (in same directory as baseof.html) and patches it.
-        If theme has no single.html, creates a minimal one with warning.
+        Searches for theme's single.html following Hugo's template lookup order
+        and creates an override at the appropriate level (section-specific or default).
+
+        For themes with section-specific templates (e.g., posts/single.html),
+        creates override at layouts/posts/single.html to ensure proper precedence.
 
         Args:
             domain: Domain name for the Hugo site
@@ -620,7 +674,12 @@ class HugoDeployer:
         logger.info(f"Ensuring single layout override: {domain}")
 
         site_root = f"/var/www/{domain}"
-        site_layout_dir = f"{site_root}/layouts/_default"
+
+        # Find theme's single.html and determine target section
+        theme_single, target_section = self._find_theme_single(site_root, theme)
+
+        # Determine site layout directory based on target section
+        site_layout_dir = f"{site_root}/layouts/{target_section}"
 
         # Check if layout already exists
         check_cmd = f"test -f {site_layout_dir}/single.html"
@@ -632,18 +691,6 @@ class HugoDeployer:
 
         # Create layouts directory
         self.ssh.run_command(f"mkdir -p {site_layout_dir}", check=True)
-
-        # Find theme's baseof to determine where single.html should be
-        baseof_path = self._find_theme_baseof(site_root, theme)
-        theme_single = None
-
-        if baseof_path:
-            # Check for single.html in same directory as baseof.html
-            single_path = baseof_path.replace("baseof.html", "single.html")
-            _, exit_code = self.ssh.run_command(f'test -f "{single_path}"', check=False)
-            if exit_code == 0:
-                theme_single = single_path
-                logger.info(f"Found theme single.html: {single_path}")
 
         if theme_single:
             # Read and patch theme's single.html
@@ -719,7 +766,7 @@ class HugoDeployer:
         logger.info(f"Deploying content file: {domain}/{slug}")
 
         # Upload file to Hugo content directory
-        remote_path = f"/var/www/{domain}/content/{slug}.md"
+        remote_path = f"/var/www/{domain}/content/posts/{slug}.md"
         self.ssh.upload_file(markdown_path, remote_path)
 
         logger.info(f"Content file deployed: {slug}")
@@ -746,7 +793,7 @@ class HugoDeployer:
 
         logger.info(f"Deploying content directory to {domain}")
 
-        remote_content_dir = f"/var/www/{domain}/content"
+        remote_content_dir = f"/var/www/{domain}/content/posts"
         self.ssh.upload_directory_rsync(
             local_content_dir, remote_content_dir, delete=delete
         )

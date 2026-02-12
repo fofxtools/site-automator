@@ -1,11 +1,8 @@
 [themes]
 ananke        = "https://github.com/theNewDynamic/gohugo-theme-ananke.git"
 beautifulhugo = "https://github.com/halogenica/beautifulhugo.git"
-hermit-v2     = "https://github.com/1bl4z3r/hermit-V2.git"
-hextra        = "https://github.com/imfing/hextra.git"
-loveit        = "https://github.com/dillonzq/LoveIt.git"
+clarity       = "https://github.com/chipzoller/hugo-clarity.git"
 mainroad      = "https://github.com/Vimux/Mainroad.git"
 paper         = "https://github.com/nanxiaobei/hugo-paper.git"
 papermod      = "https://github.com/adityatelange/hugo-PaperMod.git"
-stack         = "https://github.com/CaiJimmy/hugo-theme-stack.git"
 terminal      = "https://github.com/panr/hugo-theme-terminal.git"
