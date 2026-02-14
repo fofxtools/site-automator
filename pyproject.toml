@@ -17,6 +17,7 @@ dependencies = [
   "paramiko",
   "pydo",
   "python-dotenv",
+  "python-frontmatter",
   "python-slugify",
   "requests",
   "types-Markdown",
@@ -53,3 +54,7 @@ strict = true
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = "frontmatter"
+ignore_missing_imports = true

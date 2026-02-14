@@ -279,6 +279,138 @@ class TestSSHConnection:
 
     @patch("site_automator.ssh.resolve_ssh_host")
     @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_get_sftp_creates_connection_on_first_call(
+        self, mock_ssh_client, mock_resolve
+    ):
+        """Test _get_sftp() creates SFTP connection on first call."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_sftp = Mock()
+        mock_client_instance.open_sftp.return_value = mock_sftp
+
+        ssh = SSHConnection(host="example.com")
+        result = ssh._get_sftp()
+
+        assert result is mock_sftp
+        mock_client_instance.open_sftp.assert_called_once()
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_get_sftp_returns_cached_connection(self, mock_ssh_client, mock_resolve):
+        """Test _get_sftp() returns cached SFTP connection on subsequent calls."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_sftp = Mock()
+        mock_client_instance.open_sftp.return_value = mock_sftp
+
+        ssh = SSHConnection(host="example.com")
+        result1 = ssh._get_sftp()
+        result2 = ssh._get_sftp()
+
+        assert result1 is mock_sftp
+        assert result2 is mock_sftp
+        # Should only call open_sftp once (cached)
+        mock_client_instance.open_sftp.assert_called_once()
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_get_sftp_raises_when_client_not_connected(
+        self, mock_ssh_client, mock_resolve
+    ):
+        """Test _get_sftp() raises RuntimeError when SSH client not connected."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        ssh = SSHConnection(host="example.com")
+        ssh._client = None
+
+        with pytest.raises(RuntimeError, match="SSH client not connected"):
+            ssh._get_sftp()
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_read_file_success_default_encoding(self, mock_ssh_client, mock_resolve):
+        """Test read_file() successfully reads file with default encoding."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_sftp = Mock()
+        mock_file = Mock()
+        mock_file.read.return_value = b"test content"
+        mock_sftp.file.return_value.__enter__ = Mock(return_value=mock_file)
+        mock_sftp.file.return_value.__exit__ = Mock(return_value=False)
+        mock_client_instance.open_sftp.return_value = mock_sftp
+
+        ssh = SSHConnection(host="example.com")
+        content = ssh.read_file("/remote/file.txt")
+
+        assert content == "test content"
+        mock_sftp.file.assert_called_once_with("/remote/file.txt", "r")
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_read_file_success_custom_encoding(self, mock_ssh_client, mock_resolve):
+        """Test read_file() successfully reads file with custom encoding."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_sftp = Mock()
+        mock_file = Mock()
+        # Latin-1 encoded content
+        mock_file.read.return_value = "café".encode("latin-1")
+        mock_sftp.file.return_value.__enter__ = Mock(return_value=mock_file)
+        mock_sftp.file.return_value.__exit__ = Mock(return_value=False)
+        mock_client_instance.open_sftp.return_value = mock_sftp
+
+        ssh = SSHConnection(host="example.com")
+        content = ssh.read_file("/remote/file.txt", encoding="latin-1")
+
+        assert content == "café"
+        mock_sftp.file.assert_called_once_with("/remote/file.txt", "r")
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_read_file_not_found_raises(self, mock_ssh_client, mock_resolve):
+        """Test read_file() raises FileNotFoundError when file doesn't exist."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_sftp = Mock()
+        mock_sftp.file.side_effect = FileNotFoundError("File not found")
+        mock_client_instance.open_sftp.return_value = mock_sftp
+
+        ssh = SSHConnection(host="example.com")
+
+        with pytest.raises(FileNotFoundError):
+            ssh.read_file("/remote/nonexistent.txt")
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_read_file_io_error_raises(self, mock_ssh_client, mock_resolve):
+        """Test read_file() raises IOError on read failure."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_sftp = Mock()
+        mock_sftp.file.side_effect = PermissionError("Permission denied")
+        mock_client_instance.open_sftp.return_value = mock_sftp
+
+        ssh = SSHConnection(host="example.com")
+
+        with pytest.raises(IOError, match="Failed to read remote file"):
+            ssh.read_file("/remote/protected.txt")
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
     def test_upload_file_success(self, mock_ssh_client, mock_resolve, tmp_path):
         """Test successful file upload."""
         mock_resolve.return_value = ("192.168.1.1", None, None)
@@ -313,7 +445,6 @@ class TestSSHConnection:
 
         # Verify SFTP put was called
         mock_sftp.put.assert_called_once_with(str(test_file), "/remote/path/test.txt")
-        mock_sftp.close.assert_called_once()
 
     @patch("site_automator.ssh.resolve_ssh_host")
     @patch("site_automator.ssh.paramiko.SSHClient")
@@ -574,6 +705,28 @@ class TestSSHConnection:
         ssh.close()
 
         mock_client_instance.close.assert_called_once()
+        assert ssh._client is None
+
+    @patch("site_automator.ssh.resolve_ssh_host")
+    @patch("site_automator.ssh.paramiko.SSHClient")
+    def test_close_closes_sftp_if_exists(self, mock_ssh_client, mock_resolve):
+        """Test that close() closes SFTP connection if it exists."""
+        mock_resolve.return_value = ("192.168.1.1", None, None)
+        mock_client_instance = Mock()
+        mock_ssh_client.return_value = mock_client_instance
+
+        mock_sftp = Mock()
+        mock_client_instance.open_sftp.return_value = mock_sftp
+
+        ssh = SSHConnection(host="example.com")
+        # Trigger SFTP creation
+        ssh._get_sftp()
+        ssh.close()
+
+        # Verify SFTP was closed before SSH client
+        mock_sftp.close.assert_called_once()
+        mock_client_instance.close.assert_called_once()
+        assert ssh._sftp is None
         assert ssh._client is None
 
     @patch("site_automator.ssh.resolve_ssh_host")

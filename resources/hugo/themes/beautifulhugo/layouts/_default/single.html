@@ -3,7 +3,16 @@
   <div class="row">
     <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
       <article role="main" class="blog-post">
+        {{/* Featured Image (only if set) */}}
+        {{ $img := .Params.image | default .Params.featureImage | default .Params.featured_image | default .Params.thumbnail | default .Params.cover }}
+        {{ if $img }}
+          <div class="post-featured-image">
+            <img src="{{ $img | relURL }}" alt="{{ .Title }}" class="img-responsive">
+          </div>
+        {{ end }}
+
         {{ .Content }}
+
         {{ partial "internal-links.html" . }}
 
         {{ if .Params.tags }}

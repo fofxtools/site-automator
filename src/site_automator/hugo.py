@@ -1,12 +1,15 @@
 """Hugo Deployer - SSH-based Hugo static site deployment."""
 
 import logging
+import os
 import re
 import shutil
 import tempfile
 import tomllib
 from pathlib import Path
+from typing import Any
 
+import frontmatter
 from slugify import slugify
 
 from site_automator.ssh import SSHConnection
@@ -21,6 +24,41 @@ THEME_STORAGE_DIR = Path(__file__).parent.parent.parent / "storage" / "hugo" / "
 THEME_RESOURCES_DIR = (
     Path(__file__).parent.parent.parent / "resources" / "hugo" / "themes"
 )
+THEME_FEATURED_IMAGE_MAP: dict[str, dict[str, Any]] = {
+    "ananke": {
+        "front_matter": {
+            "featured_image": "{image_url}",
+        },
+    },
+    "beautifulhugo": {
+        "front_matter": {
+            "image": "{image_url}",
+        },
+    },
+    "clarity": {
+        "front_matter": {
+            "featureImage": "{image_url}",
+            "thumbnail": "{image_url}",
+        },
+    },
+    "mainroad": {
+        "front_matter": {
+            "thumbnail": "{image_url}",
+        },
+    },
+    "papermod": {
+        "front_matter": {
+            "cover": {
+                "image": "{image_url}",
+            },
+        },
+    },
+    "terminal": {
+        "front_matter": {
+            "cover": "{image_url}",
+        },
+    },
+}
 
 
 class HugoDeployer:
@@ -789,6 +827,98 @@ theme = '{theme}'
         """
         self._create_tracking_partial(domain)
         self._create_baseof_with_tracking(domain, theme)
+
+    def symlink_shared_image(self, domain: str, image_filename: str) -> None:
+        """Create symlink from shared images to site static directory.
+
+        Args:
+            domain: Domain name for the Hugo site
+            image_filename: Filename of the image (e.g., "cover.jpg")
+
+        Raises:
+            ValueError: If domain is invalid
+        """
+        validate_domain(domain)
+
+        shared_images_path = os.getenv("SHARED_IMAGES_PATH", "/var/www/shared/images")
+        source_path = f"{shared_images_path}/{image_filename}"
+        target_dir = f"/var/www/{domain}/static/images"
+        target_path = f"{target_dir}/{image_filename}"
+
+        logger.info(f"Creating symlink for {image_filename} in {domain}")
+
+        self.ssh.run_command(f'mkdir -p "{target_dir}"', check=True)
+        self.ssh.run_command(f'ln -sfn "{source_path}" "{target_path}"', check=True)
+
+        logger.info(f"Symlink created: {target_path} -> {source_path}")
+
+    def set_featured_image_local(
+        self, site_id: str, slug: str, theme: str, image_url: str
+    ) -> None:
+        """Set featured image in local article front matter based on theme.
+
+        Args:
+            site_id: Site identifier (from sites.csv)
+            slug: Article slug
+            theme: Theme name (must exist in THEME_FEATURED_IMAGE_MAP)
+            image_url: Public Hugo URL (e.g., "/images/cover.jpg")
+
+        Raises:
+            ValueError: If slug is invalid
+            RuntimeError: If theme does not support featured images
+            FileNotFoundError: If markdown file doesn't exist
+        """
+        if not slug or slug != slugify(slug):
+            raise ValueError("Invalid slug")
+
+        if theme not in THEME_FEATURED_IMAGE_MAP:
+            supported = ", ".join(sorted(THEME_FEATURED_IMAGE_MAP.keys()))
+            raise RuntimeError(
+                f"Theme '{theme}' does not support featured images. "
+                f"Supported themes: {supported}"
+            )
+
+        # Local markdown path
+        content_root = Path(os.getenv("SITES_CONTENT_PATH", "storage/content"))
+        markdown_path = content_root / site_id / "articles" / "markdown" / f"{slug}.md"
+
+        if not markdown_path.exists():
+            raise FileNotFoundError(f"Markdown file not found: {markdown_path}")
+
+        logger.info(f"Setting featured image for {site_id}/{slug} (theme: {theme})")
+
+        # Read original content
+        with markdown_path.open("r", encoding="utf-8") as f:
+            original_content = f.read()
+            post = frontmatter.loads(original_content)
+
+        # Get theme config and recursively replace placeholders
+        theme_config: dict[str, Any] = THEME_FEATURED_IMAGE_MAP[theme]["front_matter"]
+
+        def replace_placeholders(obj: dict[str, Any] | str) -> dict[str, Any] | str:
+            """Recursively replace {image_url} placeholders in nested dicts."""
+            if isinstance(obj, dict):
+                return {k: replace_placeholders(v) for k, v in obj.items()}
+            elif isinstance(obj, str):
+                return obj.replace("{image_url}", image_url)
+            return obj
+
+        updated_fields = replace_placeholders(theme_config)
+
+        # Update front matter only if values changed (idempotent)
+        if isinstance(updated_fields, dict):
+            for key, value in updated_fields.items():
+                if post.metadata.get(key) != value:
+                    post.metadata[key] = value
+
+        # Only write if content changed
+        updated_content = frontmatter.dumps(post)
+        if updated_content != original_content:
+            with markdown_path.open("w", encoding="utf-8") as f:
+                f.write(updated_content)
+            logger.info(f"Featured image set: {site_id}/{slug}")
+        else:
+            logger.info(f"Featured image already set: {site_id}/{slug}")
 
     def deploy_content_file(
         self,

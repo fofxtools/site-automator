@@ -34,6 +34,7 @@ class SSHConnection:
     host: str
     user: str | None
     _client: paramiko.SSHClient | None
+    _sftp: paramiko.SFTPClient | None
 
     def __init__(self, host: str, user: str | None = None) -> None:
         """Initialize SSH connection.
@@ -45,6 +46,7 @@ class SSHConnection:
         self.host = host
         self.user = user
         self._client = None
+        self._sftp = None
         self.connect()
 
     def connect(self) -> None:
@@ -66,6 +68,10 @@ class SSHConnection:
             allow_agent=True,
             look_for_keys=True,
         )
+
+        # Reset SFTP on reconnect (SFTP is tied to SSH transport)
+        self._sftp = None
+
         logger.info("SSH connection established")
 
     def run_command(self, command: str, check: bool = True) -> tuple[str, int]:
@@ -103,6 +109,54 @@ class SSHConnection:
         full_output = output if not error else f"{output}\n{error}".strip()
         return full_output, exit_code
 
+    def _get_sftp(self) -> paramiko.SFTPClient:
+        """Get or create persistent SFTP connection.
+
+        Returns:
+            SFTP client instance
+
+        Raises:
+            RuntimeError: If SSH client is not connected
+        """
+        if not self._client:
+            raise RuntimeError("SSH client not connected")
+
+        if self._sftp is None:
+            self._sftp = self._client.open_sftp()
+
+        return self._sftp
+
+    def read_file(self, remote_path: str, encoding: str = "utf-8") -> str:
+        """Read remote file via SFTP and return text content.
+
+        Args:
+            remote_path: Path to the remote file
+            encoding: Text encoding (default: utf-8)
+
+        Returns:
+            File content as string
+
+        Raises:
+            RuntimeError: If SSH client is not connected
+            FileNotFoundError: If remote file doesn't exist
+            IOError: If file cannot be read
+        """
+        logger.info(f"Reading remote file: {remote_path}")
+
+        # Use persistent SFTP connection
+        sftp = self._get_sftp()
+        try:
+            with sftp.file(remote_path, "r") as f:
+                content = f.read()
+            logger.info(f"File read successfully: {remote_path}")
+            return content.decode(encoding)
+        except FileNotFoundError:
+            logger.error(f"Remote file not found: {remote_path}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to read remote file {remote_path}: {e}")
+            raise IOError(f"Failed to read remote file: {remote_path}") from e
+
     def upload_file(self, local_path: Path | str, remote_path: str) -> None:
         """Upload a file to the remote server using SFTP.
 
@@ -114,9 +168,6 @@ class SSHConnection:
             RuntimeError: If SSH client is not connected
             FileNotFoundError: If local file doesn't exist
         """
-        if not self._client:
-            raise RuntimeError("SSH client not connected")
-
         local_path = Path(local_path)
         if not local_path.exists():
             raise FileNotFoundError(f"Local file not found: {local_path}")
@@ -128,13 +179,10 @@ class SSHConnection:
         if remote_dir:
             self.run_command(f"mkdir -p {remote_dir}", check=True)
 
-        # Upload file using SFTP
-        sftp = self._client.open_sftp()
-        try:
-            sftp.put(str(local_path), remote_path)
-            logger.info(f"File uploaded successfully: {remote_path}")
-        finally:
-            sftp.close()
+        # Upload file using persistent SFTP connection
+        sftp = self._get_sftp()
+        sftp.put(str(local_path), remote_path)
+        logger.info(f"File uploaded successfully: {remote_path}")
 
     def upload_directory_rsync(
         self,
@@ -225,7 +273,10 @@ class SSHConnection:
             ) from e
 
     def close(self) -> None:
-        """Close SSH connection."""
+        """Close SSH and SFTP connections."""
+        if self._sftp:
+            self._sftp.close()
+            self._sftp = None
         if self._client:
             self._client.close()
             self._client = None
