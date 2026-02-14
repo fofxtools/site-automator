@@ -71,6 +71,7 @@ class TestResolveSlug:
     def test_appends_post_when_reserved(self):
         """Test appends -post suffix when slug is reserved."""
         assert _resolve_slug("stats") == "stats-post"
+        assert _resolve_slug("pageview-tracking") == "pageview-tracking-post"
 
     def test_handles_empty_string(self):
         """Test handles empty string."""

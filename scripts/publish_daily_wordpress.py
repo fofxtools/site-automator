@@ -20,7 +20,7 @@ configure_logging(console_level="INFO")
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(
         description="Publish WordPress articles respecting daily limits"
     )

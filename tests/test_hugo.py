@@ -13,11 +13,15 @@ class TestLoadThemes:
 
     def test_loads_themes_from_default_config(self, tmp_path):
         """Test that themes are loaded from default config/themes.toml."""
-        # Create a mock themes.toml
+        # Create a mock themes.toml with new structure
         themes_content = """
-[themes]
-ananke = "https://github.com/theNewDynamic/gohugo-theme-ananke.git"
-hermit-v2 = "https://github.com/1bl4z3r/hermit-V2.git"
+[themes.ananke]
+url = "https://github.com/theNewDynamic/gohugo-theme-ananke.git"
+commit = "a5f3dd61ce53879019049d9a2ba8f049abdfee68"
+
+[themes.hermit-v2]
+url = "https://github.com/1bl4z3r/hermit-V2.git"
+commit = "1234567890abcdef1234567890abcdef12345678"
 """
         themes_file = tmp_path / "themes.toml"
         themes_file.write_text(themes_content)
@@ -31,6 +35,16 @@ hermit-v2 = "https://github.com/1bl4z3r/hermit-V2.git"
             == "https://github.com/theNewDynamic/gohugo-theme-ananke.git"
         )
         assert hugo.themes["hermit-v2"] == "https://github.com/1bl4z3r/hermit-V2.git"
+
+        # Verify commits are loaded
+        assert len(hugo.theme_commits) == 2
+        assert (
+            hugo.theme_commits["ananke"] == "a5f3dd61ce53879019049d9a2ba8f049abdfee68"
+        )
+        assert (
+            hugo.theme_commits["hermit-v2"]
+            == "1234567890abcdef1234567890abcdef12345678"
+        )
 
     def test_raises_error_when_file_not_found(self):
         """Test that FileNotFoundError is raised when themes file doesn't exist."""
@@ -49,6 +63,155 @@ hermit-v2 = "https://github.com/1bl4z3r/hermit-V2.git"
 
         with pytest.raises(RuntimeError, match="No themes defined"):
             HugoDeployer(mock_ssh, themes_file=themes_file)
+
+    def test_raises_error_when_url_missing(self, tmp_path):
+        """Test that RuntimeError is raised when theme is missing 'url' field."""
+        themes_content = """
+[themes.ananke]
+commit = "a5f3dd61ce53879019049d9a2ba8f049abdfee68"
+"""
+        themes_file = tmp_path / "themes.toml"
+        themes_file.write_text(themes_content)
+
+        mock_ssh = Mock()
+
+        with pytest.raises(RuntimeError, match="Theme 'ananke' missing 'url' field"):
+            HugoDeployer(mock_ssh, themes_file=themes_file)
+
+    def test_raises_error_when_commit_missing(self, tmp_path):
+        """Test that RuntimeError is raised when theme is missing 'commit' field."""
+        themes_content = """
+[themes.ananke]
+url = "https://github.com/theNewDynamic/gohugo-theme-ananke.git"
+"""
+        themes_file = tmp_path / "themes.toml"
+        themes_file.write_text(themes_content)
+
+        mock_ssh = Mock()
+
+        with pytest.raises(RuntimeError, match="Theme 'ananke' missing 'commit' field"):
+            HugoDeployer(mock_ssh, themes_file=themes_file)
+
+    def test_raises_error_when_theme_not_dict(self, tmp_path):
+        """Test that RuntimeError is raised when theme value is not a dict."""
+        themes_content = """
+[themes]
+ananke = "https://github.com/theNewDynamic/gohugo-theme-ananke.git"
+"""
+        themes_file = tmp_path / "themes.toml"
+        themes_file.write_text(themes_content)
+
+        mock_ssh = Mock()
+
+        with pytest.raises(RuntimeError, match="Invalid theme config for 'ananke'"):
+            HugoDeployer(mock_ssh, themes_file=themes_file)
+
+
+class TestCreateTempBundleStructure:
+    """Test _create_temp_bundle_structure method."""
+
+    def test_creates_bundle_structure_from_flat_files(self, tmp_path):
+        """Test that flat markdown files are converted to page bundles."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        # Create flat markdown files
+        markdown_dir = tmp_path / "content"
+        markdown_dir.mkdir()
+        (markdown_dir / "article1.md").write_text("# Article 1")
+        (markdown_dir / "article2.md").write_text("# Article 2")
+
+        # Convert to bundle structure
+        temp_dir = hugo._create_temp_bundle_structure(markdown_dir)
+
+        try:
+            # Verify bundle structure
+            assert (temp_dir / "posts").exists()
+            assert (temp_dir / "posts" / "article1" / "index.md").exists()
+            assert (temp_dir / "posts" / "article2" / "index.md").exists()
+
+            # Verify content is preserved
+            assert (
+                temp_dir / "posts" / "article1" / "index.md"
+            ).read_text() == "# Article 1"
+            assert (
+                temp_dir / "posts" / "article2" / "index.md"
+            ).read_text() == "# Article 2"
+        finally:
+            # Clean up
+            import shutil
+
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_raises_error_if_directory_not_found(self):
+        """Test that ValueError is raised if markdown directory doesn't exist."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        non_existent_dir = Path("/tmp/does-not-exist")
+
+        with pytest.raises(ValueError, match="Markdown directory not found"):
+            hugo._create_temp_bundle_structure(non_existent_dir)
+
+    def test_raises_error_if_path_is_not_directory(self, tmp_path):
+        """Test that ValueError is raised if path is a file, not a directory."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        # Create a file instead of directory
+        markdown_file = tmp_path / "test.md"
+        markdown_file.write_text("# Test")
+
+        with pytest.raises(ValueError, match="Markdown directory not found"):
+            hugo._create_temp_bundle_structure(markdown_file)
+
+    def test_handles_empty_directory(self, tmp_path):
+        """Test that empty directory creates empty posts directory."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        # Create empty directory
+        markdown_dir = tmp_path / "content"
+        markdown_dir.mkdir()
+
+        # Convert to bundle structure
+        temp_dir = hugo._create_temp_bundle_structure(markdown_dir)
+
+        try:
+            # Verify posts directory exists but is empty
+            assert (temp_dir / "posts").exists()
+            assert list((temp_dir / "posts").iterdir()) == []
+        finally:
+            # Clean up
+            import shutil
+
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_ignores_non_markdown_files(self, tmp_path):
+        """Test that non-markdown files are ignored."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        # Create directory with mixed files
+        markdown_dir = tmp_path / "content"
+        markdown_dir.mkdir()
+        (markdown_dir / "article.md").write_text("# Article")
+        (markdown_dir / "image.png").write_text("fake image")
+        (markdown_dir / "data.json").write_text("{}")
+
+        # Convert to bundle structure
+        temp_dir = hugo._create_temp_bundle_structure(markdown_dir)
+
+        try:
+            # Verify only markdown file was converted
+            assert (temp_dir / "posts" / "article" / "index.md").exists()
+            assert not (temp_dir / "posts" / "image").exists()
+            assert not (temp_dir / "posts" / "data").exists()
+        finally:
+            # Clean up
+            import shutil
+
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 class TestIsHugoContentRendering:
@@ -782,13 +945,14 @@ class TestEnsureThemeInstalled:
         calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
         assert "test -d" in calls[0]
 
-    def test_clones_theme_when_missing(self):
-        """Test that theme is cloned when directory doesn't exist."""
+    def test_clones_theme_and_checks_out_commit(self):
+        """Test that theme is cloned and specific commit is checked out."""
         mock_ssh = Mock()
         # Theme dir doesn't exist
         mock_ssh.run_command.side_effect = [
             ("", 1),  # test -d (theme dir missing)
             ("", 0),  # git clone
+            ("", 0),  # git checkout
         ]
 
         hugo = HugoDeployer(mock_ssh)
@@ -798,6 +962,11 @@ class TestEnsureThemeInstalled:
 
         # Verify git clone was called
         assert any("git clone" in c and "gohugo-theme-ananke" in c for c in calls)
+
+        # Verify git checkout was called with commit hash
+        assert any(
+            "git checkout" in c and hugo.theme_commits["ananke"] in c for c in calls
+        )
 
     def test_raises_error_for_unknown_theme(self):
         """Test that RuntimeError is raised for theme not in registry."""
@@ -811,6 +980,97 @@ class TestEnsureThemeInstalled:
             RuntimeError, match="Theme 'nonexistent' not found in themes.toml"
         ):
             hugo.ensure_theme_installed("example.com", theme="nonexistent")
+
+
+class TestUploadTheme:
+    """Test upload_theme method."""
+
+    def test_validates_domain(self):
+        """Test that domain is validated."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        with pytest.raises(ValueError, match="Invalid domain"):
+            hugo.upload_theme("invalid/domain", "ananke")
+
+    def test_raises_error_if_theme_not_in_storage(self, tmp_path):
+        """Test that FileNotFoundError is raised if theme not found in storage."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        with pytest.raises(FileNotFoundError, match="Theme not found in storage"):
+            hugo.upload_theme("example.com", "nonexistent-theme")
+
+    @patch("site_automator.hugo.THEME_STORAGE_DIR")
+    def test_uploads_theme_directory(self, mock_storage_dir, tmp_path):
+        """Test that theme directory is uploaded via rsync."""
+        # Create fake theme directory
+        theme_dir = tmp_path / "ananke"
+        theme_dir.mkdir()
+        (theme_dir / "theme.toml").write_text("name = 'ananke'")
+
+        mock_storage_dir.__truediv__ = lambda self, x: theme_dir
+
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+        hugo.upload_theme("example.com", "ananke")
+
+        # Verify mkdir was called
+        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
+        assert any("mkdir -p /var/www/example.com/themes" in c for c in calls)
+
+        # Verify upload_directory_rsync was called
+        mock_ssh.upload_directory_rsync.assert_called_once()
+        args = mock_ssh.upload_directory_rsync.call_args[0]
+        assert str(args[0]) == str(theme_dir)
+        assert args[1] == "/var/www/example.com/themes/ananke"
+
+
+class TestApplyThemeOverrides:
+    """Test apply_theme_overrides method."""
+
+    def test_validates_domain(self):
+        """Test that domain is validated."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        with pytest.raises(ValueError, match="Invalid domain"):
+            hugo.apply_theme_overrides("invalid/domain", "ananke")
+
+    @patch("site_automator.hugo.THEME_RESOURCES_DIR")
+    def test_skips_if_no_overrides_exist(self, mock_resources_dir, tmp_path):
+        """Test that method returns early if no overrides exist for theme."""
+        # Point to non-existent directory
+        nonexistent = tmp_path / "nonexistent"
+        mock_resources_dir.__truediv__ = lambda self, x: nonexistent
+
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+        hugo.apply_theme_overrides("example.com", "ananke")
+
+        # Should not call upload_directory_rsync
+        mock_ssh.upload_directory_rsync.assert_not_called()
+
+    @patch("site_automator.hugo.THEME_RESOURCES_DIR")
+    def test_uploads_overrides_to_site_root(self, mock_resources_dir, tmp_path):
+        """Test that overrides are uploaded to site root (not layouts/)."""
+        # Create fake overrides directory with layouts/ subdirectory
+        overrides_dir = tmp_path / "ananke"
+        layouts_dir = overrides_dir / "layouts"
+        layouts_dir.mkdir(parents=True)
+        (layouts_dir / "baseof.html").write_text("<html></html>")
+
+        mock_resources_dir.__truediv__ = lambda self, x: overrides_dir
+
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+        hugo.apply_theme_overrides("example.com", "ananke")
+
+        # Verify upload_directory_rsync was called with site root
+        mock_ssh.upload_directory_rsync.assert_called_once()
+        args = mock_ssh.upload_directory_rsync.call_args[0]
+        assert str(args[0]) == str(overrides_dir)
+        assert args[1] == "/var/www/example.com"
 
 
 class TestEnsureInternalLinksPartial:
@@ -1321,8 +1581,8 @@ class TestDeployContentFile:
         # Should not raise
         hugo.deploy_content_file("example.com", valid_slug, markdown_file)
 
-        # Verify upload_file was called
-        assert mock_ssh.upload_file.called
+        # Verify upload_directory_rsync was called
+        assert mock_ssh.upload_directory_rsync.called
 
     def test_raises_error_if_file_not_found(self):
         """Test that FileNotFoundError is raised if markdown file doesn't exist."""
@@ -1334,8 +1594,8 @@ class TestDeployContentFile:
         with pytest.raises(FileNotFoundError, match="Markdown file not found"):
             hugo.deploy_content_file("example.com", "test-slug", non_existent_file)
 
-    def test_deploys_content_file(self, tmp_path):
-        """Test that content file is deployed to Hugo content directory using upload_file."""
+    def test_deploys_content_file_as_page_bundle(self, tmp_path):
+        """Test that content file is deployed as page bundle (posts/slug/index.md)."""
         mock_ssh = Mock()
 
         # Create a temporary markdown file
@@ -1343,13 +1603,30 @@ class TestDeployContentFile:
         markdown_content = "# Test Article\n\nThis is a test article."
         markdown_file.write_text(markdown_content)
 
+        # Capture temp directory before it's cleaned up
+        captured_temp_dir = None
+
+        def capture_upload_call(temp_dir, remote_dir):
+            nonlocal captured_temp_dir
+            captured_temp_dir = Path(temp_dir)
+            # Verify bundle structure exists during the call
+            assert (captured_temp_dir / "posts" / "test-article" / "index.md").exists()
+            assert (
+                captured_temp_dir / "posts" / "test-article" / "index.md"
+            ).read_text() == markdown_content
+
+        mock_ssh.upload_directory_rsync.side_effect = capture_upload_call
+
         hugo = HugoDeployer(mock_ssh)
         hugo.deploy_content_file("example.com", "test-article", markdown_file)
 
-        # Verify upload_file was called with correct arguments
-        mock_ssh.upload_file.assert_called_once_with(
-            markdown_file, "/var/www/example.com/content/posts/test-article.md"
-        )
+        # Verify upload_directory_rsync was called
+        assert mock_ssh.upload_directory_rsync.called
+        call_args = mock_ssh.upload_directory_rsync.call_args
+
+        # Verify remote directory is correct
+        remote_dir = call_args[0][1]
+        assert remote_dir == "/var/www/example.com/content"
 
 
 class TestDeployContentDirectory:
@@ -1367,39 +1644,62 @@ class TestDeployContentDirectory:
         with pytest.raises(ValueError, match="Invalid domain"):
             hugo.deploy_content_directory("invalid/domain", content_dir)
 
-    def test_deploys_content_directory(self, tmp_path):
-        """Test that content directory is deployed using upload_directory_rsync."""
+    def test_deploys_content_directory_as_page_bundles(self, tmp_path):
+        """Test that flat markdown files are converted to page bundles."""
         mock_ssh = Mock()
 
-        # Create a temporary directory with markdown files
+        # Create a temporary directory with flat markdown files
         content_dir = tmp_path / "content"
         content_dir.mkdir()
         (content_dir / "article1.md").write_text("# Article 1")
         (content_dir / "article2.md").write_text("# Article 2")
 
+        # Capture temp directory before it's cleaned up
+        def capture_upload_call(temp_dir, remote_dir, delete=False):
+            temp_path = Path(temp_dir)
+            # Verify bundle structure exists during the call
+            assert (temp_path / "posts" / "article1" / "index.md").exists()
+            assert (temp_path / "posts" / "article2" / "index.md").exists()
+            assert (
+                temp_path / "posts" / "article1" / "index.md"
+            ).read_text() == "# Article 1"
+            assert (
+                temp_path / "posts" / "article2" / "index.md"
+            ).read_text() == "# Article 2"
+
+        mock_ssh.upload_directory_rsync.side_effect = capture_upload_call
+
         hugo = HugoDeployer(mock_ssh)
         hugo.deploy_content_directory("example.com", content_dir)
 
-        # Verify upload_directory_rsync was called with correct arguments
-        mock_ssh.upload_directory_rsync.assert_called_once_with(
-            content_dir, "/var/www/example.com/content/posts", delete=False
-        )
+        # Verify upload_directory_rsync was called
+        assert mock_ssh.upload_directory_rsync.called
+        call_args = mock_ssh.upload_directory_rsync.call_args
+
+        # Verify remote directory and delete flag
+        remote_dir = call_args[0][1]
+        assert remote_dir == "/var/www/example.com/content"
+        assert call_args[1]["delete"] is False
 
     def test_deploys_content_directory_with_delete(self, tmp_path):
         """Test that content directory is deployed with delete flag."""
         mock_ssh = Mock()
 
-        # Create a temporary directory
+        # Create a temporary directory with markdown files
         content_dir = tmp_path / "content"
         content_dir.mkdir()
+        (content_dir / "article.md").write_text("# Article")
 
         hugo = HugoDeployer(mock_ssh)
         hugo.deploy_content_directory("example.com", content_dir, delete=True)
 
         # Verify upload_directory_rsync was called with delete=True
-        mock_ssh.upload_directory_rsync.assert_called_once_with(
-            content_dir, "/var/www/example.com/content/posts", delete=True
-        )
+        assert mock_ssh.upload_directory_rsync.called
+        call_args = mock_ssh.upload_directory_rsync.call_args
+
+        remote_dir = call_args[0][1]
+        assert remote_dir == "/var/www/example.com/content"
+        assert call_args[1]["delete"] is True
 
 
 class TestBuildSite:
@@ -1602,12 +1902,12 @@ class TestInitialSetup:
         # Mock all the configuration methods
         with (
             patch.object(hugo, "ensure_site_initialized") as mock_init,
-            patch.object(hugo, "ensure_theme_installed") as mock_theme,
+            patch.object(hugo, "upload_theme") as mock_upload_theme,
+            patch.object(hugo, "apply_theme_overrides") as mock_apply_overrides,
             patch.object(hugo, "write_hugo_config") as mock_write_config,
             patch.object(hugo, "ensure_robots_txt") as mock_robots,
             patch.object(hugo, "ensure_internal_links_partial") as mock_links,
-            patch.object(hugo, "ensure_single_layout_override") as mock_layout,
-            patch.object(hugo, "setup_tracking") as mock_setup_tracking,
+            patch.object(hugo, "_create_tracking_partial") as mock_tracking_partial,
             patch.object(hugo, "ensure_permissions") as mock_perms,
         ):
 
@@ -1617,14 +1917,14 @@ class TestInitialSetup:
             # Verify all methods were called with correct parameters
             mock_load_config.assert_called_once_with("example.com")
             mock_init.assert_called_once_with("example.com")
-            mock_theme.assert_called_once_with("example.com", "ananke")
+            mock_upload_theme.assert_called_once_with("example.com", "ananke")
+            mock_apply_overrides.assert_called_once_with("example.com", "ananke")
             mock_write_config.assert_called_once_with(
                 "example.com", "ananke", "Test Site"
             )
             mock_robots.assert_called_once_with("example.com")
             mock_links.assert_called_once_with("example.com")
-            mock_layout.assert_called_once_with("example.com", "ananke")
-            mock_setup_tracking.assert_called_once_with("example.com", "ananke")
+            mock_tracking_partial.assert_called_once_with("example.com")
             mock_perms.assert_called_once_with("example.com")
 
             # Verify PageviewTrackingSetup was called

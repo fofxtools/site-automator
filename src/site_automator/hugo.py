@@ -1,13 +1,13 @@
 """Hugo Deployer - SSH-based Hugo static site deployment."""
 
 import logging
+import re
+import shutil
+import tempfile
 import tomllib
 from pathlib import Path
-from typing import cast
 
 from slugify import slugify
-import tempfile
-import re
 
 from site_automator.ssh import SSHConnection
 from site_automator.utils import validate_domain
@@ -16,12 +16,19 @@ from site_automator.sites import load_site_config_by_domain
 
 logger = logging.getLogger(__name__)
 
+# Theme storage and resources directories
+THEME_STORAGE_DIR = Path(__file__).parent.parent.parent / "storage" / "hugo" / "themes"
+THEME_RESOURCES_DIR = (
+    Path(__file__).parent.parent.parent / "resources" / "hugo" / "themes"
+)
+
 
 class HugoDeployer:
     """Deploy Hugo static sites via SSH."""
 
     ssh: SSHConnection
     themes: dict[str, str]
+    theme_commits: dict[str, str]
 
     def __init__(self, ssh: SSHConnection, themes_file: Path | None = None) -> None:
         """Initialize HugoDeployer.
@@ -31,16 +38,20 @@ class HugoDeployer:
             themes_file: Path to themes.toml config (optional)
         """
         self.ssh = ssh
-        self.themes = self._load_themes(themes_file)
+        self.themes, self.theme_commits = self._load_themes(themes_file)
 
-    def _load_themes(self, themes_file: Path | None) -> dict[str, str]:
+    def _load_themes(
+        self, themes_file: Path | None
+    ) -> tuple[dict[str, str], dict[str, str]]:
         """Load theme registry from TOML config.
 
         Args:
             themes_file: Path to themes.toml, defaults to config/themes.toml
 
         Returns:
-            Dictionary mapping theme names to git URLs
+            Tuple of (theme_urls, theme_commits) where:
+            - theme_urls: Dictionary mapping theme names to git URLs
+            - theme_commits: Dictionary mapping theme names to commit hashes
 
         Raises:
             FileNotFoundError: If themes file doesn't exist
@@ -60,11 +71,59 @@ class HugoDeployer:
         if not themes_raw:
             raise RuntimeError(f"No themes defined in {themes_file}")
 
-        # Validate that all values are strings
-        themes = cast(dict[str, str], themes_raw)
+        # Extract URLs and commits from nested structure
+        theme_urls: dict[str, str] = {}
+        theme_commits: dict[str, str] = {}
 
-        logger.info(f"Loaded {len(themes)} themes from {themes_file}")
-        return themes
+        for theme_name, theme_data in themes_raw.items():
+            if not isinstance(theme_data, dict):
+                raise RuntimeError(
+                    f"Invalid theme config for '{theme_name}': expected dict with 'url' and 'commit'"
+                )
+
+            url = theme_data.get("url")
+            commit = theme_data.get("commit")
+
+            if not url:
+                raise RuntimeError(f"Theme '{theme_name}' missing 'url' field")
+            if not commit:
+                raise RuntimeError(f"Theme '{theme_name}' missing 'commit' field")
+
+            theme_urls[theme_name] = url
+            theme_commits[theme_name] = commit
+
+        logger.info(f"Loaded {len(theme_urls)} themes from {themes_file}")
+        return theme_urls, theme_commits
+
+    def _create_temp_bundle_structure(self, markdown_dir: Path) -> Path:
+        """Create temporary directory with Hugo page bundle structure.
+
+        Converts flat markdown files to page bundles:
+            {slug}.md  →  temp/posts/{slug}/index.md
+
+        Args:
+            markdown_dir: Directory containing flat markdown files
+
+        Returns:
+            Path to temporary directory with posts/slug/index.md structure
+            Caller must clean up temp directory
+        """
+        # Validate input directory
+        if not markdown_dir.exists() or not markdown_dir.is_dir():
+            raise ValueError(f"Markdown directory not found: {markdown_dir}")
+
+        temp_dir = Path(tempfile.mkdtemp(prefix="hugo_bundles_"))
+        bundle_root = temp_dir / "posts"
+        bundle_root.mkdir(parents=True)
+
+        for md_file in markdown_dir.glob("*.md"):
+            slug = md_file.stem
+            bundle_dir = bundle_root / slug
+            bundle_dir.mkdir(exist_ok=True)
+            shutil.copy2(md_file, bundle_dir / "index.md")
+            logger.debug(f"Created bundle: posts/{slug}/index.md")
+
+        return temp_dir
 
     @staticmethod
     def _is_hugo_content_rendering(line: str) -> bool:
@@ -462,7 +521,7 @@ class HugoDeployer:
         logger.info(f"robots.txt created: {domain}")
 
     def ensure_theme_installed(self, domain: str, theme: str = "ananke") -> None:
-        """Install Hugo theme if missing.
+        """Install Hugo theme if missing and checkout pinned commit.
 
         Args:
             domain: Domain name for the Hugo site
@@ -480,9 +539,10 @@ class HugoDeployer:
         # Ensure theme directory exists
         _, exit_code = self.ssh.run_command(f"test -d {theme_path}", check=False)
         if exit_code != 0:
-            # Look up theme URL from registry
+            # Look up theme URL and commit from registry
             try:
                 repo_url = self.themes[theme]
+                commit_hash = self.theme_commits[theme]
             except KeyError:
                 available = ", ".join(sorted(self.themes.keys()))
                 raise RuntimeError(
@@ -490,15 +550,74 @@ class HugoDeployer:
                     f"Available themes: {available}"
                 )
 
-            logger.info(f"Installing theme: {theme} from {repo_url}")
+            logger.info(f"Installing theme: {theme} from {repo_url} @ {commit_hash}")
+
+            # Clone and checkout specific commit
             self.ssh.run_command(
                 f"git clone {repo_url} {theme_path}",
+                check=True,
+            )
+            self.ssh.run_command(
+                f"cd {theme_path} && git checkout {commit_hash}",
                 check=True,
             )
         else:
             logger.info(f"Theme directory exists: {theme}")
 
         logger.info(f"Theme ensured: {theme}")
+
+    def upload_theme(self, domain: str, theme: str) -> None:
+        """Upload theme from local storage to remote server.
+
+        Args:
+            domain: Domain name for the Hugo site
+            theme: Theme name (must exist in storage/hugo/themes/)
+
+        Raises:
+            ValueError: If domain is invalid
+            FileNotFoundError: If theme not found in storage
+        """
+        validate_domain(domain)
+
+        theme_storage_path = THEME_STORAGE_DIR / theme
+        if not theme_storage_path.exists():
+            raise FileNotFoundError(f"Theme not found in storage: {theme_storage_path}")
+
+        logger.info(f"Uploading theme {theme} to {domain}")
+
+        remote_themes_dir = f"/var/www/{domain}/themes"
+        self.ssh.run_command(f"mkdir -p {remote_themes_dir}", check=True)
+
+        # Upload theme directory
+        remote_theme_path = f"{remote_themes_dir}/{theme}"
+        self.ssh.upload_directory_rsync(theme_storage_path, remote_theme_path)
+
+        logger.info(f"Theme uploaded: {theme}")
+
+    def apply_theme_overrides(self, domain: str, theme: str) -> None:
+        """Apply theme override files from resources to remote server.
+
+        Args:
+            domain: Domain name for the Hugo site
+            theme: Theme name (must exist in resources/hugo/themes/)
+
+        Raises:
+            ValueError: If domain is invalid
+        """
+        validate_domain(domain)
+
+        theme_resources_path = THEME_RESOURCES_DIR / theme
+        if not theme_resources_path.exists():
+            logger.info(f"No theme overrides found for {theme}")
+            return
+
+        logger.info(f"Applying theme overrides for {theme} to {domain}")
+
+        # Upload to site root (resources contain layouts/ subdirectory)
+        remote_site_root = f"/var/www/{domain}"
+        self.ssh.upload_directory_rsync(theme_resources_path, remote_site_root)
+
+        logger.info(f"Theme overrides applied: {theme}")
 
     def write_hugo_config(self, domain: str, theme: str, title: str) -> None:
         """Write complete hugo.toml configuration (overwrites existing).
@@ -677,11 +796,16 @@ theme = '{theme}'
         slug: str,
         markdown_path: Path,
     ) -> None:
-        """Copy a generated article into Hugo content directory.
+        """Deploy article as Hugo page bundle (leaf bundle).
+
+        Creates page bundle structure:
+            posts/slug/index.md
+
+        This allows bundling images and other resources with content.
 
         Args:
             domain: Domain name for the Hugo site
-            slug: URL slug for the article
+            slug: URL slug for the article (becomes bundle directory name)
             markdown_path: Local path to the markdown file
 
         Raises:
@@ -698,13 +822,23 @@ theme = '{theme}'
         if not markdown_path.exists():
             raise FileNotFoundError(f"Markdown file not found: {markdown_path}")
 
-        logger.info(f"Deploying content file: {domain}/{slug}")
+        logger.info(f"Deploying content file as page bundle: {domain}/{slug}")
 
-        # Upload file to Hugo content directory
-        remote_path = f"/var/www/{domain}/content/posts/{slug}.md"
-        self.ssh.upload_file(markdown_path, remote_path)
+        # Create temporary bundle structure for single file
+        temp_dir = Path(tempfile.mkdtemp(prefix=f"hugo_bundle_{slug}_"))
+        bundle_dir = temp_dir / "posts" / slug
+        bundle_dir.mkdir(parents=True)
+        shutil.copy2(markdown_path, bundle_dir / "index.md")
 
-        logger.info(f"Content file deployed: {slug}")
+        try:
+            # Upload bundle directory to Hugo content folder
+            remote_content_dir = f"/var/www/{domain}/content"
+            self.ssh.upload_directory_rsync(temp_dir, remote_content_dir)
+
+            logger.info(f"Page bundle deployed: {slug}")
+        finally:
+            # Clean up temp directory
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     def deploy_content_directory(
         self,
@@ -713,11 +847,17 @@ theme = '{theme}'
         *,
         delete: bool = False,
     ) -> None:
-        """Bulk upload content directory to Hugo site using rsync.
+        """Bulk upload flat markdown files as Hugo page bundles.
+
+        Converts flat markdown files to page bundle structure:
+            Input:  local_content_dir/{slug}.md
+            Output: /var/www/{domain}/content/posts/{slug}/index.md
+
+        This allows bundling images and other resources with content in the future.
 
         Args:
             domain: Domain name for the Hugo site
-            local_content_dir: Local directory containing markdown files
+            local_content_dir: Local directory containing flat markdown files (*.md)
             delete: If True, delete remote content not present locally (default: False)
 
         Raises:
@@ -728,12 +868,18 @@ theme = '{theme}'
 
         logger.info(f"Deploying content directory to {domain}")
 
-        remote_content_dir = f"/var/www/{domain}/content/posts"
-        self.ssh.upload_directory_rsync(
-            local_content_dir, remote_content_dir, delete=delete
-        )
+        # Convert flat markdown files to bundle structure
+        temp_dir = self._create_temp_bundle_structure(Path(local_content_dir))
 
-        logger.info(f"Content directory deployed: {domain}")
+        try:
+            # Upload bundles to Hugo content directory
+            remote_content_dir = f"/var/www/{domain}/content"
+            self.ssh.upload_directory_rsync(temp_dir, remote_content_dir, delete=delete)
+
+            logger.info(f"Content directory deployed: {domain}")
+        finally:
+            # Clean up temp directory
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     def build_site(self, domain: str) -> None:
         """Run hugo build and output into /public.
@@ -847,11 +993,11 @@ theme = '{theme}'
 
         Steps performed:
         - Initialize Hugo site skeleton (if not already initialized)
-        - Install theme
-        - Write hugo.toml configuration
+        - Upload theme from storage
+        - Apply theme overrides from resources
+        - Write complete hugo.toml configuration
         - Create robots.txt with sitemap link
         - Create internal links partial template
-        - Create single layout override to include internal links
         - Setup pageview tracking
         - Set correct ownership and permissions
 
@@ -869,12 +1015,12 @@ theme = '{theme}'
         title = site_config.get("site_title", domain)
 
         self.ensure_site_initialized(domain)
-        self.ensure_theme_installed(domain, theme)
+        self.upload_theme(domain, theme)
+        self.apply_theme_overrides(domain, theme)
         self.write_hugo_config(domain, theme, title)
         self.ensure_robots_txt(domain)
         self.ensure_internal_links_partial(domain)
-        self.ensure_single_layout_override(domain, theme)
-        self.setup_tracking(domain, theme)
+        self._create_tracking_partial(domain)
         self.ensure_permissions(domain)
 
         # Setup pageview tracking

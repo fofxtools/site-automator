@@ -1,8 +1,32 @@
-[themes]
-ananke        = "https://github.com/theNewDynamic/gohugo-theme-ananke.git"
-beautifulhugo = "https://github.com/halogenica/beautifulhugo.git"
-clarity       = "https://github.com/chipzoller/hugo-clarity.git"
-mainroad      = "https://github.com/Vimux/Mainroad.git"
-paper         = "https://github.com/nanxiaobei/hugo-paper.git"
-papermod      = "https://github.com/adityatelange/hugo-PaperMod.git"
-terminal      = "https://github.com/panr/hugo-theme-terminal.git"
+[themes.ananke]
+url    = "https://github.com/theNewDynamic/gohugo-theme-ananke.git"
+commit = "a5f3dd61ce53879019049d9a2ba8f049abdfee68"
+
+
+[themes.beautifulhugo]
+url    = "https://github.com/halogenica/beautifulhugo.git"
+commit = "beb9bfe3f6bab4d0f1f6bddf9a554b1a7a67cafc"
+
+[themes.clarity]
+url    = "https://github.com/chipzoller/hugo-clarity.git"
+commit = "ea273fa2d87ca56c9b2a62be3b4482df952b5f21"
+
+[themes.mainroad]
+url    = "https://github.com/Vimux/Mainroad.git"
+commit = "13e04b3694ea2d20a68cfbfaea42a8c565079809"
+
+[themes.paper]
+url    = "https://github.com/nanxiaobei/hugo-paper.git"
+commit = "ea99e0f67ff688eb23e1fbbf01c2e6a8788f3a71"
+
+[themes.papermod]
+url    = "https://github.com/adityatelange/hugo-PaperMod.git"
+commit = "3bb0ca281fd17eff8e3489011a444f326d7c4c72"
+
+[themes.stack]
+url    = "https://github.com/CaiJimmy/hugo-theme-stack.git"
+commit = "7f47cdf165cc7524239191008b87818912ab81ff"
+
+[themes.terminal]
+url    = "https://github.com/panr/hugo-theme-terminal.git"
+commit = "5a2b4c0f1fdb9180d525930b2c8f68a90221d245"

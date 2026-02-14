@@ -15,6 +15,7 @@ from site_automator.llm import generate_completion_bulk_clean, get_llm_client
 
 RESERVED_SLUGS = {
     "stats",
+    "pageview-tracking",
 }
 
 logger = logging.getLogger(__name__)
