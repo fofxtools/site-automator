@@ -65,6 +65,9 @@ Host your-server-alias
   HostName 203.0.113.10
   User root
   IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+  ServerAliveInterval 60
+  ServerAliveCountMax 10
 ```
 
 ### Environment Variables

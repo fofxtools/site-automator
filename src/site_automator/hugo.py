@@ -428,9 +428,14 @@ class HugoDeployer:
         self.ssh.run_command(f"mkdir -p {partials_dir}", check=True)
 
         # Pixel before JS - works even if JS fails (bots)
+        # Pass permalink through urlquery to ensure URL is properly encoded
+        # Set trackUrl so track_pageview.js knows where to send tracking data
         partial_content = """<!-- Pageview Tracking -->
-<img src="/pageview-tracking/pixel.php?url={{ .RelPermalink }}"
+<img src="/pageview-tracking/pixel.php?url={{ .RelPermalink | urlquery }}"
   alt="" width="1" height="1" style="display:none;" />
+<script>
+var PVT = {"trackUrl": "/pageview-tracking/track_pageview.php"};
+</script>
 <script src="/pageview-tracking/track_pageview.js" defer></script>
     """
 
@@ -524,8 +529,8 @@ class HugoDeployer:
         )
         logger.info(f"Hugo site initialized: {domain}")
 
-    def ensure_permissions(self, domain: str, user: str = "caddy") -> None:
-        """Ensure correct ownership and permissions.
+    def set_permissions(self, domain: str, user: str = "caddy") -> None:
+        """Set correct ownership and permissions.
 
         Args:
             domain: Domain name for the Hugo site
@@ -535,13 +540,13 @@ class HugoDeployer:
             ValueError: If domain is invalid
         """
         validate_domain(domain)
-        logger.info(f"Ensuring permissions: {domain}")
+        logger.info(f"Setting permissions: {domain}")
         self.ssh.run_command(f"chown -R {user}:{user} /var/www/{domain}", check=True)
         self.ssh.run_command(f"chmod -R 755 /var/www/{domain}", check=True)
         logger.info(f"Permissions set: {domain}")
 
-    def ensure_robots_txt(self, domain: str) -> None:
-        """Ensure a basic robots.txt exists. With link to sitemap.
+    def write_robots_txt(self, domain: str) -> None:
+        """Write robots.txt with link to sitemap.
 
         Args:
             domain: Domain name for the Hugo site
@@ -550,7 +555,7 @@ class HugoDeployer:
             ValueError: If domain is invalid
         """
         validate_domain(domain)
-        logger.info(f"Ensuring robots.txt: {domain}")
+        logger.info(f"Writing robots.txt: {domain}")
         content = f"User-agent: *\nAllow: /\n\nSitemap: https://{domain}/sitemap.xml"
         self.ssh.run_command(
             f"cat > /var/www/{domain}/static/robots.txt << 'EOF'\n{content}\nEOF",
@@ -1115,7 +1120,7 @@ theme = '{theme}'
 
         logger.info(f"Hugo site wiped: {domain}")
 
-    def initial_setup(self, domain: str, theme: str = "ananke") -> None:
+    def initial_setup(self, domain: str, theme: str | None = None) -> None:
         """Perform complete initial Hugo site setup.
 
         This method orchestrates the complete initial setup of a Hugo site,
@@ -1133,25 +1138,31 @@ theme = '{theme}'
 
         Args:
             domain: Domain name of the site
-            theme: Theme name to install (default: ananke)
+            theme: Theme name to install (default: from config or ananke)
 
         Raises:
             RuntimeError: If any setup step fails
         """
         logger.info(f"Starting initial setup for {domain}")
 
-        # Load site config to get title
+        # Load site config to get theme and title
         site_config = load_site_config_by_domain(domain)
+
+        # Get theme from config if not provided
+        resolved_theme: str = (
+            theme if theme is not None else site_config.get("theme", "ananke")
+        )
+
         title = site_config.get("site_title", domain)
 
         self.ensure_site_initialized(domain)
-        self.upload_theme(domain, theme)
-        self.apply_theme_overrides(domain, theme)
-        self.write_hugo_config(domain, theme, title)
-        self.ensure_robots_txt(domain)
+        self.upload_theme(domain, resolved_theme)
+        self.apply_theme_overrides(domain, resolved_theme)
+        self.write_hugo_config(domain, resolved_theme, title)
+        self.write_robots_txt(domain)
         self.ensure_internal_links_partial(domain)
         self._create_tracking_partial(domain)
-        self.ensure_permissions(domain)
+        self.set_permissions(domain)
 
         # Setup pageview tracking
         tracking = PageviewTrackingSetup(self.ssh)

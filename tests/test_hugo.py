@@ -567,7 +567,12 @@ class TestCreateTrackingPartial:
         assert uploaded_content is not None
         assert "pixel.php" in uploaded_content
         assert "track_pageview.js" in uploaded_content
-        assert "{{ .RelPermalink }}" in uploaded_content
+        assert "{{ .RelPermalink | urlquery }}" in uploaded_content
+        assert (
+            'var PVT = {"trackUrl": "/pageview-tracking/track_pageview.php"};'
+            in uploaded_content
+        )
+        assert "<script>" in uploaded_content
 
 
 class TestCreateBaseofWithTracking:
@@ -728,24 +733,6 @@ class TestCreateBaseofWithTracking:
         )
 
 
-class TestSetupTracking:
-    """Test setup_tracking method."""
-
-    def test_calls_both_setup_methods(self):
-        """Test that setup_tracking calls both _create_tracking_partial and _create_baseof_with_tracking."""
-        mock_ssh = Mock()
-        hugo = HugoDeployer(mock_ssh)
-
-        with (
-            patch.object(hugo, "_create_tracking_partial") as mock_create_partial,
-            patch.object(hugo, "_create_baseof_with_tracking") as mock_create_baseof,
-        ):
-            hugo.setup_tracking("example.com", "ananke")
-
-            mock_create_partial.assert_called_once_with("example.com")
-            mock_create_baseof.assert_called_once_with("example.com", "ananke")
-
-
 class TestCheckHugoInstalled:
     """Test check_hugo_installed method."""
 
@@ -803,8 +790,8 @@ class TestEnsureSiteInitialized:
         assert mock_ssh.run_command.call_count == 3
 
 
-class TestEnsurePermissions:
-    """Test ensure_permissions method."""
+class TestSetPermissions:
+    """Test set_permissions method."""
 
     def test_validates_domain(self):
         """Test that domain is validated."""
@@ -812,7 +799,7 @@ class TestEnsurePermissions:
         hugo = HugoDeployer(mock_ssh)
 
         with pytest.raises(ValueError, match="Invalid domain"):
-            hugo.ensure_permissions("invalid/domain")
+            hugo.set_permissions("invalid/domain")
 
     def test_sets_permissions_with_default_user(self):
         """Test that permissions are set with default caddy user."""
@@ -820,7 +807,7 @@ class TestEnsurePermissions:
         mock_ssh.run_command.return_value = ("", 0)
 
         hugo = HugoDeployer(mock_ssh)
-        hugo.ensure_permissions("example.com")
+        hugo.set_permissions("example.com")
 
         calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
         assert any("chown -R caddy:caddy" in c for c in calls)
@@ -832,7 +819,7 @@ class TestEnsurePermissions:
         mock_ssh.run_command.return_value = ("", 0)
 
         hugo = HugoDeployer(mock_ssh)
-        hugo.ensure_permissions("example.com", user="www-data")
+        hugo.set_permissions("example.com", user="www-data")
 
         calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
         assert any("chown -R www-data:www-data" in c for c in calls)
@@ -894,8 +881,8 @@ class TestWriteHugoConfig:
         assert not mock_ssh.run_command.called
 
 
-class TestEnsureRobotsTxt:
-    """Test ensure_robots_txt method."""
+class TestWriteRobotsTxt:
+    """Test write_robots_txt method."""
 
     def test_validates_domain(self):
         """Test that domain is validated."""
@@ -903,7 +890,7 @@ class TestEnsureRobotsTxt:
         hugo = HugoDeployer(mock_ssh)
 
         with pytest.raises(ValueError, match="Invalid domain"):
-            hugo.ensure_robots_txt("invalid/domain")
+            hugo.write_robots_txt("invalid/domain")
 
     def test_creates_robots_txt(self):
         """Test that robots.txt is created with correct content."""
@@ -911,7 +898,7 @@ class TestEnsureRobotsTxt:
         mock_ssh.run_command.return_value = ("", 0)
 
         hugo = HugoDeployer(mock_ssh)
-        hugo.ensure_robots_txt("example.com")
+        hugo.write_robots_txt("example.com")
 
         calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
         assert len(calls) == 1
@@ -1518,6 +1505,206 @@ class TestEnsureSingleLayoutOverride:
         ), f"Partial at {partial_pos} should be before </main> at {main_close_pos}"
 
 
+class TestSetupTracking:
+    """Test setup_tracking method."""
+
+    def test_calls_both_setup_methods(self):
+        """Test that setup_tracking calls both _create_tracking_partial and _create_baseof_with_tracking."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        with (
+            patch.object(hugo, "_create_tracking_partial") as mock_create_partial,
+            patch.object(hugo, "_create_baseof_with_tracking") as mock_create_baseof,
+        ):
+            hugo.setup_tracking("example.com", "ananke")
+
+            mock_create_partial.assert_called_once_with("example.com")
+            mock_create_baseof.assert_called_once_with("example.com", "ananke")
+
+
+class TestSymlinkSharedImage:
+    """Test symlink_shared_image method."""
+
+    def test_validates_domain(self):
+        """Test that domain is validated."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        with pytest.raises(ValueError, match="Invalid domain"):
+            hugo.symlink_shared_image("invalid/domain", "test.jpg")
+
+    def test_creates_symlink_with_default_shared_path(self, monkeypatch):
+        """Test that symlink is created with default SHARED_IMAGES_PATH."""
+        # Ensure env var is not set to force default value
+        monkeypatch.delenv("SHARED_IMAGES_PATH", raising=False)
+
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        hugo.symlink_shared_image("example.com", "cover.jpg")
+
+        # Verify mkdir was called
+        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
+        assert any('mkdir -p "/var/www/example.com/static/images"' in c for c in calls)
+
+        # Verify symlink was created with default path
+        assert any(
+            'ln -sfn "/var/www/shared/images/cover.jpg" "/var/www/example.com/static/images/cover.jpg"'
+            in c
+            for c in calls
+        )
+
+    def test_creates_symlink_with_custom_shared_path(self, monkeypatch):
+        """Test that symlink is created with custom SHARED_IMAGES_PATH from env."""
+        monkeypatch.setenv("SHARED_IMAGES_PATH", "/custom/images")
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        hugo.symlink_shared_image("example.com", "photo.jpg")
+
+        # Verify symlink uses custom path
+        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
+        assert any(
+            'ln -sfn "/custom/images/photo.jpg" "/var/www/example.com/static/images/photo.jpg"'
+            in c
+            for c in calls
+        )
+
+
+class TestSetFeaturedImageLocal:
+    """Test set_featured_image_local method."""
+
+    def test_validates_slug(self, tmp_path):
+        """Test that slug is validated."""
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        with pytest.raises(ValueError, match="Invalid slug"):
+            hugo.set_featured_image_local(
+                "test_site", "Invalid/Slug", "ananke", "/images/test.jpg"
+            )
+
+    def test_raises_error_when_markdown_not_found(self, tmp_path, monkeypatch):
+        """Test that FileNotFoundError is raised when markdown file doesn't exist."""
+        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        with pytest.raises(FileNotFoundError, match="Markdown file not found"):
+            hugo.set_featured_image_local(
+                "test_site", "test-slug", "ananke", "/images/test.jpg"
+            )
+
+    def test_raises_when_theme_not_in_map(self, tmp_path, monkeypatch):
+        """Test that method raises RuntimeError when theme is not in THEME_FEATURED_IMAGE_MAP."""
+        # Create markdown file
+        content_dir = tmp_path / "test_site" / "articles" / "markdown"
+        content_dir.mkdir(parents=True)
+        markdown_file = content_dir / "test-slug.md"
+        markdown_file.write_text("---\ntitle: Test\n---\n\nContent")
+
+        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        # Should raise RuntimeError with helpful message
+        with pytest.raises(RuntimeError, match="does not support featured images"):
+            hugo.set_featured_image_local(
+                "test_site", "test-slug", "unknown-theme", "/images/test.jpg"
+            )
+
+        # File should not be modified
+        assert markdown_file.read_text() == "---\ntitle: Test\n---\n\nContent"
+
+    def test_sets_featured_image_for_ananke_theme(self, tmp_path, monkeypatch):
+        """Test that featured image is set correctly for ananke theme."""
+        # Create markdown file
+        content_dir = tmp_path / "test_site" / "articles" / "markdown"
+        content_dir.mkdir(parents=True)
+        markdown_file = content_dir / "test-slug.md"
+        markdown_file.write_text("---\ntitle: Test Article\n---\n\nContent here")
+
+        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        hugo.set_featured_image_local(
+            "test_site", "test-slug", "ananke", "/images/cover.jpg"
+        )
+
+        # Verify frontmatter was updated
+        content = markdown_file.read_text()
+        assert "featured_image: /images/cover.jpg" in content
+        assert "title: Test Article" in content
+        assert "Content here" in content
+
+    def test_sets_featured_image_for_papermod_theme(self, tmp_path, monkeypatch):
+        """Test that featured image is set correctly for papermod theme with nested structure."""
+        # Create markdown file
+        content_dir = tmp_path / "test_site" / "articles" / "markdown"
+        content_dir.mkdir(parents=True)
+        markdown_file = content_dir / "test-slug.md"
+        markdown_file.write_text("---\ntitle: Test Article\n---\n\nContent here")
+
+        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        hugo.set_featured_image_local(
+            "test_site", "test-slug", "papermod", "/images/cover.jpg"
+        )
+
+        # Verify nested frontmatter was updated
+        content = markdown_file.read_text()
+        assert "cover:" in content
+        assert "image: /images/cover.jpg" in content
+        assert "title: Test Article" in content
+
+    def test_sets_featured_image_for_clarity_theme(self, tmp_path, monkeypatch):
+        """Test that featured image is set correctly for clarity theme with multiple fields."""
+        # Create markdown file
+        content_dir = tmp_path / "test_site" / "articles" / "markdown"
+        content_dir.mkdir(parents=True)
+        markdown_file = content_dir / "test-slug.md"
+        markdown_file.write_text("---\ntitle: Test Article\n---\n\nContent here")
+
+        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        hugo.set_featured_image_local(
+            "test_site", "test-slug", "clarity", "/images/cover.jpg"
+        )
+
+        # Verify BOTH fields are set to same value
+        content = markdown_file.read_text()
+        assert "featureImage: /images/cover.jpg" in content
+        assert "thumbnail: /images/cover.jpg" in content
+        assert "title: Test Article" in content
+        assert "Content here" in content
+
+    def test_idempotent_does_not_modify_if_already_set(self, tmp_path, monkeypatch):
+        """Test that method is idempotent and doesn't modify file if already set."""
+        # Create markdown file with featured image already set
+        content_dir = tmp_path / "test_site" / "articles" / "markdown"
+        content_dir.mkdir(parents=True)
+        markdown_file = content_dir / "test-slug.md"
+        original_content = "---\nfeatured_image: /images/cover.jpg\ntitle: Test Article\n---\n\nContent here"
+        markdown_file.write_text(original_content)
+
+        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
+        mock_ssh = Mock()
+        hugo = HugoDeployer(mock_ssh)
+
+        hugo.set_featured_image_local(
+            "test_site", "test-slug", "ananke", "/images/cover.jpg"
+        )
+
+        # File should not be modified (content should be identical)
+        assert markdown_file.read_text() == original_content
+
+
 class TestDeployContentFile:
     """Test deploy_content_file method."""
 
@@ -1905,10 +2092,10 @@ class TestInitialSetup:
             patch.object(hugo, "upload_theme") as mock_upload_theme,
             patch.object(hugo, "apply_theme_overrides") as mock_apply_overrides,
             patch.object(hugo, "write_hugo_config") as mock_write_config,
-            patch.object(hugo, "ensure_robots_txt") as mock_robots,
+            patch.object(hugo, "write_robots_txt") as mock_robots,
             patch.object(hugo, "ensure_internal_links_partial") as mock_links,
             patch.object(hugo, "_create_tracking_partial") as mock_tracking_partial,
-            patch.object(hugo, "ensure_permissions") as mock_perms,
+            patch.object(hugo, "set_permissions") as mock_perms,
         ):
 
             # Call initial_setup
@@ -1931,184 +2118,102 @@ class TestInitialSetup:
             mock_tracking_class.assert_called_once_with(mock_ssh)
             mock_tracking.setup_tracking_hugo.assert_called_once_with("example.com")
 
-
-class TestSymlinkSharedImage:
-    """Test symlink_shared_image method."""
-
-    def test_validates_domain(self):
-        """Test that domain is validated."""
-        mock_ssh = Mock()
-        hugo = HugoDeployer(mock_ssh)
-
-        with pytest.raises(ValueError, match="Invalid domain"):
-            hugo.symlink_shared_image("invalid/domain", "test.jpg")
-
-    def test_creates_symlink_with_default_shared_path(self, monkeypatch):
-        """Test that symlink is created with default SHARED_IMAGES_PATH."""
-        # Ensure env var is not set to force default value
-        monkeypatch.delenv("SHARED_IMAGES_PATH", raising=False)
+    @patch("site_automator.hugo.PageviewTrackingSetup")
+    @patch("site_automator.hugo.load_site_config_by_domain")
+    def test_uses_theme_from_config_when_not_provided(
+        self, mock_load_config, mock_tracking_setup
+    ):
+        """Test that initial_setup reads theme from config if not provided."""
+        # Setup mock config with theme=papermod
+        mock_load_config.return_value = {
+            "theme": "papermod",
+            "site_title": "Test Site",
+        }
 
         mock_ssh = Mock()
+        mock_ssh.run_command.return_value = ("", 0)
         hugo = HugoDeployer(mock_ssh)
 
-        hugo.symlink_shared_image("example.com", "cover.jpg")
+        # Mock all the methods that initial_setup calls
+        with (
+            patch.object(hugo, "ensure_site_initialized"),
+            patch.object(hugo, "upload_theme"),
+            patch.object(hugo, "apply_theme_overrides"),
+            patch.object(hugo, "write_hugo_config") as mock_write_config,
+            patch.object(hugo, "write_robots_txt"),
+            patch.object(hugo, "ensure_internal_links_partial"),
+            patch.object(hugo, "_create_tracking_partial"),
+            patch.object(hugo, "set_permissions"),
+        ):
+            # Call without theme parameter
+            hugo.initial_setup("example.com")
 
-        # Verify mkdir was called
-        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
-        assert any('mkdir -p "/var/www/example.com/static/images"' in c for c in calls)
-
-        # Verify symlink was created with default path
-        assert any(
-            'ln -sfn "/var/www/shared/images/cover.jpg" "/var/www/example.com/static/images/cover.jpg"'
-            in c
-            for c in calls
+        # Verify write_hugo_config was called with theme from config
+        mock_write_config.assert_called_once_with(
+            "example.com", "papermod", "Test Site"
         )
 
-    def test_creates_symlink_with_custom_shared_path(self, monkeypatch):
-        """Test that symlink is created with custom SHARED_IMAGES_PATH from env."""
-        monkeypatch.setenv("SHARED_IMAGES_PATH", "/custom/images")
+    @patch("site_automator.hugo.PageviewTrackingSetup")
+    @patch("site_automator.hugo.load_site_config_by_domain")
+    def test_explicit_theme_overrides_config(
+        self, mock_load_config, mock_tracking_setup
+    ):
+        """Test that explicit theme parameter overrides config."""
+        # Setup mock config with theme=papermod
+        mock_load_config.return_value = {
+            "theme": "papermod",
+            "site_title": "Test Site",
+        }
+
         mock_ssh = Mock()
+        mock_ssh.run_command.return_value = ("", 0)
         hugo = HugoDeployer(mock_ssh)
 
-        hugo.symlink_shared_image("example.com", "photo.jpg")
+        # Mock all the methods that initial_setup calls
+        with (
+            patch.object(hugo, "ensure_site_initialized"),
+            patch.object(hugo, "upload_theme"),
+            patch.object(hugo, "apply_theme_overrides"),
+            patch.object(hugo, "write_hugo_config") as mock_write_config,
+            patch.object(hugo, "write_robots_txt"),
+            patch.object(hugo, "ensure_internal_links_partial"),
+            patch.object(hugo, "_create_tracking_partial"),
+            patch.object(hugo, "set_permissions"),
+        ):
+            # Call with explicit theme
+            hugo.initial_setup("example.com", theme="ananke")
 
-        # Verify symlink uses custom path
-        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
-        assert any(
-            'ln -sfn "/custom/images/photo.jpg" "/var/www/example.com/static/images/photo.jpg"'
-            in c
-            for c in calls
-        )
+        # Verify write_hugo_config was called with explicit theme, not config theme
+        mock_write_config.assert_called_once_with("example.com", "ananke", "Test Site")
 
+    @patch("site_automator.hugo.PageviewTrackingSetup")
+    @patch("site_automator.hugo.load_site_config_by_domain")
+    def test_uses_ananke_default_when_no_theme_in_config(
+        self, mock_load_config, mock_tracking_setup
+    ):
+        """Test that ananke is used as default when theme not in config."""
+        # Setup mock config without theme field
+        mock_load_config.return_value = {
+            "site_title": "Test Site",
+        }
 
-class TestSetFeaturedImageLocal:
-    """Test set_featured_image_local method."""
-
-    def test_validates_slug(self, tmp_path):
-        """Test that slug is validated."""
         mock_ssh = Mock()
+        mock_ssh.run_command.return_value = ("", 0)
         hugo = HugoDeployer(mock_ssh)
 
-        with pytest.raises(ValueError, match="Invalid slug"):
-            hugo.set_featured_image_local(
-                "test_site", "Invalid/Slug", "ananke", "/images/test.jpg"
-            )
+        # Mock all the methods that initial_setup calls
+        with (
+            patch.object(hugo, "ensure_site_initialized"),
+            patch.object(hugo, "upload_theme"),
+            patch.object(hugo, "apply_theme_overrides"),
+            patch.object(hugo, "write_hugo_config") as mock_write_config,
+            patch.object(hugo, "write_robots_txt"),
+            patch.object(hugo, "ensure_internal_links_partial"),
+            patch.object(hugo, "_create_tracking_partial"),
+            patch.object(hugo, "set_permissions"),
+        ):
+            # Call without theme parameter
+            hugo.initial_setup("example.com")
 
-    def test_raises_error_when_markdown_not_found(self, tmp_path, monkeypatch):
-        """Test that FileNotFoundError is raised when markdown file doesn't exist."""
-        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
-        mock_ssh = Mock()
-        hugo = HugoDeployer(mock_ssh)
-
-        with pytest.raises(FileNotFoundError, match="Markdown file not found"):
-            hugo.set_featured_image_local(
-                "test_site", "test-slug", "ananke", "/images/test.jpg"
-            )
-
-    def test_raises_when_theme_not_in_map(self, tmp_path, monkeypatch):
-        """Test that method raises RuntimeError when theme is not in THEME_FEATURED_IMAGE_MAP."""
-        # Create markdown file
-        content_dir = tmp_path / "test_site" / "articles" / "markdown"
-        content_dir.mkdir(parents=True)
-        markdown_file = content_dir / "test-slug.md"
-        markdown_file.write_text("---\ntitle: Test\n---\n\nContent")
-
-        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
-        mock_ssh = Mock()
-        hugo = HugoDeployer(mock_ssh)
-
-        # Should raise RuntimeError with helpful message
-        with pytest.raises(RuntimeError, match="does not support featured images"):
-            hugo.set_featured_image_local(
-                "test_site", "test-slug", "unknown-theme", "/images/test.jpg"
-            )
-
-        # File should not be modified
-        assert markdown_file.read_text() == "---\ntitle: Test\n---\n\nContent"
-
-    def test_sets_featured_image_for_ananke_theme(self, tmp_path, monkeypatch):
-        """Test that featured image is set correctly for ananke theme."""
-        # Create markdown file
-        content_dir = tmp_path / "test_site" / "articles" / "markdown"
-        content_dir.mkdir(parents=True)
-        markdown_file = content_dir / "test-slug.md"
-        markdown_file.write_text("---\ntitle: Test Article\n---\n\nContent here")
-
-        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
-        mock_ssh = Mock()
-        hugo = HugoDeployer(mock_ssh)
-
-        hugo.set_featured_image_local(
-            "test_site", "test-slug", "ananke", "/images/cover.jpg"
-        )
-
-        # Verify frontmatter was updated
-        content = markdown_file.read_text()
-        assert "featured_image: /images/cover.jpg" in content
-        assert "title: Test Article" in content
-        assert "Content here" in content
-
-    def test_sets_featured_image_for_papermod_theme(self, tmp_path, monkeypatch):
-        """Test that featured image is set correctly for papermod theme with nested structure."""
-        # Create markdown file
-        content_dir = tmp_path / "test_site" / "articles" / "markdown"
-        content_dir.mkdir(parents=True)
-        markdown_file = content_dir / "test-slug.md"
-        markdown_file.write_text("---\ntitle: Test Article\n---\n\nContent here")
-
-        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
-        mock_ssh = Mock()
-        hugo = HugoDeployer(mock_ssh)
-
-        hugo.set_featured_image_local(
-            "test_site", "test-slug", "papermod", "/images/cover.jpg"
-        )
-
-        # Verify nested frontmatter was updated
-        content = markdown_file.read_text()
-        assert "cover:" in content
-        assert "image: /images/cover.jpg" in content
-        assert "title: Test Article" in content
-
-    def test_sets_featured_image_for_clarity_theme(self, tmp_path, monkeypatch):
-        """Test that featured image is set correctly for clarity theme with multiple fields."""
-        # Create markdown file
-        content_dir = tmp_path / "test_site" / "articles" / "markdown"
-        content_dir.mkdir(parents=True)
-        markdown_file = content_dir / "test-slug.md"
-        markdown_file.write_text("---\ntitle: Test Article\n---\n\nContent here")
-
-        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
-        mock_ssh = Mock()
-        hugo = HugoDeployer(mock_ssh)
-
-        hugo.set_featured_image_local(
-            "test_site", "test-slug", "clarity", "/images/cover.jpg"
-        )
-
-        # Verify BOTH fields are set to same value
-        content = markdown_file.read_text()
-        assert "featureImage: /images/cover.jpg" in content
-        assert "thumbnail: /images/cover.jpg" in content
-        assert "title: Test Article" in content
-        assert "Content here" in content
-
-    def test_idempotent_does_not_modify_if_already_set(self, tmp_path, monkeypatch):
-        """Test that method is idempotent and doesn't modify file if already set."""
-        # Create markdown file with featured image already set
-        content_dir = tmp_path / "test_site" / "articles" / "markdown"
-        content_dir.mkdir(parents=True)
-        markdown_file = content_dir / "test-slug.md"
-        original_content = "---\nfeatured_image: /images/cover.jpg\ntitle: Test Article\n---\n\nContent here"
-        markdown_file.write_text(original_content)
-
-        monkeypatch.setenv("SITES_CONTENT_PATH", str(tmp_path))
-        mock_ssh = Mock()
-        hugo = HugoDeployer(mock_ssh)
-
-        hugo.set_featured_image_local(
-            "test_site", "test-slug", "ananke", "/images/cover.jpg"
-        )
-
-        # File should not be modified (content should be identical)
-        assert markdown_file.read_text() == original_content
+        # Verify write_hugo_config was called with default ananke theme
+        mock_write_config.assert_called_once_with("example.com", "ananke", "Test Site")

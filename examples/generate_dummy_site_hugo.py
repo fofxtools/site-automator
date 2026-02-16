@@ -18,6 +18,7 @@ from faker import Faker
 
 from site_automator.sites import load_site_config
 from site_automator.ssh import SSHConnection
+from site_automator.caddy import CaddyProvisioner
 from site_automator.hugo import HugoDeployer
 from site_automator.utils import configure_logging
 
@@ -172,17 +173,19 @@ def main() -> None:
     server = site["server"]
     theme = site.get("theme", "ananke")
 
-    ssh = SSHConnection(host=server)
-    hugo = HugoDeployer(ssh)
+    caddy = CaddyProvisioner(host=server)
+    hugo = HugoDeployer(caddy.ssh)
 
     try:
+        caddy.enable_domain(domain)
+
         # Wipe and initialize Hugo site
         hugo.check_hugo_installed()
         hugo.wipe_site(domain, confirm=True, exclude_dirs=["public/stats"])
-        hugo.initial_setup(domain, theme=theme)
+        hugo.initial_setup(domain)
 
         # Download picsum images to shared directory
-        available_images = download_picsum_images(ssh)
+        available_images = download_picsum_images(caddy.ssh)
 
         # Generate and deploy content with featured images
         count = 20
@@ -191,9 +194,9 @@ def main() -> None:
         )
 
         # Build site (robots.txt must exist in /static/ before build)
-        hugo.ensure_robots_txt(domain)
+        hugo.write_robots_txt(domain)
         hugo.build_site(domain)
-        hugo.ensure_permissions(domain)
+        hugo.set_permissions(domain)
 
         # Success message
         print("\n" + "=" * 60)
@@ -204,7 +207,7 @@ def main() -> None:
         print("=" * 60 + "\n")
 
     finally:
-        ssh.close()
+        caddy.close()
 
 
 if __name__ == "__main__":

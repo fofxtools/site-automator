@@ -125,7 +125,7 @@ class TestGenerateConfig:
         config = caddy._generate_config("test.com")
 
         assert "roll_size 100MiB" in config
-        assert "roll_keep 20" in config
+        assert "roll_keep 10" in config
         assert "roll_keep_for 87600h" in config
 
 
@@ -296,6 +296,21 @@ class TestEnableDomain:
         assert len(symlink_call) == 1
         assert "/etc/caddy/sites-available/test.com.caddy" in symlink_call[0]
         assert "/etc/caddy/sites-enabled/test.com.caddy" in symlink_call[0]
+
+    @patch("site_automator.caddy.SSHConnection")
+    def test_precreates_log_file_with_permissions(self, mock_ssh_connection):
+        """Test that log file is pre-created with correct ownership and permissions."""
+        mock_ssh = Mock()
+        mock_ssh.run_command.return_value = ("", 0)
+        mock_ssh_connection.return_value = mock_ssh
+
+        caddy = CaddyProvisioner(host="example.com")
+        caddy.enable_domain("test.com")
+
+        calls = [call[0][0] for call in mock_ssh.run_command.call_args_list]
+        assert "touch /var/log/caddy/test.com-access.log" in calls
+        assert "chown caddy:caddy /var/log/caddy/test.com-access.log" in calls
+        assert "chmod 644 /var/log/caddy/test.com-access.log" in calls
 
     @patch("site_automator.caddy.SSHConnection")
     def test_validates_and_reloads(self, mock_ssh_connection):

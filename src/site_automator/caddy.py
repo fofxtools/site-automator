@@ -75,7 +75,7 @@ class CaddyProvisioner:
     log {{
         output file /var/log/caddy/{domain}-access.log {{
             roll_size 100MiB
-            roll_keep 20
+            roll_keep 10
             roll_keep_for 87600h
         }}
         format json
@@ -171,6 +171,12 @@ class CaddyProvisioner:
             f"ln -sf /etc/caddy/sites-available/{domain}.caddy /etc/caddy/sites-enabled/{domain}.caddy",
             check=True,
         )
+
+        # Pre-create log file with correct permissions (prevents root from creating it)
+        log_file = f"/var/log/caddy/{domain}-access.log"
+        self.ssh.run_command(f"touch {log_file}", check=True)
+        self.ssh.run_command(f"chown caddy:caddy {log_file}", check=True)
+        self.ssh.run_command(f"chmod 644 {log_file}", check=True)
 
         # Validate and reload
         self.reload_caddy()

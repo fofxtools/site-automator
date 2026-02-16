@@ -24,7 +24,7 @@
  *   - bing_ip_ranges.php
  *
  * To generate the whois.arin.net-rest-nets-q-{company}.json files, run:
- *   - convert_arin_xml_to_cidr.php
+ *   - convert_arin_xml_to_json.php
  */
 
 /* ─────────────────────────────

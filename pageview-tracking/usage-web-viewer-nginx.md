@@ -56,7 +56,7 @@ sudo systemctl reload nginx
 Substitute `{server}` with the server IP address and `{domain}` with the domain:
 
 ```bash
-rsync -av pageview-tracking/php/{index.php,day.php,views.php} root@{server}:/var/www/{domain}/htdocs/stats/
+rsync -avz pageview-tracking/php/{index.php,day.php,views.php} root@{server}:/var/www/{domain}/htdocs/stats/
 ```
 
 Visit: https://{domain}/stats/

@@ -69,7 +69,7 @@ def main() -> None:
         f"PROJECT_PATH=/path/to/site-automator\n"
         f"VENV_PYTHON=/path/to/site-automator/.venv/bin/python\n\n"
         f"# {args.site_id}\n"
-        f'0 0 * * * flock -n /tmp/{args.site_id}_hugo.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_hugo.py --site-id {args.site_id}"\n'
+        f'0 0 * * * flock -n /tmp/{args.site_id}_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_hugo.py --site-id {args.site_id}"\n'
     )
 
 

@@ -28,7 +28,7 @@ Process the downloaded data. From project root:
 
 ```bash
 cd pageview-tracking/php
-php convert_arin_xml_to_cidr.php
+php convert_arin_xml_to_json.php
 php generate_bot_ip_arrays.php
 ```
 

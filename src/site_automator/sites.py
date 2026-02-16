@@ -77,6 +77,11 @@ def load_site_config_by_domain(domain: str) -> dict[str, Any]:
 
 
 def _normalize_site_row(row: dict[str, str]) -> dict[str, Any]:
+    """Normalize site config row.
+
+    - Convert integer fields to int
+    - Convert boolean fields to bool
+    """
     normalized: dict[str, Any] = dict(row)
 
     for field in CSV_INTEGER_HEADERS:

@@ -101,12 +101,14 @@ def setup_site_hugo(
     site = load_site_config(site_id)
     domain = site["domain"]
     server = site["server"]
-    theme = site.get("theme", "ananke")
 
     logger.info(f"Setting up Hugo site: {site_id} ({domain})")
 
     caddy = CaddyProvisioner(host=server)
     try:
+        # Flush DNS cache to prevent stale records from blocking SSL
+        caddy.ssh.run_command("resolvectl flush-caches", check=False)
+
         # Provision domain with Caddy
         caddy.enable_domain(domain)
 
@@ -133,7 +135,7 @@ def setup_site_hugo(
         generate_articles_llm(site_id, add_hugo_frontmatter=True)
 
         logger.info("Configuring Hugo site")
-        hugo.initial_setup(domain, theme)
+        hugo.initial_setup(domain)
 
         logger.info(f"Site setup complete: {site_id}")
 

@@ -1,6 +1,6 @@
-# Example crontab entries for daily WordPress article creation and publishing
+# Example crontab entries for daily article creation and publishing
 # Each site runs independently at staggered times to avoid server load spikes
-# Creation and publishing run as separate jobs with flock to prevent overlaps
+# For WordPress, creation and publishing run as separate jobs with flock to prevent overlaps
 #
 # Logging: Set LOG_FILE in .env to enable file logging
 # Example: LOG_FILE=/path/to/site-automator/logs/publish.log
@@ -20,6 +20,8 @@ VENV_PYTHON=/path/to/site-automator/.venv/bin/python
 # Format: minute hour day month day_of_week command
 # flock -n prevents overlaps if previous job is still running
 
+# === WordPress Sites ===
+
 # Site 1 (site1_id) - Create drafts
 0 0 * * * flock -n /tmp/site1_id_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id site1_id"
 # Site 1 (site1_id) - Publish existing drafts
@@ -30,12 +32,7 @@ VENV_PYTHON=/path/to/site-automator/.venv/bin/python
 # Site 2 (site2_id) - Publish existing drafts
 0 3 * * * flock -n /tmp/site2_id_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id site2_id"
 
-# Site 3 (site3_id) - Create drafts
-0 4 * * * flock -n /tmp/site3_id_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id site3_id"
-# Site 3 (site3_id) - Publish existing drafts
-0 5 * * * flock -n /tmp/site3_id_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id site3_id"
+# === Hugo Sites ===
 
-# Site 4 (site4_id) - Create drafts
-0 6 * * * flock -n /tmp/site4_id_create.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/create_daily_wordpress.py --site-id site4_id"
-# Site 4 (site4_id) - Publish existing drafts
-0 7 * * * flock -n /tmp/site4_id_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_wordpress.py --site-id site4_id"
+# Site 3 (site3_id) - Publish articles
+0 4 * * * flock -n /tmp/site3_id_publish.lock -c "cd $PROJECT_PATH && $VENV_PYTHON scripts/publish_daily_hugo.py --site-id site3_id"

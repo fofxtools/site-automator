@@ -293,6 +293,10 @@ class TestSetupSiteHugo:
 
         # Verify Caddy setup
         mock_caddy_class.assert_called_once_with(host="test-server")
+
+        # Verify DNS cache flush
+        mock_ssh.run_command.assert_any_call("resolvectl flush-caches", check=False)
+
         mock_caddy.enable_domain.assert_called_once_with("example.com")
         mock_hugo.check_hugo_installed.assert_called_once()
 
@@ -304,7 +308,7 @@ class TestSetupSiteHugo:
         mock_gen_articles.assert_called_once_with("site1", add_hugo_frontmatter=True)
 
         # Verify initial setup
-        mock_hugo.initial_setup.assert_called_once_with("example.com", "ananke")
+        mock_hugo.initial_setup.assert_called_once_with("example.com")
 
         # Verify cleanup
         mock_caddy.close.assert_called_once()
@@ -342,6 +346,9 @@ class TestSetupSiteHugo:
         # Execute with wipe=True
         with patch.dict("os.environ", {"SITES_CONFIG_PATH": str(csv_path)}):
             setup_site_hugo("site1", wipe=True)
+
+        # Verify DNS cache flush
+        mock_ssh.run_command.assert_any_call("resolvectl flush-caches", check=False)
 
         # Verify wipe is called BEFORE initial_setup
         call_order = []

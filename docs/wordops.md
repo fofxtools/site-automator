@@ -32,6 +32,9 @@ Host your-server-alias
   HostName 123.45.67.89
   User root
   IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+  ServerAliveInterval 60
+  ServerAliveCountMax 10
 ```
 
 Add the server to your site configuration in `sites.csv`:
@@ -136,6 +139,9 @@ wordops.ssh.ensure_git_safe_directory()
 
 ```python
 from site_automator.wordops import WordOpsProvisioner
+from site_automator.utils import configure_logging
+
+configure_logging()
 
 wordops = WordOpsProvisioner(host="your-server-alias")
 

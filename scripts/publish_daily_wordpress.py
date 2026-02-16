@@ -11,7 +11,10 @@ import sys
 
 from site_automator.utils import configure_logging
 from site_automator.sites import load_site_config
-from site_automator.publisher import publish_posts_wordpress, _count_posts_published_today
+from site_automator.publisher import (
+    publish_posts_wordpress,
+    _count_posts_published_today,
+)
 from site_automator.wordops import WordOpsProvisioner
 from site_automator.wordpress import WordPressDeployer
 

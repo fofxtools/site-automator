@@ -24,7 +24,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from site_automator.hugo import HugoDeployer
 
-
 # Define which files to extract per theme
 THEME_OVERRIDES = {
     "ananke": [
@@ -218,7 +217,9 @@ def main() -> None:
 
     # Extract each theme
     for theme in themes:
-        extract_theme_overrides(theme, storage_dir, resources_dir, args.force, args.inject)
+        extract_theme_overrides(
+            theme, storage_dir, resources_dir, args.force, args.inject
+        )
 
     print("\n" + "=" * 80)
     print("EXTRACTION COMPLETE")

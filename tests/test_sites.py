@@ -8,6 +8,7 @@ from site_automator.sites import (
     load_all_sites,
     load_site_config,
     load_site_config_by_domain,
+    _normalize_site_row,
     initialize_site,
 )
 
@@ -92,6 +93,25 @@ class TestLoadSiteConfigByDomain:
         with patch.dict("os.environ", {"SITES_CONFIG_PATH": path}):
             with pytest.raises(ValueError, match="domain not found"):
                 load_site_config_by_domain("nonexistent.com")
+
+
+class TestNormalizeSiteRow:
+    def test_converts_integer_fields(self):
+        row = {"pages_per_site": "10", "posts_per_day": "2"}
+        normalized = _normalize_site_row(row)
+        assert normalized["pages_per_site"] == 10
+        assert normalized["posts_per_day"] == 2
+
+    def test_converts_boolean_fields(self):
+        row = {"llm_batch_mode": "true"}
+        normalized = _normalize_site_row(row)
+        assert normalized["llm_batch_mode"] is True
+
+    def test_preserves_string_fields(self):
+        row = {"site_id": "site1", "domain": "example.com"}
+        normalized = _normalize_site_row(row)
+        assert normalized["site_id"] == "site1"
+        assert normalized["domain"] == "example.com"
 
 
 class TestInitializeSite:

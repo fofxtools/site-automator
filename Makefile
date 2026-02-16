@@ -1,10 +1,10 @@
 .PHONY: fmt lint check black ruff
 
 fmt:
-	black src/ tests/ examples/
+	black src/ tests/ examples/ scripts/
 
 lint:
-	ruff check src/ tests/ examples/
+	ruff check src/ tests/ examples/ scripts/
 
 check: fmt lint
 black: fmt
