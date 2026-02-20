@@ -15,7 +15,7 @@ from faker import Faker
 import requests
 
 from site_automator.sites import load_site_config
-from site_automator.utils import configure_logging
+from site_automator.utils import configure_logging, is_local_domain
 from site_automator.wordops import WordOpsProvisioner
 from site_automator.wordpress import WordPressDeployer
 
@@ -225,7 +225,8 @@ def setup_plugins(wordpress: WordPressDeployer, domain: str) -> None:
     wordpress.install_plugins(domain, plugin_slugs, activate=True)
 
     # Visit /wp-admin to trigger Related Posts section from plugin (no need to login)
-    requests.get(f"https://{domain}/wp-admin")
+    scheme = "http" if is_local_domain(domain) else "https"
+    requests.get(f"{scheme}://{domain}/wp-admin")
 
 
 def main() -> None:
@@ -267,6 +268,10 @@ def main() -> None:
             seo_plugin="seo-by-rank-math",
             internal_linking_plugin="yet-another-related-posts-plugin",
         )
+
+        # Get synced password from wp config get DB_PASSWORD
+        output, _ = wordpress.wp(domain, "config get DB_PASSWORD", check=True)
+        credentials["password"] = output.strip()
 
         taxonomy = create_fake_taxonomy(wordpress, domain)
         download_picsum_images(wordops)

@@ -16,6 +16,8 @@ class RegistrarNameserverManager:
     namecheap_token: str | None
     godaddy_api_key: str | None
     godaddy_api_secret: str | None
+    porkbun_api_key: str | None
+    porkbun_secret_key: str | None
 
     def __init__(
         self,
@@ -23,6 +25,8 @@ class RegistrarNameserverManager:
         namecheap_token: str | None = None,
         godaddy_api_key: str | None = None,
         godaddy_api_secret: str | None = None,
+        porkbun_api_key: str | None = None,
+        porkbun_secret_key: str | None = None,
     ) -> None:
         """Initialize Registrar Nameserver Manager.
 
@@ -31,11 +35,15 @@ class RegistrarNameserverManager:
             namecheap_token: Namecheap API token
             godaddy_api_key: GoDaddy API key
             godaddy_api_secret: GoDaddy API secret
+            porkbun_api_key: Porkbun API key
+            porkbun_secret_key: Porkbun secret API key
         """
         self.namecheap_username = namecheap_username
         self.namecheap_token = namecheap_token
         self.godaddy_api_key = godaddy_api_key
         self.godaddy_api_secret = godaddy_api_secret
+        self.porkbun_api_key = porkbun_api_key
+        self.porkbun_secret_key = porkbun_secret_key
 
     @classmethod
     def from_env(cls) -> "RegistrarNameserverManager":
@@ -46,6 +54,8 @@ class RegistrarNameserverManager:
             - NAMECHEAP_TOKEN: Namecheap API token
             - GODADDY_API_KEY: GoDaddy API key
             - GODADDY_API_SECRET: GoDaddy API secret
+            - PORKBUN_API_KEY: Porkbun API key
+            - PORKBUN_SECRET_KEY: Porkbun secret API key
 
         Returns:
             RegistrarNameserverManager instance
@@ -57,6 +67,8 @@ class RegistrarNameserverManager:
             namecheap_token=os.getenv("NAMECHEAP_TOKEN"),
             godaddy_api_key=os.getenv("GODADDY_API_KEY"),
             godaddy_api_secret=os.getenv("GODADDY_API_SECRET"),
+            porkbun_api_key=os.getenv("PORKBUN_API_KEY"),
+            porkbun_secret_key=os.getenv("PORKBUN_SECRET_KEY"),
         )
 
     def update_nameservers_namecheap(
@@ -173,3 +185,46 @@ class RegistrarNameserverManager:
             )
 
         logger.info("Successfully updated nameservers for %s on GoDaddy", domain)
+
+    def update_nameservers_porkbun(
+        self,
+        domain: str,
+        nameservers: list[str] | None = None,
+    ) -> None:
+        """Update nameservers on Porkbun for a domain.
+
+        Args:
+            domain: Domain name to update (e.g., "example.com")
+            nameservers: List of nameservers. Defaults to DigitalOcean's nameservers.
+
+        Raises:
+            ValueError: If Porkbun credentials are not configured
+            requests.RequestException: If API request fails
+            RuntimeError: If Porkbun API returns error status
+        """
+        if not self.porkbun_api_key or not self.porkbun_secret_key:
+            raise ValueError("Porkbun credentials are not configured")
+
+        nameservers = nameservers or [
+            "ns1.digitalocean.com",
+            "ns2.digitalocean.com",
+            "ns3.digitalocean.com",
+        ]
+
+        url = f"https://api.porkbun.com/api/json/v3/domain/updateNs/{domain}"
+        payload = {
+            "secretapikey": self.porkbun_secret_key,
+            "apikey": self.porkbun_api_key,
+            "ns": nameservers,
+        }
+
+        response = requests.post(url, json=payload, timeout=30)
+        response.raise_for_status()
+
+        data = response.json()
+        if data.get("status") != "SUCCESS":
+            raise RuntimeError(
+                f"Porkbun API error updating {domain}: {data.get('message', response.text)}"
+            )
+
+        logger.info("Successfully updated nameservers for %s on Porkbun", domain)

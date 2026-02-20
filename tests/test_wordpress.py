@@ -653,13 +653,13 @@ class TestWipeSite:
         assert mock_ssh_connection.run_command.call_count == 0
 
     def test_wipe_site_with_confirm(self, wordpress, mock_ssh_connection):
-        """Test wipe_site executes db reset and find (default wipes everything)."""
+        """Test wipe_site executes db reset, find, and fastcgi clean (default wipes everything)."""
         wordpress.wipe_site("test.com", confirm=True)
 
         calls = mock_ssh_connection.run_command.call_args_list
         call_commands = [call[0][0] for call in calls]
 
-        assert len(call_commands) == 2
+        assert len(call_commands) == 3
         assert "db reset --yes" in call_commands[0]
         # Default behavior: no exclusions, wipe everything
         assert (
@@ -667,6 +667,8 @@ class TestWipeSite:
         )
         assert "! -name" not in call_commands[1]
         assert "-exec rm -rf {} +" in call_commands[1]
+        # Clean FastCGI cache
+        assert "wo clean --fastcgi" in call_commands[2]
 
     def test_wipe_site_with_exclude_stats(self, wordpress, mock_ssh_connection):
         """Test wipe_site with exclude_dirs=['stats'] preserves stats folder."""
@@ -675,7 +677,7 @@ class TestWipeSite:
         calls = mock_ssh_connection.run_command.call_args_list
         call_commands = [call[0][0] for call in calls]
 
-        assert len(call_commands) == 2
+        assert len(call_commands) == 3
         assert "db reset --yes" in call_commands[0]
         # Exclude stats folder
         assert (
@@ -683,6 +685,8 @@ class TestWipeSite:
         )
         assert "! -name 'stats'" in call_commands[1]
         assert "-exec rm -rf {} +" in call_commands[1]
+        # Clean FastCGI cache
+        assert "wo clean --fastcgi" in call_commands[2]
 
     def test_wipe_site_with_custom_exclude_dirs(self, wordpress, mock_ssh_connection):
         """Test wipe_site with custom exclude_dirs."""
@@ -691,7 +695,7 @@ class TestWipeSite:
         calls = mock_ssh_connection.run_command.call_args_list
         call_commands = [call[0][0] for call in calls]
 
-        assert len(call_commands) == 2
+        assert len(call_commands) == 3
         assert "db reset --yes" in call_commands[0]
         # Custom exclusions
         assert (
@@ -700,6 +704,8 @@ class TestWipeSite:
         assert "! -name 'stats'" in call_commands[1]
         assert "! -name 'uploads'" in call_commands[1]
         assert "-exec rm -rf {} +" in call_commands[1]
+        # Clean FastCGI cache
+        assert "wo clean --fastcgi" in call_commands[2]
 
 
 class TestWipeAndInstall:

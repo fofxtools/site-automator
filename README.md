@@ -5,7 +5,7 @@ Automate WordPress site provisioning, DNS configuration, and deployment. Uses Wo
 ## Features
 
 - **Server Provisioning** - Set up WordPress servers with WordOps via SSH
-- **DNS Management** - Configure nameservers (Namecheap/GoDaddy) and DNS records (DigitalOcean)
+- **DNS Management** - Configure nameservers (Namecheap/GoDaddy/Porkbun) and DNS records (DigitalOcean)
 - **WordPress Deployment** - Deploy and configure WordPress sites with WP-CLI
 - **Pageview Tracking** - Optional database-backed pageview tracking system
 
@@ -79,6 +79,10 @@ Create a `.env` file with your API credentials:
 DIGITALOCEAN_TOKEN=your_token
 NAMECHEAP_USERNAME=your_username
 NAMECHEAP_TOKEN=your_token
+GODADDY_API_KEY=your_key
+GODADDY_API_SECRET=your_secret
+PORKBUN_API_KEY=your_key
+PORKBUN_SECRET_KEY=your_secret_key
 ```
 
 ## Documentation

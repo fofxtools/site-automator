@@ -1,0 +1,100 @@
+# SSH test server with Ubuntu + Hugo + Caddy (for Site Automator)
+# Build:
+#   docker build -f Dockerfile.caddy \
+#     --build-arg SSH_PUBLIC_KEY="$(cat ~/.ssh/id_ed25519.pub)" \
+#     -t site-automator-caddy-test .
+#
+# Run:
+#   docker rm -f automator-caddy 2>/dev/null || true
+#   docker run -d -p 22:22 -p 8080:80 --name automator-caddy site-automator-caddy-test
+#
+# Add to ~/.ssh/config for server alias:
+# Host automator-caddy
+#   HostName localhost
+#   User root
+#   IdentityFile ~/.ssh/id_ed25519
+#   IdentitiesOnly yes
+#   StrictHostKeyChecking no
+#   UserKnownHostsFile /dev/null
+#   ServerAliveInterval 60
+#   ServerAliveCountMax 10
+#
+# Add to ~/.ssh/config to suppress key verification prompts for localhost:
+# Host localhost
+#   StrictHostKeyChecking no
+#   UserKnownHostsFile /dev/null
+#
+# SSH:
+#   ssh automator-caddy
+
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# --------------------------------------------------
+# Base packages
+# --------------------------------------------------
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    sudo \
+    curl \
+    wget \
+    git \
+    ca-certificates \
+    unzip \
+    nano \
+    lsof \
+    rsync \
+    cron \
+    && rm -rf /var/lib/apt/lists/*
+
+# --------------------------------------------------
+# Install Caddy (official APT repo - realistic VPS)
+# --------------------------------------------------
+RUN apt-get update && apt-get install -y \
+    debian-keyring \
+    debian-archive-keyring \
+    apt-transport-https \
+    curl \
+    gnupg && \
+    curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key \
+      | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg && \
+    curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt \
+      | tee /etc/apt/sources.list.d/caddy-stable.list > /dev/null && \
+    chmod o+r /usr/share/keyrings/caddy-stable-archive-keyring.gpg && \
+    apt-get update && \
+    apt-get install -y caddy && \
+    rm -rf /var/lib/apt/lists/*
+
+# --------------------------------------------------
+# Install Hugo Extended via .deb
+# --------------------------------------------------
+ARG HUGO_VERSION=0.155.2
+RUN cd /tmp && \
+    wget https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb && \
+    dpkg -i hugo_extended_${HUGO_VERSION}_linux-amd64.deb && \
+    rm hugo_extended_${HUGO_VERSION}_linux-amd64.deb
+
+# --------------------------------------------------
+# SSH key-based auth
+# Public key injected at build time
+# --------------------------------------------------
+ARG SSH_PUBLIC_KEY
+RUN mkdir -p /root/.ssh && \
+    echo "${SSH_PUBLIC_KEY}" > /root/.ssh/authorized_keys && \
+    chmod 700 /root/.ssh && \
+    chmod 600 /root/.ssh/authorized_keys
+
+# --------------------------------------------------
+# SSH server setup (secure + non-interactive)
+# --------------------------------------------------
+RUN mkdir /var/run/sshd && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# Expose SSH + optional web ports (internal Caddy testing)
+EXPOSE 22 80 443
+
+# Run SSH daemon (container acts like a fake VPS)
+CMD ["/bin/sh", "-c", "service cron start && caddy run --config /etc/caddy/Caddyfile --adapter caddyfile & exec /usr/sbin/sshd -D"]

@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 
 from site_automator.ssh import SSHConnection
-from site_automator.utils import validate_domain
+from site_automator.utils import validate_domain, is_local_domain
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +58,19 @@ class CaddyProvisioner:
         - JSON access logging with rotation (GoAccess compatible)
         - Static file serving with gzip
 
+        For local domains (.test, .local, .localhost, .internal, or "localhost"),
+        uses http:// to prevent automatic SSL redirection.
+
         Args:
             domain: Domain name (e.g., "example.com")
 
         Returns:
             Caddy configuration string
         """
-        return f"""{domain} {{
+        # Use http:// for local domains to prevent auto-SSL redirection
+        site_address = f"http://{domain}" if is_local_domain(domain) else domain
+
+        return f"""{site_address} {{
     root * /var/www/{domain}/public
 
     php_fastcgi unix//run/php/php8.3-fpm.sock

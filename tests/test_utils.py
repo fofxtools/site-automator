@@ -10,6 +10,7 @@ from site_automator.utils import (
     parse_bool,
     configure_logging,
     validate_domain,
+    is_local_domain,
 )
 
 
@@ -168,3 +169,35 @@ class TestValidateDomain:
         """Test domain with null byte raises ValueError."""
         with pytest.raises(ValueError, match="Invalid domain"):
             validate_domain("example.com\x00")
+
+
+class TestIsLocalDomain:
+    """Test is_local_domain function."""
+
+    def test_localhost(self):
+        """Test localhost is recognized as local."""
+        assert is_local_domain("localhost") is True
+
+    def test_test_tld(self):
+        """Test .test TLD is recognized as local."""
+        assert is_local_domain("myproject.test") is True
+
+    def test_local_tld(self):
+        """Test .local TLD is recognized as local."""
+        assert is_local_domain("myproject.local") is True
+
+    def test_localhost_tld(self):
+        """Test .localhost TLD is recognized as local."""
+        assert is_local_domain("myproject.localhost") is True
+
+    def test_internal_tld(self):
+        """Test .internal TLD is recognized as local."""
+        assert is_local_domain("myproject.internal") is True
+
+    def test_production_domain(self):
+        """Test production domain is not recognized as local."""
+        assert is_local_domain("example.com") is False
+
+    def test_subdomain_with_local_tld(self):
+        """Test subdomain with local TLD is recognized as local."""
+        assert is_local_domain("sub.myproject.test") is True

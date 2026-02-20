@@ -4,7 +4,7 @@ Point your domain to a server using registrar nameserver updates and DigitalOcea
 
 ## What it does
 
-- **Registrar Nameservers** - Updates nameservers at your registrar (Namecheap or GoDaddy) to use DigitalOcean DNS
+- **Registrar Nameservers** - Updates nameservers at your registrar (Namecheap, GoDaddy, or Porkbun) to use DigitalOcean DNS
 - **DNS Records** - Creates DNS zone and records at DigitalOcean
 
 ## Setup
@@ -22,6 +22,10 @@ NAMECHEAP_TOKEN=your_api_token
 # GoDaddy (optional - only if using GoDaddy)
 GODADDY_API_KEY=your_key
 GODADDY_API_SECRET=your_secret
+
+# Porkbun (optional - only if using Porkbun)
+PORKBUN_API_KEY=your_api_key
+PORKBUN_SECRET_KEY=your_secret_key
 ```
 
 ## Basic Usage
@@ -35,7 +39,7 @@ server_ip = "203.0.113.10"
 
 # Step 1: Point nameservers to DigitalOcean
 registrars = RegistrarNameserverManager.from_env()
-registrars.update_nameservers_namecheap(domain)  # or update_nameservers_godaddy()
+registrars.update_nameservers_namecheap(domain)  # or update_nameservers_godaddy() or update_nameservers_porkbun()
 
 # Step 2: Configure DNS at DigitalOcean (root + www)
 dns = DigitalOceanDNSManager.from_env()

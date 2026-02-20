@@ -880,6 +880,48 @@ class TestWriteHugoConfig:
         # run_command should not be called (no checking)
         assert not mock_ssh.run_command.called
 
+    def test_local_domain_uses_http_with_port(self, tmp_path):
+        """Test that local domains use http://{domain}:8080 as baseURL."""
+        mock_ssh = Mock()
+
+        # Capture uploaded content
+        uploaded_content = None
+
+        def capture_upload(local_path, remote_path):
+            nonlocal uploaded_content
+            with open(local_path, "r") as f:
+                uploaded_content = f.read()
+
+        mock_ssh.upload_file.side_effect = capture_upload
+
+        hugo = HugoDeployer(mock_ssh)
+        hugo.write_hugo_config("myproject.test", "ananke", "Test Site")
+
+        # Verify baseURL uses http with port 8080
+        assert uploaded_content is not None
+        assert "baseURL = 'http://myproject.test:8080/'" in uploaded_content
+
+    def test_production_domain_uses_https(self, tmp_path):
+        """Test that production domains use https://{domain}/ as baseURL."""
+        mock_ssh = Mock()
+
+        # Capture uploaded content
+        uploaded_content = None
+
+        def capture_upload(local_path, remote_path):
+            nonlocal uploaded_content
+            with open(local_path, "r") as f:
+                uploaded_content = f.read()
+
+        mock_ssh.upload_file.side_effect = capture_upload
+
+        hugo = HugoDeployer(mock_ssh)
+        hugo.write_hugo_config("example.com", "ananke", "Production Site")
+
+        # Verify baseURL uses https
+        assert uploaded_content is not None
+        assert "baseURL = 'https://example.com/'" in uploaded_content
+
 
 class TestWriteRobotsTxt:
     """Test write_robots_txt method."""

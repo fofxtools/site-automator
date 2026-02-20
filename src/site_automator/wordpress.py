@@ -811,6 +811,9 @@ class WordPressDeployer:
         )
         self.wordops.ssh.run_command(delete_cmd, check=True)
 
+        # Clean FastCGI cache
+        self.wordops.ssh.run_command("wo clean --fastcgi", check=True)
+
     def wipe_and_install(
         self,
         domain: str,
@@ -935,6 +938,7 @@ class WordPressDeployer:
         import requests
         from site_automator.seo import create_indexnow_key
         from site_automator.tracking import PageviewTrackingSetup
+        from site_automator.utils import is_local_domain
 
         logger.info(f"Starting initial setup for {domain}")
 
@@ -979,7 +983,8 @@ class WordPressDeployer:
         self.install_plugins(domain, plugin_slugs, activate=True)
 
         # Visit /wp-admin to trigger Related Posts section from plugin (no need to login)
-        requests.get(f"https://{domain}/wp-admin")
+        scheme = "http" if is_local_domain(domain) else "https"
+        requests.get(f"{scheme}://{domain}/wp-admin")
 
         # Create IndexNow key
         indexnow_key = create_indexnow_key(domain, self.wordops.ssh)

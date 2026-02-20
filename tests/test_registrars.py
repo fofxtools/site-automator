@@ -15,12 +15,16 @@ class TestInit:
             namecheap_token="nctoken",
             godaddy_api_key="gdkey",
             godaddy_api_secret="gdsecret",
+            porkbun_api_key="pbkey",
+            porkbun_secret_key="pbsecret",
         )
 
         assert dns.namecheap_username == "ncuser"
         assert dns.namecheap_token == "nctoken"
         assert dns.godaddy_api_key == "gdkey"
         assert dns.godaddy_api_secret == "gdsecret"
+        assert dns.porkbun_api_key == "pbkey"
+        assert dns.porkbun_secret_key == "pbsecret"
 
     def test_init_allows_none_credentials(self):
         """Test that credentials can be None."""
@@ -30,6 +34,8 @@ class TestInit:
         assert dns.namecheap_token is None
         assert dns.godaddy_api_key is None
         assert dns.godaddy_api_secret is None
+        assert dns.porkbun_api_key is None
+        assert dns.porkbun_secret_key is None
 
 
 class TestFromEnv:
@@ -44,6 +50,8 @@ class TestFromEnv:
             "NAMECHEAP_TOKEN": "nctoken",
             "GODADDY_API_KEY": "gdkey",
             "GODADDY_API_SECRET": "gdsecret",
+            "PORKBUN_API_KEY": "pbkey",
+            "PORKBUN_SECRET_KEY": "pbsecret",
         }.get(key, default)
 
         dns = RegistrarNameserverManager.from_env()
@@ -53,6 +61,8 @@ class TestFromEnv:
         assert dns.namecheap_token == "nctoken"
         assert dns.godaddy_api_key == "gdkey"
         assert dns.godaddy_api_secret == "gdsecret"
+        assert dns.porkbun_api_key == "pbkey"
+        assert dns.porkbun_secret_key == "pbsecret"
 
 
 class TestUpdateNameserversNamecheap:
@@ -196,3 +206,66 @@ class TestUpdateNameserversGodaddy:
 
         with pytest.raises(Exception):  # requests.HTTPError from raise_for_status()
             dns.update_nameservers_godaddy("example.com")
+
+
+class TestUpdateNameserversPorkbun:
+    """Test update_nameservers_porkbun method."""
+
+    @responses.activate
+    def test_update_nameservers_success(self):
+        """Test successful nameserver update on Porkbun."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/domain/updateNs/example.com",
+            json={"status": "SUCCESS"},
+            status=200,
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+        # Should not raise any exception
+        dns.update_nameservers_porkbun("example.com")
+
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_update_nameservers_with_custom_nameservers(self):
+        """Test nameserver update with custom nameservers."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/domain/updateNs/example.com",
+            json={"status": "SUCCESS"},
+            status=200,
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+        custom_ns = ["ns1.custom.com", "ns2.custom.com"]
+        # Should not raise any exception
+        dns.update_nameservers_porkbun("example.com", nameservers=custom_ns)
+
+    def test_update_nameservers_missing_credentials(self):
+        """Test that missing credentials raises ValueError."""
+        dns = RegistrarNameserverManager()
+
+        with pytest.raises(ValueError, match="Porkbun credentials are not configured"):
+            dns.update_nameservers_porkbun("example.com")
+
+    @responses.activate
+    def test_update_nameservers_api_error(self):
+        """Test handling of Porkbun API error."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/domain/updateNs/example.com",
+            json={"status": "ERROR", "message": "Invalid domain"},
+            status=200,
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+
+        with pytest.raises(RuntimeError, match="Porkbun API error"):
+            dns.update_nameservers_porkbun("example.com")

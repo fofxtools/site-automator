@@ -136,3 +136,27 @@ def validate_domain(domain: str) -> None:
         raise ValueError("Invalid domain")
     if "/" in domain or ".." in domain or "\x00" in domain:
         raise ValueError("Invalid domain")
+
+
+def is_local_domain(domain: str) -> bool:
+    """Check if domain is a local development domain.
+
+    Returns True if:
+    - Domain is exactly "localhost"
+    - Domain TLD matches a local-only extension (.test, .local, .localhost, .internal)
+
+    Args:
+        domain: Domain name to check
+
+    Returns:
+        True if domain is local, False otherwise
+    """
+    # Check if domain is exactly "localhost"
+    if domain == "localhost":
+        return True
+
+    # Local-only TLDs (reserved for local development/testing)
+    local_tlds = [".test", ".local", ".localhost", ".internal"]
+
+    # Check if domain ends with any local TLD
+    return any(domain.endswith(tld) for tld in local_tlds)

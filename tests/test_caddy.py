@@ -70,6 +70,23 @@ class TestGenerateConfig:
         assert "test.com {" in config
 
     @patch("site_automator.caddy.SSHConnection")
+    def test_local_domain_uses_http(self, mock_ssh_connection):
+        """Test that local domains use http:// to prevent SSL redirect."""
+        caddy = CaddyProvisioner(host="example.com")
+        config = caddy._generate_config("myproject.test")
+
+        assert "http://myproject.test {" in config
+
+    @patch("site_automator.caddy.SSHConnection")
+    def test_production_domain_no_http(self, mock_ssh_connection):
+        """Test that production domains don't include http:// prefix."""
+        caddy = CaddyProvisioner(host="example.com")
+        config = caddy._generate_config("example.com")
+
+        assert "example.com {" in config
+        assert "http://example.com" not in config
+
+    @patch("site_automator.caddy.SSHConnection")
     def test_includes_root_directive(self, mock_ssh_connection):
         """Test that generated config includes root directive."""
         caddy = CaddyProvisioner(host="example.com")

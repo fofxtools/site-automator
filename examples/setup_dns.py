@@ -49,6 +49,8 @@ def main() -> None:
         registrars.update_nameservers_namecheap(domain)
     elif registrar == "godaddy":
         registrars.update_nameservers_godaddy(domain)
+    elif registrar == "porkbun":
+        registrars.update_nameservers_porkbun(domain)
     else:
         print(f"ERROR: Unknown registrar '{registrar}'")
         sys.exit(1)

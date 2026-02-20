@@ -13,7 +13,7 @@ import frontmatter
 from slugify import slugify
 
 from site_automator.ssh import SSHConnection
-from site_automator.utils import validate_domain
+from site_automator.utils import validate_domain, is_local_domain
 from site_automator.tracking import PageviewTrackingSetup
 from site_automator.sites import load_site_config_by_domain
 
@@ -665,6 +665,9 @@ var PVT = {"trackUrl": "/pageview-tracking/track_pageview.php"};
     def write_hugo_config(self, domain: str, theme: str, title: str) -> None:
         """Write complete hugo.toml configuration (overwrites existing).
 
+        For local domains (.test, .local, .localhost, .internal, or "localhost"),
+        uses http://{domain}:8080 as baseURL for local development.
+
         Args:
             domain: Domain name for the site
             theme: Theme name (e.g., "ananke")
@@ -673,7 +676,11 @@ var PVT = {"trackUrl": "/pageview-tracking/track_pageview.php"};
         validate_domain(domain)
         logger.info(f"Writing hugo.toml for {domain}")
 
-        base_url = f"https://{domain}/"
+        # Use http://{domain}:8080 for local domains, https://{domain}/ for production
+        if is_local_domain(domain):
+            base_url = f"http://{domain}:8080/"
+        else:
+            base_url = f"https://{domain}/"
 
         # Inline config template
         config_content = f"""baseURL = '{base_url}'
