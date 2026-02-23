@@ -26,11 +26,17 @@ if (is_excluded($config['ip'] ?? '', $config['user_agent'] ?? '')) {
 }
 
 // Required
-if ($config['type'] === '' || $config['view_id'] === '' || $config['url'] === '') {
+if ($config['type'] === '' || $config['view_id'] === '') {
     http_response_code(400);
     exit;
 }
-if ($config['type'] !== 'pageview' && $config['type'] !== 'metrics') {
+if ($config['type'] !== 'pageview' && $config['type'] !== 'metrics' && $config['type'] !== 'engagement') {
+    http_response_code(400);
+    exit;
+}
+
+// URL required for pageview and metrics, but not for engagement
+if (($config['type'] === 'pageview' || $config['type'] === 'metrics') && $config['url'] === '') {
     http_response_code(400);
     exit;
 }
@@ -101,6 +107,34 @@ if ($config['type'] === 'pageview') {
     }
 
     $logFile  = "{$dir}/metrics.jsonl";
+    $logEntry = json_encode($logData, JSON_UNESCAPED_SLASHES) . "\n";
+
+    file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
+
+    http_response_code(204);
+    exit;
+} elseif ($config['type'] === 'engagement') {
+    // Build engagement log entry
+    $logData = [
+        'vid'   => $config['view_id'],
+        't_pg'  => $config['time_on_page_ms'],
+        'scr_d' => $config['scroll_depth'],
+        'scr_e' => $config['scroll_events'],
+    ];
+
+    // Write to engagement.jsonl
+    $dataRoot = $config['data_root'];
+    $domain   = $config['domain'];
+    $date     = $config['pageview_date'];
+
+    $dir = "{$dataRoot}/raw/{$domain}/{$date}";
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+        // Directory creation failed, fail silently (tracking should not break page loads)
+        http_response_code(204);
+        exit;
+    }
+
+    $logFile  = "{$dir}/engagement.jsonl";
     $logEntry = json_encode($logData, JSON_UNESCAPED_SLASHES) . "\n";
 
     file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);

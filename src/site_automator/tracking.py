@@ -57,10 +57,6 @@ class PageviewTrackingSetup:
             local_path = resources_dir / filename
             remote_path = f"{remote_folder}/{filename}"
 
-            # Check if file exists locally
-            if not local_path.exists():
-                raise FileNotFoundError(f"Local file not found: {local_path}")
-
             # Always upload (overwrite if exists)
             logger.info(f"Uploading {filename} to {remote_path}")
             self.ssh.upload_file(local_path, remote_path)
@@ -335,9 +331,6 @@ return [
                 / script
             )
             remote_path = f"/var/lib/pageview-tracking/scripts/{script}"
-
-            if not local_path.exists():
-                raise FileNotFoundError(f"Local script not found: {local_path}")
 
             logger.info(f"Uploading {script} to {remote_path}")
             self.ssh.upload_file(local_path, remote_path)

@@ -32,12 +32,14 @@ def process_domain_date(domain: str, date: str) -> Dict[str, Any]:
     groups = {
         0: {
             'pageviews': 0,
+            'qualified_pageviews': 0,
             'pageviews_with_metrics': 0,
             'bot_signals': defaultdict(int),
             'ttfb': [], 'dcl': [], 'load': []
         },
         1: {
             'pageviews': 0,
+            'qualified_pageviews': 0,
             'pageviews_with_metrics': 0,
             'bot_signals': defaultdict(int),
             'ttfb': [], 'dcl': [], 'load': []
@@ -53,6 +55,18 @@ def process_domain_date(domain: str, date: str) -> Dict[str, Any]:
                 try:
                     m = json.loads(line)
                     metrics_by_vid[m['vid']] = m
+                except (json.JSONDecodeError, KeyError):
+                    continue
+
+    # Load engagement into memory (indexed by vid)
+    engagement_by_vid = {}
+    engagement_file = domain_dir / 'engagement.jsonl'
+    if engagement_file.exists():
+        with open(engagement_file) as f:
+            for line in f:
+                try:
+                    e = json.loads(line)
+                    engagement_by_vid[e['vid']] = e
                 except (json.JSONDecodeError, KeyError):
                     continue
     
@@ -76,6 +90,17 @@ def process_domain_date(domain: str, date: str) -> Dict[str, Any]:
 
                 # Count pageview
                 groups[is_int]['pageviews'] += 1
+
+                # Check if qualified (has engagement data meeting criteria)
+                if vid in engagement_by_vid:
+                    e = engagement_by_vid[vid]
+                    time_on_page = e.get('t_pg', 0)
+                    scroll_depth = e.get('scr_d', 0)
+                    scroll_events = e.get('scr_e', 0)
+
+                    # qualified_pageview = time_on_page_ms >= 5000 AND (scroll_depth > 0 OR scroll_events >= 1)
+                    if time_on_page >= 5000 and (scroll_depth > 0 or scroll_events >= 1):
+                        groups[is_int]['qualified_pageviews'] += 1
 
                 # If has metrics, collect performance data
                 if vid in metrics_by_vid:
@@ -113,6 +138,7 @@ def process_domain_date(domain: str, date: str) -> Dict[str, Any]:
         group_stats = {
             'is_internal': is_int,
             'pageviews': g['pageviews'],
+            'qualified_pageviews': g['qualified_pageviews'],
             'pageviews_with_metrics': g['pageviews_with_metrics'],
             'bots': dict(g['bot_signals']),
             'performance': {

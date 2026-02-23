@@ -241,6 +241,34 @@ if ($domain) {
     }
 }
 
+// Load engagement only for the pageviews we're displaying
+$engagement = [];
+if ($domain) {
+    $engagementFile = $raw_dir . '/' . $domain . '/' . $date . '/engagement.jsonl';
+    if (file_exists($engagementFile)) {
+        $handle = fopen($engagementFile, 'r');
+        while (($line = fgets($handle)) !== false) {
+            $e = json_decode($line, true);
+            if ($e && isset($e['vid']) && isset($neededVids[$e['vid']])) {
+                $engagement[$e['vid']] = $e;
+            }
+        }
+        fclose($handle);
+    }
+} else {
+    // Load engagement from all domains, but only for needed view IDs
+    foreach (glob($raw_dir . '/*/' . $date . '/engagement.jsonl') as $engagementFile) {
+        $handle = fopen($engagementFile, 'r');
+        while (($line = fgets($handle)) !== false) {
+            $e = json_decode($line, true);
+            if ($e && isset($e['vid']) && isset($neededVids[$e['vid']])) {
+                $engagement[$e['vid']] = $e;
+            }
+        }
+        fclose($handle);
+    }
+}
+
 // Build back URL
 $backUrl = 'day.php?date=' . urlencode($date);
 
@@ -286,11 +314,24 @@ if ($domain) {
                     <th class="number">TTFB</th>
                     <th class="number">DCL</th>
                     <th class="number">Load</th>
+                    <th class="number">Time on Page</th>
+                    <th class="number">Scroll (%)</th>
+                    <th class="number">Scroll Events</th>
+                    <th>Qualified</th>
                 </tr>
             </thead>
             <tbody>
 <?php foreach ($results as $row):
     $m = $metrics[$row['vid'] ?? ''] ?? null;
+    $e = $engagement[$row['vid'] ?? ''] ?? null;
+
+    // Extract engagement data
+    $time_on_page  = $e ? ($e['t_pg'] ?? 0) : 0;
+    $scroll_depth  = $e ? ($e['scr_d'] ?? 0) : 0;
+    $scroll_events = $e ? ($e['scr_e'] ?? 0) : 0;
+
+    // Check if qualified
+    $is_qualified = ($time_on_page >= 5000 && ($scroll_depth > 0 || $scroll_events >= 1));
     ?>
                 <tr>
                     <td><?= isset($row['ts_pv']) ? date('H:i:s', $row['ts_pv'] / 1000) : '-' ?></td>
@@ -314,6 +355,10 @@ if ($domain) {
                     <td class="number"><?= $m && isset($m['ttfb']) ? number_format($m['ttfb'], 1) : '-' ?></td>
                     <td class="number"><?= $m && isset($m['dcl']) ? number_format($m['dcl'], 1) : '-' ?></td>
                     <td class="number"><?= $m && isset($m['load']) ? number_format($m['load'], 1) : '-' ?></td>
+                    <td class="number"><?= $time_on_page > 0 ? number_format($time_on_page, 1) : '-' ?></td>
+                    <td class="number"><?= $scroll_depth > 0 ? number_format($scroll_depth, 1) : '-' ?></td>
+                    <td class="number"><?= $scroll_events > 0 ? $scroll_events : '-' ?></td>
+                    <td><?= $e ? ($is_qualified ? 'Y' : 'N') : '-' ?></td>
                 </tr>
 <?php endforeach; ?>
             </tbody>

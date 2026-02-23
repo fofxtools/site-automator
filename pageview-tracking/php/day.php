@@ -175,6 +175,7 @@ foreach ($data['domains'] ?? [] as $domain => $domain_data) {
         $load = $perf['load'] ?? [];
 
         $pageviews              = $group['pageviews'] ?? 0;
+        $qualified_pageviews    = $group['qualified_pageviews'] ?? 0;
         $pageviews_with_metrics = $group['pageviews_with_metrics'] ?? 0;
 
         // Store row for display
@@ -182,6 +183,7 @@ foreach ($data['domains'] ?? [] as $domain => $domain_data) {
             'domain'                 => $domain,
             'type'                   => $type,
             'pageviews'              => $pageviews,
+            'qualified_pageviews'    => $qualified_pageviews,
             'gb_ua'                  => $gb_ua,
             'gb_ip'                  => $gb_ip,
             'g_ip'                   => $g_ip,
@@ -229,7 +231,7 @@ function render_row($row, $date, $is_totals = false)
     }
 
     echo '    <td>' . htmlspecialchars($row['type']) . "</td>\n";
-    echo '    <td class="number">' . number_format($row['pageviews']) . "</td>\n";
+    echo '    <td class="number">' . number_format($row['qualified_pageviews']) . "</td>\n";
     echo '    <td class="number">' . number_format($row['gb_ua']) . "</td>\n";
     echo '    <td class="number">' . number_format($row['gb_ip']) . "</td>\n";
     echo '    <td class="number">' . number_format($row['g_ip']) . "</td>\n";
@@ -278,7 +280,7 @@ sort($domains);
                 <tr>
                     <th>Domain</th>
                     <th>Type</th>
-                    <th class="number">Pageviews</th>
+                    <th class="number">Qualified Pageviews</th>
                     <th class="number">GB UA</th>
                     <th class="number">GB IP</th>
                     <th class="number">G IP</th>
@@ -301,7 +303,7 @@ sort($domains);
                 <tr class="totals-row" id="totalsRow">
                     <td id="totalDomain">TOTAL</td>
                     <td>-</td>
-                    <td class="number" id="totalPageviews">-</td>
+                    <td class="number" id="totalQualifiedPageviews">-</td>
                     <td class="number" id="totalGbUa">-</td>
                     <td class="number" id="totalGbIp">-</td>
                     <td class="number" id="totalGIp">-</td>
@@ -378,7 +380,7 @@ foreach ($rows as $row) {
             
             // Calculate totals
             let totals = {
-                pageviews: 0,
+                qualified_pageviews: 0,
                 gb_ua: 0,
                 gb_ip: 0,
                 g_ip: 0,
@@ -407,7 +409,7 @@ foreach ($rows as $row) {
             };
             
             visibleRows.forEach(row => {
-                totals.pageviews += row.pageviews;
+                totals.qualified_pageviews += row.qualified_pageviews;
                 totals.gb_ua += row.gb_ua;
                 totals.gb_ip += row.gb_ip;
                 totals.g_ip += row.g_ip;
@@ -467,7 +469,7 @@ foreach ($rows as $row) {
             
             // Update TOTALS row
             document.getElementById('totalDomain').textContent = selectedDomain === 'all' ? 'TOTAL' : selectedDomain.toUpperCase();
-            document.getElementById('totalPageviews').textContent = fmt(totals.pageviews);
+            document.getElementById('totalQualifiedPageviews').textContent = fmt(totals.qualified_pageviews);
             document.getElementById('totalGbUa').textContent = fmt(totals.gb_ua);
             document.getElementById('totalGbIp').textContent = fmt(totals.gb_ip);
             document.getElementById('totalGIp').textContent = fmt(totals.g_ip);

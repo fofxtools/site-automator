@@ -21,6 +21,7 @@ Aggregates raw JSONL logs into daily statistics by domain.
 **Input:** `/var/lib/pageview-tracking/raw/{domain}/{date}/`
 - `pageview.jsonl` - Pageview records
 - `metrics.jsonl` - Performance metrics
+- `engagement.jsonl` - Engagement metrics (time on page, scroll depth, scroll events)
 - `bots.jsonl` - Bot detection signals
 
 **Output:** `/var/lib/pageview-tracking/agg/daily/{date}.json`
@@ -39,6 +40,8 @@ python3 process_daily_logs.py --force
 **What it does:**
 - Groups pageviews by domain and is_internal flag (0=homepage, 1=internal page)
 - Joins pageviews with performance metrics by view_id
+- Joins pageviews with engagement metrics by view_id
+- Calculates qualified pageviews (time_on_page >= 5s AND (scroll_depth > 0 OR scroll_events >= 1))
 - Calculates performance stats: avg, median, p95 for TTFB, DCL, Load
 - Counts bot signals by type
 - Writes atomic JSON output (temp file + rename)
@@ -70,8 +73,9 @@ python3 generate_dummy_logs.py --cleanup
 - Test domains: `*.test` (example.com.test, shop.test, blog.test)
 - Random pageviews with realistic patterns
 - Performance metrics
+- Engagement metrics
 - Bot signals
-- Last 7 days of data
+- Last 5 days of data
 
 ---
 
@@ -86,6 +90,7 @@ Overview of all dates with aggregated statistics.
 **Displays:**
 - Date (clickable to view details)
 - Total pageviews
+- Qualified pageviews (engaged users)
 - Pageviews with metrics
 - Domains tracked
 - Performance stats (TTFB, DCL, Load) - avg/median/p95
@@ -113,6 +118,7 @@ Detailed statistics for a specific date.
 **Displays:**
 - Per-domain breakdown
 - Homepage vs internal page stats
+- Qualified pageviews per domain/group
 - Performance metrics by group
 - Bot signals by type
 - Domain filter dropdown
@@ -139,6 +145,14 @@ Detailed statistics for a specific date.
 {"vid":"uuid","ts_m":1234567890,"ttfb":50,"dcl":200,"load":500}
 ```
 
+**engagement.jsonl:**
+```json
+{"vid":"uuid","t_pg":30000,"scr_d":75,"scr_e":12}
+```
+- `t_pg` = time_on_page_ms (milliseconds user spent on page)
+- `scr_d` = scroll_depth (0-100, percentage of page scrolled)
+- `scr_e` = scroll_events (number of scroll actions)
+
 **bots.jsonl:**
 ```json
 {"vid":"uuid","url":"...","ip":"1.2.3.4","ua":"...","bot":["gb_ip","gb_ua"],"int":0}
@@ -157,6 +171,7 @@ Detailed statistics for a specific date.
         {
           "is_internal": 0,
           "pageviews": 100,
+          "qualified_pageviews": 85,
           "pageviews_with_metrics": 95,
           "bots": {"gb_ip": 5, "gb_ua": 3},
           "performance": {
@@ -175,6 +190,27 @@ Detailed statistics for a specific date.
   }
 }
 ```
+
+---
+
+## Qualified Pageviews
+
+**Definition:** A pageview is considered "qualified" if the user showed meaningful engagement with the page.
+
+**Criteria:**
+```
+qualified_pageview = (time_on_page_ms >= 5000) AND (scroll_depth > 0 OR scroll_events >= 1)
+```
+
+**Explanation:**
+- User must spend at least 5 seconds on the page (not a bounce)
+- User must show some scroll activity (either scrolled to any depth > 0% OR performed at least 1 scroll action)
+
+**Use Cases:**
+- Filter out bounces and accidental clicks
+- Measure genuine user engagement
+- Calculate more accurate conversion metrics
+- Identify quality traffic sources
 
 ---
 

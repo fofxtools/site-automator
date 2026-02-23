@@ -96,6 +96,7 @@ foreach ($files as $file) {
 
     // Calculate totals for this date
     $total_pageviews              = 0;
+    $total_qualified_pageviews    = 0;
     $total_pageviews_with_metrics = 0;
     $domain_count                 = count($data['domains'] ?? []);
 
@@ -134,6 +135,7 @@ foreach ($files as $file) {
     foreach ($data['domains'] ?? [] as $domain_data) {
         foreach ($domain_data['groups'] ?? [] as $group) {
             $total_pageviews += $group['pageviews'] ?? 0;
+            $total_qualified_pageviews += $group['qualified_pageviews'] ?? 0;
             $total_pageviews_with_metrics += $group['pageviews_with_metrics'] ?? 0;
 
             // Sum bot signals
@@ -195,6 +197,7 @@ foreach ($files as $file) {
         'date'                   => $date,
         'domains'                => $domain_count,
         'pageviews'              => $total_pageviews,
+        'qualified_pageviews'    => $total_qualified_pageviews,
         'gb_ua'                  => $bot_totals['gb_ua'],
         'gb_ip'                  => $bot_totals['gb_ip'],
         'g_ip'                   => $bot_totals['g_ip'],
@@ -233,7 +236,7 @@ function fmt_metric($value)
                 <tr>
                     <th>Date</th>
                     <th class="number">Domains</th>
-                    <th class="number">Pageviews</th>
+                    <th class="number">Qualified Pageviews</th>
                     <th class="number">GB UA</th>
                     <th class="number">GB IP</th>
                     <th class="number">G IP</th>
@@ -261,7 +264,7 @@ function fmt_metric($value)
                         </a>
                     </td>
                     <td class="number"><?= $row['domains'] ?></td>
-                    <td class="number"><?= number_format($row['pageviews']) ?></td>
+                    <td class="number"><?= number_format($row['qualified_pageviews']) ?></td>
                     <td class="number"><?= number_format($row['gb_ua']) ?></td>
                     <td class="number"><?= number_format($row['gb_ip']) ?></td>
                     <td class="number"><?= number_format($row['g_ip']) ?></td>

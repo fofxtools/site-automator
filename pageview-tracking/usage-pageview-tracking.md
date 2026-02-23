@@ -51,13 +51,17 @@ The tracking plugin is located at `pageview-tracking/php/plugins/pageview-tracki
 - `bing_ip_ranges.php` - Bing bot IP ranges (generated)
 - `test_track_pageview.php` - Test page
 
-**Features:** Tracks pageviews with performance metrics (TTFB, DCL, Load) and bot detection.
+**Features:**
+- Tracks pageviews with performance metrics (TTFB, DCL, Load)
+- Engagement tracking (time on page, scroll depth, scroll events)
+- Bot detection (Googlebot, Bingbot, etc.)
 
 ### Data Storage
 
 Pageview data is stored as flat files in `/var/lib/pageview-tracking/raw/{domain}/{date}/`:
 - `pageview.jsonl` - Pageview events
-- `metrics.jsonl` - Performance metrics
+- `metrics.jsonl` - Performance metrics (TTFB, DCL, Load)
+- `engagement.jsonl` - Engagement metrics (time on page, scroll depth, scroll events)
 - `bots.jsonl` - Bot signals
 
 This folder will need to be created and writable by the web server. To do this, run the following commands:

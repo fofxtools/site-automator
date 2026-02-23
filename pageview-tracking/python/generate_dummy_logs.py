@@ -221,6 +221,63 @@ def generate_bot(is_internal: int, bot_ratio: float) -> Dict | None:
     }
 
 
+def generate_engagement(vid: str) -> Dict | None:
+    """Generate engagement data for a pageview (90% of the time)"""
+    if random.random() < 0.10:  # 10% bounce immediately (no engagement)
+        return None
+
+    # Realistic engagement metrics
+    # time_on_page_ms: 0-300000ms (0-5 minutes), weighted toward 10-60s
+    # Most users spend 10-60 seconds, some bounce quickly, some stay longer
+    time_distribution = [
+        (1000, 0.05),    # 1s (quick bounce)
+        (3000, 0.10),    # 3s (very quick)
+        (10000, 0.20),   # 10s (typical quick read)
+        (30000, 0.30),   # 30s (engaged reading)
+        (60000, 0.20),   # 1 min (good engagement)
+        (120000, 0.10),  # 2 min (very engaged)
+        (300000, 0.05),  # 5 min (deep engagement)
+    ]
+    base_time = weighted_choice(time_distribution)
+    # Add some randomness around the base time
+    time_on_page = max(0, int(base_time + random.gauss(0, base_time * 0.2)))
+
+    # scroll_depth: 0-100, weighted toward 20-80%
+    # Most users scroll partway through the page
+    scroll_distribution = [
+        (0, 0.05),    # No scroll (just landed)
+        (20, 0.15),   # Scrolled a bit
+        (40, 0.20),   # Scrolled to middle
+        (60, 0.25),   # Good scroll
+        (80, 0.20),   # Almost complete
+        (100, 0.15),  # Full scroll
+    ]
+    base_scroll = weighted_choice(scroll_distribution)
+    # Add some randomness
+    scroll_depth = max(0, min(100, int(base_scroll + random.gauss(0, 10))))
+
+    # scroll_events: 0-50, weighted toward 5-15
+    # Number of scroll actions (not micro-scrolls, but distinct scroll movements)
+    scroll_events_distribution = [
+        (0, 0.05),   # No scrolling
+        (3, 0.15),   # Few scrolls
+        (8, 0.30),   # Typical scrolling
+        (15, 0.30),  # Active scrolling
+        (25, 0.15),  # Very active
+        (50, 0.05),  # Excessive scrolling
+    ]
+    base_events = weighted_choice(scroll_events_distribution)
+    # Add some randomness
+    scroll_events = max(0, int(base_events + random.gauss(0, 3)))
+
+    return {
+        "vid": vid,
+        "t_pg": time_on_page,
+        "scr_d": scroll_depth,
+        "scr_e": scroll_events,
+    }
+
+
 def generate_logs_for_domain(domain: str, date: str, count: int, bot_ratio: float = 0.15):
     """Generate dummy logs for a specific domain and date"""
 
@@ -230,6 +287,7 @@ def generate_logs_for_domain(domain: str, date: str, count: int, bot_ratio: floa
     pageview_file = output_dir / "pageview.jsonl"
     metrics_file = output_dir / "metrics.jsonl"
     bots_file = output_dir / "bots.jsonl"
+    engagement_file = output_dir / "engagement.jsonl"
 
     # Base timestamp for the date (UTC)
     dt = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -239,7 +297,8 @@ def generate_logs_for_domain(domain: str, date: str, count: int, bot_ratio: floa
 
     with open(pageview_file, 'w') as pv_f, \
          open(metrics_file, 'w') as m_f, \
-         open(bots_file, 'w') as b_f:
+         open(bots_file, 'w') as b_f, \
+         open(engagement_file, 'w') as e_f:
 
         for i in range(count):
             # Spread pageviews throughout the day
@@ -254,6 +313,11 @@ def generate_logs_for_domain(domain: str, date: str, count: int, bot_ratio: floa
             if metrics:
                 m_f.write(json.dumps(metrics) + '\n')
 
+            # Generate engagement (90% of the time)
+            engagement = generate_engagement(pv['vid'])
+            if engagement:
+                e_f.write(json.dumps(engagement) + '\n')
+
             # Generate bot entry (bot_ratio % of the time)
             bot = generate_bot(pv['int'], bot_ratio)
             if bot:
@@ -262,9 +326,11 @@ def generate_logs_for_domain(domain: str, date: str, count: int, bot_ratio: floa
     pv_size = pageview_file.stat().st_size
     m_size = metrics_file.stat().st_size
     b_size = bots_file.stat().st_size
+    e_size = engagement_file.stat().st_size
 
     print(f"    ✓ {pv_size:,} bytes (pageview.jsonl)")
     print(f"    ✓ {m_size:,} bytes (metrics.jsonl)")
+    print(f"    ✓ {e_size:,} bytes (engagement.jsonl)")
     print(f"    ✓ {b_size:,} bytes (bots.jsonl)")
 
 

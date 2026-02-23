@@ -826,6 +826,11 @@ function get_tracking_config(): array
     $dclMs  = sane_ms_or_null($payload['dom_content_loaded_ms'] ?? null, 1, 3_600_000);
     $loadMs = sane_ms_or_null($payload['load_event_end_ms'] ?? null, 1, 3_600_000);
 
+    // engagement metrics (simple clamping, not strict validation)
+    $timeOnPageMs = max(0, (int)($payload['time_on_page_ms'] ?? 0));
+    $scrollDepth  = max(0, min(100, (int)($payload['scroll_depth'] ?? 0)));
+    $scrollEvents = max(0, (int)($payload['scroll_events'] ?? 0));
+
     // page bucket (UTC)
     $pageviewDate = $tsPageviewMs
         ? gmdate('Y-m-d', (int) ($tsPageviewMs / 1000))
@@ -895,6 +900,9 @@ function get_tracking_config(): array
         'ttfb_ms'          => $ttfbMs,
         'dcl_ms'           => $dclMs,
         'load_ms'          => $loadMs,
+        'time_on_page_ms'  => $timeOnPageMs,
+        'scroll_depth'     => $scrollDepth,
+        'scroll_events'    => $scrollEvents,
         'pageview_date'    => $pageviewDate,
         'ip'               => $ip,
         'is_internal'      => $isInternal,

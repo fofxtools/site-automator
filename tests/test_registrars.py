@@ -1,4 +1,5 @@
 import pytest
+import requests
 import responses
 from unittest.mock import patch
 
@@ -269,3 +270,216 @@ class TestUpdateNameserversPorkbun:
 
         with pytest.raises(RuntimeError, match="Porkbun API error"):
             dns.update_nameservers_porkbun("example.com")
+
+
+class TestSetPorkbunDnsARecord:
+    """Test set_porkbun_dns_a_record method."""
+
+    @responses.activate
+    def test_set_a_record_apex_success(self):
+        """Test successful A record creation for apex domain."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/dns/editByNameType/example.com/A/@",
+            json={"status": "SUCCESS"},
+            status=200,
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+        # Should not raise any exception
+        dns.set_porkbun_dns_a_record("example.com", "143.198.123.45")
+
+        assert len(responses.calls) == 1
+        request_body = responses.calls[0].request.body
+        assert request_body is not None
+        assert isinstance(request_body, bytes)
+        assert b"143.198.123.45" in request_body
+        assert b'"ttl": "600"' in request_body
+
+    @responses.activate
+    def test_set_a_record_subdomain_success(self):
+        """Test successful A record creation for subdomain."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/dns/editByNameType/example.com/A/www",
+            json={"status": "SUCCESS"},
+            status=200,
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+        # Should not raise any exception
+        dns.set_porkbun_dns_a_record("example.com", "143.198.123.45", subdomain="www")
+
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_set_a_record_custom_ttl(self):
+        """Test A record creation with custom TTL."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/dns/editByNameType/example.com/A/@",
+            json={"status": "SUCCESS"},
+            status=200,
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+        dns.set_porkbun_dns_a_record("example.com", "143.198.123.45", ttl=300)
+
+        request_body = responses.calls[0].request.body
+        assert request_body is not None
+        assert isinstance(request_body, bytes)
+        assert b'"ttl": "300"' in request_body
+
+    def test_set_a_record_missing_credentials(self):
+        """Test that missing credentials raises ValueError."""
+        dns = RegistrarNameserverManager()
+
+        with pytest.raises(ValueError, match="Porkbun credentials are not configured"):
+            dns.set_porkbun_dns_a_record("example.com", "143.198.123.45")
+
+    @responses.activate
+    def test_set_a_record_api_error(self):
+        """Test handling of Porkbun API error."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/dns/editByNameType/example.com/A/@",
+            json={"status": "ERROR", "message": "Invalid IP address"},
+            status=200,
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+
+        with pytest.raises(RuntimeError, match="Porkbun API error setting A record"):
+            dns.set_porkbun_dns_a_record("example.com", "invalid-ip")
+
+    @responses.activate
+    def test_set_a_record_http_error(self):
+        """Test handling of HTTP error."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/dns/editByNameType/example.com/A/@",
+            status=500,
+            body="Internal Server Error",
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+
+        with pytest.raises(requests.HTTPError):
+            dns.set_porkbun_dns_a_record("example.com", "143.198.123.45")
+
+
+class TestSetPorkbunDnsCname:
+    """Test set_porkbun_dns_cname method."""
+
+    @responses.activate
+    def test_set_cname_success(self):
+        """Test successful CNAME record creation."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/dns/editByNameType/example.com/CNAME/www",
+            json={"status": "SUCCESS"},
+            status=200,
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+        # Should not raise any exception
+        dns.set_porkbun_dns_cname("example.com", "example.com")
+
+        assert len(responses.calls) == 1
+        request_body = responses.calls[0].request.body
+        assert request_body is not None
+        assert isinstance(request_body, bytes)
+        assert b"example.com" in request_body
+        assert b'"ttl": "600"' in request_body
+
+    @responses.activate
+    def test_set_cname_custom_subdomain(self):
+        """Test CNAME creation with custom subdomain."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/dns/editByNameType/example.com/CNAME/blog",
+            json={"status": "SUCCESS"},
+            status=200,
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+        dns.set_porkbun_dns_cname("example.com", "example.com", subdomain="blog")
+
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_set_cname_custom_ttl(self):
+        """Test CNAME creation with custom TTL."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/dns/editByNameType/example.com/CNAME/www",
+            json={"status": "SUCCESS"},
+            status=200,
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+        dns.set_porkbun_dns_cname("example.com", "example.com", ttl=300)
+
+        request_body = responses.calls[0].request.body
+        assert request_body is not None
+        assert isinstance(request_body, bytes)
+        assert b'"ttl": "300"' in request_body
+
+    def test_set_cname_missing_credentials(self):
+        """Test that missing credentials raises ValueError."""
+        dns = RegistrarNameserverManager()
+
+        with pytest.raises(ValueError, match="Porkbun credentials are not configured"):
+            dns.set_porkbun_dns_cname("example.com", "example.com")
+
+    @responses.activate
+    def test_set_cname_api_error(self):
+        """Test handling of Porkbun API error."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/dns/editByNameType/example.com/CNAME/www",
+            json={"status": "ERROR", "message": "Invalid target"},
+            status=200,
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+
+        with pytest.raises(
+            RuntimeError, match="Porkbun API error setting CNAME record"
+        ):
+            dns.set_porkbun_dns_cname("example.com", "invalid-target")
+
+    @responses.activate
+    def test_set_cname_http_error(self):
+        """Test handling of HTTP error."""
+        responses.add(
+            responses.POST,
+            "https://api.porkbun.com/api/json/v3/dns/editByNameType/example.com/CNAME/www",
+            status=500,
+            body="Internal Server Error",
+        )
+
+        dns = RegistrarNameserverManager(
+            porkbun_api_key="key", porkbun_secret_key="secret"
+        )
+
+        with pytest.raises(requests.HTTPError):
+            dns.set_porkbun_dns_cname("example.com", "example.com")

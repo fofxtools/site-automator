@@ -10,7 +10,12 @@ logger = logging.getLogger(__name__)
 
 
 class RegistrarNameserverManager:
-    """Manage nameservers across registrars."""
+    """Manage nameservers and DNS records across registrars.
+
+    Supports:
+    - Nameserver updates: Namecheap, GoDaddy, Porkbun
+    - DNS record management: Porkbun (A, CNAME)
+    """
 
     namecheap_username: str | None
     namecheap_token: str | None
@@ -129,7 +134,13 @@ class RegistrarNameserverManager:
         }
 
         response = requests.get(base_url, params=params, timeout=30)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError:
+            logger.error(
+                "Namecheap updateNs error %s: %s", response.status_code, response.text
+            )
+            raise
 
         # Check for API errors in XML response
         if 'Status="ERROR"' in response.text:
@@ -176,7 +187,13 @@ class RegistrarNameserverManager:
         data = {"nameServers": nameservers}
 
         response = requests.patch(url, headers=headers, json=data, timeout=30)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError:
+            logger.error(
+                "GoDaddy updateNs error %s: %s", response.status_code, response.text
+            )
+            raise
 
         if response.status_code not in (200, 204):
             raise RuntimeError(
@@ -219,7 +236,13 @@ class RegistrarNameserverManager:
         }
 
         response = requests.post(url, json=payload, timeout=30)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError:
+            logger.error(
+                "Porkbun updateNs error %s: %s", response.status_code, response.text
+            )
+            raise
 
         data = response.json()
         if data.get("status") != "SUCCESS":
@@ -228,3 +251,107 @@ class RegistrarNameserverManager:
             )
 
         logger.info("Successfully updated nameservers for %s on Porkbun", domain)
+
+    def set_porkbun_dns_a_record(
+        self,
+        domain: str,
+        ip: str,
+        subdomain: str = "",
+        ttl: int = 600,
+    ) -> None:
+        """Set A record using Porkbun DNS.
+
+        Args:
+            domain: Domain name (e.g., "example.com")
+            ip: IP address to point to (e.g., "143.198.123.45")
+            subdomain: Subdomain (empty string for apex/root domain)
+            ttl: Time to live in seconds (default: 600)
+
+        Raises:
+            ValueError: If Porkbun credentials are not configured
+            requests.RequestException: If API request fails
+            RuntimeError: If Porkbun API returns error status
+        """
+        if not self.porkbun_api_key or not self.porkbun_secret_key:
+            raise ValueError("Porkbun credentials are not configured")
+
+        # Porkbun expects '@' for apex/root records, not empty string
+        record_host = subdomain if subdomain else "@"
+
+        url = f"https://api.porkbun.com/api/json/v3/dns/editByNameType/{domain}/A/{record_host}"
+        payload = {
+            "secretapikey": self.porkbun_secret_key,
+            "apikey": self.porkbun_api_key,
+            "content": ip,
+            "ttl": str(ttl),
+        }
+
+        response = requests.post(url, json=payload, timeout=30)
+        try:
+            response.raise_for_status()
+        except requests.HTTPError:
+            logger.error(
+                "Porkbun DNS A record error %s: %s", response.status_code, response.text
+            )
+            raise
+
+        data = response.json()
+        if data.get("status") != "SUCCESS":
+            raise RuntimeError(
+                f"Porkbun API error setting A record for {domain}: {data.get('message', response.text)}"
+            )
+
+        record_name = domain if record_host == "@" else f"{record_host}.{domain}"
+        logger.info("Successfully set A record for %s → %s", record_name, ip)
+
+    def set_porkbun_dns_cname(
+        self,
+        domain: str,
+        target: str,
+        subdomain: str = "www",
+        ttl: int = 600,
+    ) -> None:
+        """Set CNAME record using Porkbun DNS.
+
+        Args:
+            domain: Domain name (e.g., "example.com")
+            target: Target domain to point to (e.g., "example.com")
+            subdomain: Subdomain (default: "www")
+            ttl: Time to live in seconds (default: 600)
+
+        Raises:
+            ValueError: If Porkbun credentials are not configured
+            requests.RequestException: If API request fails
+            RuntimeError: If Porkbun API returns error status
+        """
+        if not self.porkbun_api_key or not self.porkbun_secret_key:
+            raise ValueError("Porkbun credentials are not configured")
+
+        # Porkbun expects subdomain name (e.g., "www"), not "@" for CNAME
+        url = f"https://api.porkbun.com/api/json/v3/dns/editByNameType/{domain}/CNAME/{subdomain}"
+        payload = {
+            "secretapikey": self.porkbun_secret_key,
+            "apikey": self.porkbun_api_key,
+            "content": target,
+            "ttl": str(ttl),
+        }
+
+        response = requests.post(url, json=payload, timeout=30)
+        try:
+            response.raise_for_status()
+        except requests.HTTPError:
+            logger.error(
+                "Porkbun DNS CNAME record error %s: %s",
+                response.status_code,
+                response.text,
+            )
+            raise
+
+        data = response.json()
+        if data.get("status") != "SUCCESS":
+            raise RuntimeError(
+                f"Porkbun API error setting CNAME record for {domain}: {data.get('message', response.text)}"
+            )
+
+        record_name = f"{subdomain}.{domain}"
+        logger.info("Successfully set CNAME record for %s → %s", record_name, target)

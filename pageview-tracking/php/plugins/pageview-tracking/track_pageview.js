@@ -18,6 +18,12 @@
 
     var viewId = makeViewId();
     var sentPageview = false;
+    var sentEngagement = false;
+
+    // Engagement tracking
+    var pageLoadTime = Date.now();
+    var scrollEvents = 0;
+    var maxScrollDepth = 0;
 
     function send(path, obj) {
         var requestBody = JSON.stringify(obj);
@@ -35,6 +41,34 @@
                 keepalive: true
             }).catch(function() {});
         }
+    }
+
+    // Update scroll depth (handles short pages)
+    function updateScrollDepth() {
+        var docHeight = document.documentElement.scrollHeight - innerHeight;
+        if (docHeight > 0) {
+            var depth = Math.floor((window.scrollY / docHeight) * 100);
+            maxScrollDepth = Math.max(maxScrollDepth, Math.min(100, depth));
+        } else {
+            // Page shorter than viewport = 100% visible
+            maxScrollDepth = 100;
+        }
+    }
+
+    // Send engagement beacon
+    function sendEngagement() {
+        if (sentEngagement) return;
+        sentEngagement = true;
+
+        var timeOnPage = Date.now() - pageLoadTime;
+
+        send(trackUrl, {
+            type: "engagement",
+            view_id: viewId,
+            time_on_page_ms: timeOnPage,
+            scroll_depth: maxScrollDepth,
+            scroll_events: scrollEvents
+        });
     }
 
     // Pageview on first real visibility
@@ -105,5 +139,38 @@
         if (!sentPageview) sendPageview();
     }, {
         once: true
+    });
+
+    // Track scroll events
+    window.addEventListener("scroll", function() {
+        scrollEvents++;
+        updateScrollDepth();
+    }, {
+        passive: true
+    });
+
+    // Initialize scroll depth on load (user might not scroll)
+    if (document.readyState === "complete") {
+        updateScrollDepth();
+    } else {
+        window.addEventListener("load", function() {
+            updateScrollDepth();
+        }, {
+            once: true
+        });
+    }
+
+    // Send engagement beacon on page hide
+    addEventListener("pagehide", function() {
+        sendEngagement();
+    }, {
+        once: true
+    });
+
+    // Fallback: send engagement on visibilitychange (for browsers without pagehide)
+    document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === "hidden") {
+            sendEngagement();
+        }
     });
 })();
