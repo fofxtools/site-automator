@@ -94,12 +94,31 @@ def process_domain_date(domain: str, date: str) -> Dict[str, Any]:
                 # Check if qualified (has engagement data meeting criteria)
                 if vid in engagement_by_vid:
                     e = engagement_by_vid[vid]
-                    time_on_page = e.get('t_pg', 0)
+                    time_on_page_ms = e.get('t_pg', 0)
                     scroll_depth = e.get('scr_d', 0)
                     scroll_events = e.get('scr_e', 0)
+                    vw = pv.get('vw', 0)
+                    vh = pv.get('vh', 0)
 
-                    # qualified_pageview = time_on_page_ms >= 5000 AND (scroll_depth > 0 OR scroll_events >= 1)
-                    if time_on_page >= 5000 and (scroll_depth > 0 or scroll_events >= 1):
+                    qualified = False
+
+                    if vw == 800 and vh == 600:
+                        qualified = False
+                    elif time_on_page_ms < 5000:
+                        qualified = False
+                    # Unreasonable human scroll speed
+                    elif scroll_events / (time_on_page_ms / 1000) > 10:
+                        qualified = False
+                    # Classic scripted scroll bot pattern
+                    elif scroll_depth == 100 and scroll_events <= 2:
+                        qualified = False
+                    # Otherwise: basic engagement = qualified
+                    elif scroll_events >= 2:
+                        qualified = True
+                    else:
+                        qualified = False
+
+                    if qualified:
                         groups[is_int]['qualified_pageviews'] += 1
 
                 # If has metrics, collect performance data

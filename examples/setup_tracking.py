@@ -152,6 +152,12 @@ def main() -> None:
         "Note: You only need to do this once per server (web viewer reads all domains)."
     )
     logger.info("=" * 80 + "\n")
+    logger.info(
+        "Then to regenerate statistics, run process_daily_logs.py with --force flag on each server:"
+    )
+    logger.info(
+        "\n\n  ssh {server-alias} 'cd /var/lib/pageview-tracking/scripts && python3 process_daily_logs.py --force'\n"
+    )
 
 
 if __name__ == "__main__":

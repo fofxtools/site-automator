@@ -60,6 +60,17 @@
             position: sticky;
             top: 0;
         }
+        th a {
+            color: white;
+            text-decoration: none;
+            display: block;
+        }
+        th a:hover {
+            text-decoration: underline;
+        }
+        .sort-indicator {
+            margin-left: 4px;
+        }
         tr:hover {
             background: #f8f9fa;
         }
@@ -111,11 +122,55 @@
 <?php
 $raw_dir = '/var/lib/pageview-tracking/raw';
 
+// Helper function to check if a pageview is qualified
+function is_pageview_qualified($row, $engagement)
+{
+    $e = $engagement[$row['vid'] ?? ''] ?? null;
+    if (!$e) {
+        return false;
+    }
+
+    $time_on_page  = $e['t_pg'] ?? 0;
+    $scroll_depth  = $e['scr_d'] ?? 0;
+    $scroll_events = $e['scr_e'] ?? 0;
+    $vw            = $row['vw'] ?? 0;
+    $vh            = $row['vh'] ?? 0;
+
+    if ($vw == 800 && $vh == 600) {
+        return false;
+    } elseif ($time_on_page < 5000) {
+        return false;
+    } elseif ($scroll_events / ($time_on_page / 1000) > 10) {
+        // Unreasonable human scroll speed
+        return false;
+    } elseif ($scroll_depth == 100 && $scroll_events <= 2) {
+        // Classic scripted scroll bot pattern
+        return false;
+    } elseif ($scroll_events >= 2) {
+        // Otherwise: basic engagement = qualified
+        return true;
+    } else {
+        return false;
+    }
+}
+
 // Get parameters
-$date    = $_GET['date'] ?? '';
-$domain  = $_GET['domain'] ?? '';
-$page    = max(1, (int)($_GET['page'] ?? 1));
-$perPage = 100;
+$date           = $_GET['date'] ?? '';
+$domain         = $_GET['domain'] ?? '';
+$page           = max(1, (int)($_GET['page'] ?? 1));
+$perPage        = 100;
+$qualified_only = isset($_GET['qualified']);
+$sort_by        = $_GET['sort'] ?? 'ts_pv';
+$sort_order     = $_GET['order'] ?? 'asc';
+
+// Validate sort parameters
+$valid_sorts = ['ts_pv', 'ttfb', 'dcl', 'load', 't_pg', 'scr_d', 'scr_e', 'qualified', 'url', 'ref', 'ip', 'ua', 'lang', 'tz', 'vw', 'vh', 'domain'];
+if (!in_array($sort_by, $valid_sorts)) {
+    $sort_by = 'ts_pv';
+}
+if (!in_array($sort_order, ['asc', 'desc'])) {
+    $sort_order = 'asc';
+}
 
 // Validate date format
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
@@ -137,83 +192,36 @@ if (empty($files)) {
     exit;
 }
 
-// Pagination logic differs based on whether we're viewing single or all domains
-$offset  = ($page - 1) * $perPage;
-$results = [];
+// Load all pageviews into buffer (needed for sorting)
+$offset = ($page - 1) * $perPage;
+$buffer = [];
 
-if ($domain) {
-    // Single domain: Stream efficiently (already time-ordered in file)
-    // Read one extra row to determine if there's a next page
-    $currentIndex = 0;
-
-    foreach ($files as $file) {
-        if (!file_exists($file)) {
-            continue;
-        }
-
-        $handle = fopen($file, 'r');
-        while (($line = fgets($handle)) !== false) {
-            if ($currentIndex >= $offset && count($results) <= $perPage) {
-                $row = json_decode($line, true);
-                if ($row) {
-                    $results[] = $row;
-                }
-            }
-            $currentIndex++;
-            if (count($results) > $perPage) {
-                break 2; // Got enough results + 1 extra to check for next page
-            }
-        }
-        fclose($handle);
+foreach ($files as $file) {
+    if (!file_exists($file)) {
+        continue;
     }
 
-    // Check if there's a next page, then remove the extra row
-    $hasNext = count($results) > $perPage;
-    if ($hasNext) {
-        array_pop($results); // Remove the extra row
+    // Extract domain from file path if viewing all domains
+    if (!$domain && preg_match('#/raw/([^/]+)/#', $file, $matches)) {
+        $fileDomain = $matches[1];
+    } else {
+        $fileDomain = $domain ?: 'unknown';
     }
-    $hasPrev = $page > 1;
-} else {
-    // All domains: Load all pageviews and sort by timestamp for proper ordering
-    $buffer = [];
 
-    foreach ($files as $file) {
-        if (!file_exists($file)) {
-            continue;
-        }
-
-        // Extract domain from file path: /var/lib/pageview-tracking/raw/{domain}/{date}/pageview.jsonl
-        if (preg_match('#/raw/([^/]+)/#', $file, $matches)) {
-            $fileDomain = $matches[1];
-        } else {
-            $fileDomain = 'unknown';
-        }
-
-        $handle = fopen($file, 'r');
-        while (($line = fgets($handle)) !== false) {
-            $row = json_decode($line, true);
-            if ($row && isset($row['ts_pv'])) {
-                $row['domain'] = $fileDomain; // Add domain to row
-                $buffer[]      = $row;
+    $handle = fopen($file, 'r');
+    while (($line = fgets($handle)) !== false) {
+        $row = json_decode($line, true);
+        if ($row && isset($row['ts_pv'])) {
+            if (!$domain) {
+                $row['domain'] = $fileDomain; // Add domain to row for all-domains view
             }
+            $buffer[] = $row;
         }
-        fclose($handle);
     }
-
-    // Sort by timestamp
-    usort($buffer, fn ($a, $b) => ($a['ts_pv'] ?? 0) <=> ($b['ts_pv'] ?? 0));
-
-    // Paginate
-    $total   = count($buffer);
-    $results = array_slice($buffer, $offset, $perPage);
-    $hasNext = $offset + $perPage < $total;
-    $hasPrev = $page > 1;
+    fclose($handle);
 }
 
-// Load metrics only for the pageviews we're displaying
-$neededVids = array_column($results, 'vid');
-$neededVids = array_flip($neededVids); // Convert to hash map for O(1) lookup
-
+// Load all metrics for sorting
 $metrics = [];
 if ($domain) {
     $metricsFile = $raw_dir . '/' . $domain . '/' . $date . '/metrics.jsonl';
@@ -221,19 +229,18 @@ if ($domain) {
         $handle = fopen($metricsFile, 'r');
         while (($line = fgets($handle)) !== false) {
             $m = json_decode($line, true);
-            if ($m && isset($m['vid']) && isset($neededVids[$m['vid']])) {
+            if ($m && isset($m['vid'])) {
                 $metrics[$m['vid']] = $m;
             }
         }
         fclose($handle);
     }
 } else {
-    // Load metrics from all domains, but only for needed view IDs
     foreach (glob($raw_dir . '/*/' . $date . '/metrics.jsonl') as $metricsFile) {
         $handle = fopen($metricsFile, 'r');
         while (($line = fgets($handle)) !== false) {
             $m = json_decode($line, true);
-            if ($m && isset($m['vid']) && isset($neededVids[$m['vid']])) {
+            if ($m && isset($m['vid'])) {
                 $metrics[$m['vid']] = $m;
             }
         }
@@ -241,7 +248,7 @@ if ($domain) {
     }
 }
 
-// Load engagement only for the pageviews we're displaying
+// Load all engagement for sorting
 $engagement = [];
 if ($domain) {
     $engagementFile = $raw_dir . '/' . $domain . '/' . $date . '/engagement.jsonl';
@@ -249,19 +256,18 @@ if ($domain) {
         $handle = fopen($engagementFile, 'r');
         while (($line = fgets($handle)) !== false) {
             $e = json_decode($line, true);
-            if ($e && isset($e['vid']) && isset($neededVids[$e['vid']])) {
+            if ($e && isset($e['vid'])) {
                 $engagement[$e['vid']] = $e;
             }
         }
         fclose($handle);
     }
 } else {
-    // Load engagement from all domains, but only for needed view IDs
     foreach (glob($raw_dir . '/*/' . $date . '/engagement.jsonl') as $engagementFile) {
         $handle = fopen($engagementFile, 'r');
         while (($line = fgets($handle)) !== false) {
             $e = json_decode($line, true);
-            if ($e && isset($e['vid']) && isset($neededVids[$e['vid']])) {
+            if ($e && isset($e['vid'])) {
                 $engagement[$e['vid']] = $e;
             }
         }
@@ -269,11 +275,109 @@ if ($domain) {
     }
 }
 
+// Sort buffer before pagination
+usort($buffer, function ($a, $b) use ($sort_by, $sort_order, $metrics, $engagement) {
+    // Numeric sorts
+    if ($sort_by === 'ts_pv') {
+        $val_a = $a['ts_pv'] ?? 0;
+        $val_b = $b['ts_pv'] ?? 0;
+    } elseif ($sort_by === 'ttfb') {
+        $val_a = $metrics[$a['vid'] ?? '']['ttfb'] ?? 0;
+        $val_b = $metrics[$b['vid'] ?? '']['ttfb'] ?? 0;
+    } elseif ($sort_by === 'dcl') {
+        $val_a = $metrics[$a['vid'] ?? '']['dcl'] ?? 0;
+        $val_b = $metrics[$b['vid'] ?? '']['dcl'] ?? 0;
+    } elseif ($sort_by === 'load') {
+        $val_a = $metrics[$a['vid'] ?? '']['load'] ?? 0;
+        $val_b = $metrics[$b['vid'] ?? '']['load'] ?? 0;
+    } elseif ($sort_by === 't_pg') {
+        $val_a = $engagement[$a['vid'] ?? '']['t_pg'] ?? 0;
+        $val_b = $engagement[$b['vid'] ?? '']['t_pg'] ?? 0;
+    } elseif ($sort_by === 'scr_d') {
+        $val_a = $engagement[$a['vid'] ?? '']['scr_d'] ?? 0;
+        $val_b = $engagement[$b['vid'] ?? '']['scr_d'] ?? 0;
+    } elseif ($sort_by === 'scr_e') {
+        $val_a = $engagement[$a['vid'] ?? '']['scr_e'] ?? 0;
+        $val_b = $engagement[$b['vid'] ?? '']['scr_e'] ?? 0;
+    } elseif ($sort_by === 'vw') {
+        $val_a = $a['vw'] ?? 0;
+        $val_b = $b['vw'] ?? 0;
+    } elseif ($sort_by === 'vh') {
+        $val_a = $a['vh'] ?? 0;
+        $val_b = $b['vh'] ?? 0;
+    } elseif ($sort_by === 'qualified') {
+        // Use helper function to calculate qualified status
+        $val_a = is_pageview_qualified($a, $engagement) ? 1 : 0;
+        $val_b = is_pageview_qualified($b, $engagement) ? 1 : 0;
+        // String sorts
+    } elseif ($sort_by === 'url') {
+        $val_a = $a['url'] ?? '';
+        $val_b = $b['url'] ?? '';
+    } elseif ($sort_by === 'ref') {
+        $val_a = $a['ref'] ?? '';
+        $val_b = $b['ref'] ?? '';
+    } elseif ($sort_by === 'ip') {
+        $val_a = $a['ip'] ?? '';
+        $val_b = $b['ip'] ?? '';
+    } elseif ($sort_by === 'ua') {
+        $val_a = $a['ua'] ?? '';
+        $val_b = $b['ua'] ?? '';
+    } elseif ($sort_by === 'lang') {
+        $val_a = $a['lang'] ?? '';
+        $val_b = $b['lang'] ?? '';
+    } elseif ($sort_by === 'tz') {
+        $val_a = $a['tz'] ?? '';
+        $val_b = $b['tz'] ?? '';
+    } elseif ($sort_by === 'domain') {
+        $val_a = $a['domain'] ?? '';
+        $val_b = $b['domain'] ?? '';
+    } else {
+        $val_a = 0;
+        $val_b = 0;
+    }
+
+    $cmp = $val_a <=> $val_b;
+
+    return $sort_order === 'desc' ? -$cmp : $cmp;
+});
+
+// Filter for qualified pageviews BEFORE pagination (if requested)
+if ($qualified_only) {
+    $buffer = array_filter($buffer, function ($row) use ($engagement) {
+        return is_pageview_qualified($row, $engagement);
+    });
+    // Re-index array after filtering
+    $buffer = array_values($buffer);
+}
+
+// Count qualified pageviews for info display
+if ($qualified_only) {
+    // In qualified-only mode, all rows in buffer are qualified
+    $qualified_count = count($buffer);
+} else {
+    // Count qualified rows in the full buffer
+    $qualified_count = 0;
+    foreach ($buffer as $row) {
+        if (is_pageview_qualified($row, $engagement)) {
+            $qualified_count++;
+        }
+    }
+}
+
+// Paginate AFTER filtering
+$total   = count($buffer);
+$results = array_slice($buffer, $offset, $perPage);
+$hasNext = $offset + $perPage < $total;
+$hasPrev = $page > 1;
+
 // Build back URL
 $backUrl = 'day.php?date=' . urlencode($date);
 
 // Page title
 $pageTitle = '📄 Individual Pageviews';
+if ($qualified_only) {
+    $pageTitle = '📄 Qualified Pageviews';
+}
 if ($domain) {
     $pageTitle .= ' (' . htmlspecialchars($domain) . ')';
 }
@@ -293,31 +397,61 @@ if ($domain) {
         <?php endif; ?>
         | <strong>Page:</strong> <?= $page ?>
         | <strong>Showing:</strong> <?= count($results) ?> pageviews
+        <?php if ($qualified_only): ?>
+            | <strong>Filter:</strong> Qualified Only
+        <?php else: ?>
+            | <strong>Qualified:</strong> <?= $qualified_count ?> of <?= $total ?>
+        <?php endif; ?>
     </div>
 
     <div class="table-container">
         <table>
             <thead>
                 <tr>
-                    <th>Time (UTC)</th>
-<?php if (!$domain): ?>
-                    <th>Domain</th>
-<?php endif; ?>
-                    <th>URL</th>
-                    <th>Referrer</th>
-                    <th>IP</th>
-                    <th>User Agent</th>
-                    <th>Lang</th>
-                    <th>TZ</th>
-                    <th class="number">VW</th>
-                    <th class="number">VH</th>
-                    <th class="number">TTFB</th>
-                    <th class="number">DCL</th>
-                    <th class="number">Load</th>
-                    <th class="number">Time on Page</th>
-                    <th class="number">Scroll (%)</th>
-                    <th class="number">Scroll Events</th>
-                    <th>Qualified</th>
+<?php
+// Helper function to generate sortable header
+function sortable_header($label, $sort_key, $current_sort, $current_order, $base_params, $class = '')
+{
+    $new_order = ($current_sort === $sort_key && $current_order === 'asc') ? 'desc' : 'asc';
+    $url       = '?' . $base_params . '&sort=' . urlencode($sort_key) . '&order=' . $new_order;
+    $indicator = '';
+    if ($current_sort === $sort_key) {
+        $indicator = '<span class="sort-indicator">' . ($current_order === 'asc' ? '↑' : '↓') . '</span>';
+    }
+    $class_attr = $class ? ' class="' . $class . '"' : '';
+
+    return "<th{$class_attr}><a href=\"{$url}\">{$label}{$indicator}</a></th>";
+}
+
+// Build base params for sort URLs (no page parameter - always reset to page 1)
+$base_params = 'date=' . urlencode($date);
+if ($domain) {
+    $base_params .= '&domain=' . urlencode($domain);
+}
+if ($qualified_only) {
+    $base_params .= '&qualified=1';
+}
+
+echo sortable_header('Time (UTC)', 'ts_pv', $sort_by, $sort_order, $base_params);
+if (!$domain) {
+    echo sortable_header('Domain', 'domain', $sort_by, $sort_order, $base_params);
+}
+echo sortable_header('URL', 'url', $sort_by, $sort_order, $base_params);
+echo sortable_header('Referrer', 'ref', $sort_by, $sort_order, $base_params);
+echo sortable_header('IP', 'ip', $sort_by, $sort_order, $base_params);
+echo sortable_header('User Agent', 'ua', $sort_by, $sort_order, $base_params);
+echo sortable_header('Lang', 'lang', $sort_by, $sort_order, $base_params);
+echo sortable_header('TZ', 'tz', $sort_by, $sort_order, $base_params);
+echo sortable_header('VW', 'vw', $sort_by, $sort_order, $base_params, 'number');
+echo sortable_header('VH', 'vh', $sort_by, $sort_order, $base_params, 'number');
+echo sortable_header('TTFB', 'ttfb', $sort_by, $sort_order, $base_params, 'number');
+echo sortable_header('DCL', 'dcl', $sort_by, $sort_order, $base_params, 'number');
+echo sortable_header('Load', 'load', $sort_by, $sort_order, $base_params, 'number');
+echo sortable_header('Time on Page', 't_pg', $sort_by, $sort_order, $base_params, 'number');
+echo sortable_header('Scroll (%)', 'scr_d', $sort_by, $sort_order, $base_params, 'number');
+echo sortable_header('Scroll Events', 'scr_e', $sort_by, $sort_order, $base_params, 'number');
+echo sortable_header('Qualified', 'qualified', $sort_by, $sort_order, $base_params);
+?>
                 </tr>
             </thead>
             <tbody>
@@ -330,8 +464,8 @@ if ($domain) {
     $scroll_depth  = $e ? ($e['scr_d'] ?? 0) : 0;
     $scroll_events = $e ? ($e['scr_e'] ?? 0) : 0;
 
-    // Check if qualified
-    $is_qualified = ($time_on_page >= 5000 && ($scroll_depth > 0 || $scroll_events >= 1));
+    // Check if qualified using helper function
+    $is_qualified = is_pageview_qualified($row, $engagement);
     ?>
                 <tr>
                     <td><?= isset($row['ts_pv']) ? date('H:i:s', $row['ts_pv'] / 1000) : '-' ?></td>
@@ -368,9 +502,18 @@ if ($domain) {
     <div class="pagination">
 <?php
     $baseUrl = '?date=' . urlencode($date) . ($domain ? '&domain=' . urlencode($domain) : '');
-$firstUrl    = $baseUrl . '&page=1';
-$prevUrl     = $baseUrl . '&page=' . ($page - 1);
-$nextUrl     = $baseUrl . '&page=' . ($page + 1);
+if ($qualified_only) {
+    $baseUrl .= '&qualified=1';
+}
+if ($sort_by !== 'ts_pv') {
+    $baseUrl .= '&sort=' . urlencode($sort_by);
+}
+if ($sort_order !== 'asc') {
+    $baseUrl .= '&order=' . urlencode($sort_order);
+}
+$firstUrl = $baseUrl . '&page=1';
+$prevUrl  = $baseUrl . '&page=' . ($page - 1);
+$nextUrl  = $baseUrl . '&page=' . ($page + 1);
 ?>
         <a href="<?= $firstUrl ?>" class="<?= $hasPrev ? '' : 'disabled' ?>">⏮ First</a>
         <a href="<?= $prevUrl ?>" class="<?= $hasPrev ? '' : 'disabled' ?>">← Previous</a>

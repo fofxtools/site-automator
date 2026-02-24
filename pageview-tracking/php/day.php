@@ -260,6 +260,8 @@ sort($domains);
         <div>
             <a href="views.php?date=<?= urlencode($date) ?>" class="back-link">📄 View All Pageviews</a>
             <span style="margin: 0 10px;">|</span>
+            <a href="views.php?date=<?= urlencode($date) ?>&qualified=1" class="back-link">📄 View Qualified Pageviews</a>
+            <span style="margin: 0 10px;">|</span>
             <a href="index.php" class="back-link">← Back to dates</a>
         </div>
     </div>
