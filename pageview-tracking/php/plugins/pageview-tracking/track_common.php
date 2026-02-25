@@ -489,7 +489,7 @@ function check_bot_ip(string $ip, string $bot, array $sources = []): bool
 }
 
 /**
- * Check if IP is a Googlebot IP (only 'goog' source).
+ * Check if IP is a Googlebot IP (only 'googlebot' source).
  * Auto-detects IPv4 vs IPv6.
  *
  * @param string $ip IP address (IPv4 or IPv6)
@@ -498,7 +498,7 @@ function check_bot_ip(string $ip, string $bot, array $sources = []): bool
  */
 function is_googlebot_ip(string $ip): bool
 {
-    return check_bot_ip($ip, 'google', ['goog']);
+    return check_bot_ip($ip, 'google', ['googlebot']);
 }
 
 /**

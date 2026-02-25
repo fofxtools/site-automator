@@ -432,7 +432,7 @@ class HugoDeployer:
         # Set trackUrl so track_pageview.js knows where to send tracking data
         partial_content = """<!-- Pageview Tracking -->
 <img src="/pageview-tracking/pixel.php?url={{ .RelPermalink | urlquery }}"
-  alt="" width="1" height="1" style="display:none;" />
+  alt="" width="1" height="1" />
 <script>
 var PVT = {"trackUrl": "/pageview-tracking/track_pageview.php"};
 </script>

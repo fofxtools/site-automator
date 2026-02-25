@@ -140,11 +140,11 @@ def main() -> None:
     logger.info("To view stats in the web interface, deploy the web viewer files.")
     logger.info("For WordPress sites:")
     logger.info(
-        "\n\n  rsync -avz pageview-tracking/php/{index.php,day.php,views.php} {server-alias}:/var/www/{domain}/htdocs/stats/\n"
+        "\n\n  rsync -avz pageview-tracking/php/{index.php,day.php,views.php,logs.php} {server-alias}:/var/www/{domain}/htdocs/stats/\n"
     )
     logger.info("For Hugo sites:")
     logger.info(
-        "\n\n  rsync -avz pageview-tracking/php/{index.php,day.php,views.php} {server-alias}:/var/www/{domain}/public/stats/\n"
+        "\n\n  rsync -avz pageview-tracking/php/{index.php,day.php,views.php,logs.php} {server-alias}:/var/www/{domain}/public/stats/\n"
     )
     logger.info("Replace {server-alias} and {domain} with actual values.")
     logger.info("Then visit: https://{domain}/stats/")
@@ -152,11 +152,12 @@ def main() -> None:
         "Note: You only need to do this once per server (web viewer reads all domains)."
     )
     logger.info("=" * 80 + "\n")
-    logger.info(
-        "Then to regenerate statistics, run process_daily_logs.py with --force flag on each server:"
-    )
+    logger.info("Then to regenerate statistics, run processing scripts on each server:")
     logger.info(
         "\n\n  ssh {server-alias} 'cd /var/lib/pageview-tracking/scripts && python3 process_daily_logs.py --force'\n"
+    )
+    logger.info(
+        "  ssh {server-alias} 'cd /var/lib/pageview-tracking/scripts && python3 process_server_logs.py --all --force'\n"
     )
 
 

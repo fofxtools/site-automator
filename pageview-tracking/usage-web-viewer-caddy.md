@@ -67,7 +67,7 @@ caddy reload --config /etc/caddy/Caddyfile
 Substitute `{server}` with the server hostname/IP and `{domain}` with the domain:
 
 ```bash
-rsync -avz pageview-tracking/php/{index.php,day.php,views.php} {server-alias}:/var/www/{domain}/public/stats/
+rsync -avz pageview-tracking/php/{index.php,day.php,views.php,logs.php} {server-alias}:/var/www/{domain}/public/stats/
 ```
 
 Visit: https://{domain}/stats/

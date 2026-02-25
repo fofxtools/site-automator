@@ -7,7 +7,6 @@
  * matching the structure of gstatic.com JSON files (prefixes array with ipv4Prefix/ipv6Prefix)
  *
  * Processes:
- *   - google
  *   - microsoft
  *
  * Input:  ../../resources/whois.arin.net-rest-nets-q-{company}.xml
@@ -15,7 +14,7 @@
  */
 
 $resourcesDir = __DIR__ . '/../../resources';
-$companies    = ['google', 'microsoft'];
+$companies    = ['microsoft'];
 
 echo "ARIN XML to JSON Converter\n";
 echo str_repeat('=', 50) . "\n\n";

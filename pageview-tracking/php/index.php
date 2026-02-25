@@ -104,10 +104,10 @@ foreach ($files as $file) {
     $bot_totals = [
         'gb_ua' => 0,  // googlebot_ua_pageviews
         'gb_ip' => 0,  // googlebot_ip_pageviews
-        'g_ip'  => 0,   // google_ip_pageviews
+        'g_ip'  => 0,  // google_ip_pageviews
         'bb_ua' => 0,  // bingbot_ua_pageviews
         'bb_ip' => 0,  // bingbot_ip_pageviews
-        'm_ip'  => 0,   // microsoft_ip_pageviews
+        'm_ip'  => 0,  // microsoft_ip_pageviews
     ];
 
     // Performance metrics - weighted averages
@@ -288,9 +288,9 @@ function fmt_metric($value)
     </div>
 
     <p style="color: #666; margin-top: 20px; font-size: 13px;">
-        Click a date to view detailed statistics.
+        Click a date to view detailed statistics. | <a href="logs.php">🤖 Bot Logs</a>
         <br>
-        <strong>Bot Signals:</strong> GB UA = Googlebot User Agent, GB IP = Googlebot IP, G IP = Google IP, 
+        <strong>Bot Signals:</strong> GB UA = Googlebot User Agent, GB IP = Googlebot IP, G IP = Google IP,
         BB UA = Bingbot User Agent, BB IP = Bingbot IP, M IP = Microsoft IP
         <br>
         <strong>Performance Metrics:</strong> TTFB = Time to First Byte, DCL = DOM Content Loaded, Load = Load Event End (all in milliseconds)

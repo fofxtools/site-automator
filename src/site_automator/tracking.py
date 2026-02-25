@@ -270,6 +270,7 @@ return [
         Creates /var/lib/pageview-tracking directory with subdirectories:
         - raw/          - Raw JSONL logs by domain/date
         - agg/daily/    - Aggregated daily statistics
+        - logs/         - Server log bot statistics
         - scripts/      - Python processing scripts
 
         Permissions:
@@ -291,6 +292,7 @@ return [
         commands = [
             "sudo mkdir -p /var/lib/pageview-tracking/raw",
             "sudo mkdir -p /var/lib/pageview-tracking/agg/daily",
+            "sudo mkdir -p /var/lib/pageview-tracking/logs",
             "sudo mkdir -p /var/lib/pageview-tracking/scripts",
             "sudo chown -R www-data:www-data /var/lib/pageview-tracking",
             "sudo chmod -R 775 /var/lib/pageview-tracking",
@@ -307,8 +309,11 @@ return [
         """Upload Python log processing scripts to server.
 
         Uploads:
-        - process_daily_logs.py (required for stats generation)
+        - process_daily_logs.py (required for pageview stats generation)
         - generate_dummy_logs.py (optional, for testing)
+        - process_server_logs.py (required for server log bot verification)
+        - google_ip_ranges.py (required for bot IP verification)
+        - bing_ip_ranges.py (required for bot IP verification)
 
         Destination: /var/lib/pageview-tracking/scripts/
 
@@ -317,52 +322,60 @@ return [
         """
         logger.info("Uploading Python processing scripts")
 
+        # Define scripts with their source directories
+        # (source_dir, script_name)
         scripts = [
-            "process_daily_logs.py",  # Required
-            "generate_dummy_logs.py",  # Optional (testing)
+            ("pageview-tracking/python", "process_daily_logs.py"),  # Required
+            (
+                "pageview-tracking/python",
+                "generate_dummy_logs.py",
+            ),  # Optional (testing)
+            ("pageview-tracking/python", "process_server_logs.py"),  # Required
+            ("scripts", "google_ip_ranges.py"),  # Required (bot IP ranges)
+            ("scripts", "bing_ip_ranges.py"),  # Required (bot IP ranges)
         ]
 
-        for script in scripts:
-            # Path: src/site_automator/tracking.py -> src/ -> project_root/ -> pageview-tracking/
-            local_path = (
-                Path(__file__).parent.parent.parent
-                / "pageview-tracking"
-                / "python"
-                / script
-            )
+        for source_dir, script in scripts:
+            # Path: src/site_automator/tracking.py -> src/ -> project_root/ -> source_dir/
+            local_path = Path(__file__).parent.parent.parent / source_dir / script
             remote_path = f"/var/lib/pageview-tracking/scripts/{script}"
 
             logger.info(f"Uploading {script} to {remote_path}")
             self.ssh.upload_file(local_path, remote_path)
             logger.debug(f"Upload completed: {remote_path}")
 
-            # Make executable
-            command = f"chmod +x {shlex.quote(remote_path)}"
-            self.ssh.run_command(command, check=True)
-
         logger.info("Python processing scripts uploaded successfully")
 
     def _setup_cron_job(self) -> None:
-        """Setup cron job to process pageview logs.
+        """Setup cron jobs to process pageview and server logs.
 
-        Adds cron job to run process_daily_logs.py.
+        Adds cron jobs to run:
+        - process_daily_logs.py (hourly - pageview log aggregation)
+        - process_server_logs.py (hourly - server log bot verification)
+
         This method is idempotent - won't add duplicate entries.
 
         Raises:
             RuntimeError: If cron setup fails
         """
-        logger.info("Setting up cron job for log processing")
+        logger.info("Setting up cron jobs for log processing")
 
-        cron_line = "0 * * * * /usr/bin/python3 /var/lib/pageview-tracking/scripts/process_daily_logs.py"
+        cron_lines = [
+            "0 * * * * /usr/bin/python3 /var/lib/pageview-tracking/scripts/process_daily_logs.py",
+            "0 * * * * /usr/bin/python3 /var/lib/pageview-tracking/scripts/process_server_logs.py",
+        ]
 
-        # Add to crontab if not already present
-        command = (
-            f"(crontab -l 2>/dev/null | grep -q 'process_daily_logs.py') || "
-            f"(crontab -l 2>/dev/null; echo {shlex.quote(cron_line)}) | crontab -"
-        )
+        for cron_line in cron_lines:
+            script_name = cron_line.split("/")[-1]  # Extract script name for grep
+            # Add to crontab if not already present
+            command = (
+                f"(crontab -l 2>/dev/null | grep -q '{script_name}') || "
+                f"(crontab -l 2>/dev/null; echo {shlex.quote(cron_line)}) | crontab -"
+            )
+            self.ssh.run_command(command, check=True)
+            logger.debug(f"Cron job added: {script_name}")
 
-        self.ssh.run_command(command, check=True)
-        logger.info("Cron job setup completed")
+        logger.info("Cron jobs setup completed")
 
     def setup_tracking_wordpress(self, domain: str) -> None:
         """Setup complete pageview tracking system for a domain.

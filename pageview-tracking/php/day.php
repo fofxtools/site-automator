@@ -341,12 +341,14 @@ foreach ($rows as $row) {
     </div>
 
     <div class="footnote">
-        <strong>Bot Signals:</strong> GB UA = Googlebot User Agent, GB IP = Googlebot IP, G IP = Google IP, 
+        <strong>Bot Signals:</strong> GB UA = Googlebot User Agent, GB IP = Googlebot IP, G IP = Google IP,
         BB UA = Bingbot User Agent, BB IP = Bingbot IP, M IP = Microsoft IP
         <br>
         <strong>Performance Metrics:</strong> TTFB = Time to First Byte, DCL = DOM Content Loaded, Load = Load Event End (all in milliseconds)
         <br>
         <em>* Median and P95 values in TOTALS row are weighted approximations</em>
+        <br>
+        <a href="logs.php?date=<?= urlencode($date) ?>">🤖 Bot Logs for this date</a>
     </div>
 
     <script>

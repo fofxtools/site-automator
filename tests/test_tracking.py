@@ -137,8 +137,8 @@ class TestCreateDataDirectory:
         """Test _create_data_directory creates directory with proper permissions."""
         tracking._create_data_directory()
 
-        # Should execute 6 commands: 3x mkdir, chown, chmod, chmod g+s
-        assert mock_ssh_connection.run_command.call_count == 6
+        # Should execute 7 commands: 4x mkdir, chown, chmod, chmod g+s
+        assert mock_ssh_connection.run_command.call_count == 7
         calls = [call[0][0] for call in mock_ssh_connection.run_command.call_args_list]
 
         assert any(
@@ -146,6 +146,9 @@ class TestCreateDataDirectory:
         )
         assert any(
             "sudo mkdir -p /var/lib/pageview-tracking/agg/daily" in cmd for cmd in calls
+        )
+        assert any(
+            "sudo mkdir -p /var/lib/pageview-tracking/logs" in cmd for cmd in calls
         )
         assert any(
             "sudo mkdir -p /var/lib/pageview-tracking/scripts" in cmd for cmd in calls
@@ -160,40 +163,46 @@ class TestCreateDataDirectory:
         tracking._create_data_directory()
         tracking._create_data_directory()
 
-        # Should execute 6 commands each time (12 total)
-        assert mock_ssh_connection.run_command.call_count == 12
+        # Should execute 7 commands each time (14 total)
+        assert mock_ssh_connection.run_command.call_count == 14
 
 
 class TestUploadProcessingScripts:
     """Test _upload_processing_scripts method."""
 
     def test_upload_processing_scripts(self, tracking, mock_ssh_connection):
-        """Test _upload_processing_scripts uploads scripts and makes them executable."""
+        """Test _upload_processing_scripts uploads scripts."""
         tracking._upload_processing_scripts()
 
-        # Should upload 2 scripts using upload_file
-        assert mock_ssh_connection.upload_file.call_count == 2
+        # Should upload 5 scripts using upload_file
+        assert mock_ssh_connection.upload_file.call_count == 5
 
-        # Should make each script executable
-        calls = [call[0][0] for call in mock_ssh_connection.run_command.call_args_list]
-        assert any(
-            "chmod +x" in cmd and "process_daily_logs.py" in cmd for cmd in calls
-        )
-        assert any(
-            "chmod +x" in cmd and "generate_dummy_logs.py" in cmd for cmd in calls
-        )
+        # Verify all scripts were uploaded
+        upload_calls = [
+            call[0][1] for call in mock_ssh_connection.upload_file.call_args_list
+        ]
+        assert any("process_daily_logs.py" in path for path in upload_calls)
+        assert any("generate_dummy_logs.py" in path for path in upload_calls)
+        assert any("process_server_logs.py" in path for path in upload_calls)
+        assert any("google_ip_ranges.py" in path for path in upload_calls)
+        assert any("bing_ip_ranges.py" in path for path in upload_calls)
 
 
 class TestSetupCronJob:
     """Test _setup_cron_job method."""
 
     def test_setup_cron_job(self, tracking, mock_ssh_connection):
-        """Test _setup_cron_job adds cron entry idempotently."""
+        """Test _setup_cron_job adds cron entries idempotently."""
         tracking._setup_cron_job()
 
-        call_args = mock_ssh_connection.run_command.call_args[0][0]
-        assert "process_daily_logs.py" in call_args
-        assert "crontab" in call_args
+        # Should execute 2 commands (one for each cron job)
+        assert mock_ssh_connection.run_command.call_count == 2
+
+        calls = [call[0][0] for call in mock_ssh_connection.run_command.call_args_list]
+        assert any("process_daily_logs.py" in cmd and "crontab" in cmd for cmd in calls)
+        assert any(
+            "process_server_logs.py" in cmd and "crontab" in cmd for cmd in calls
+        )
 
 
 class TestSetupTrackingWordPress:

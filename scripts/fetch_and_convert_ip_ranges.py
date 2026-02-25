@@ -6,15 +6,12 @@ Downloads IP range data from various sources and converts ARIN whois XML files
 to JSON format matching the structure of gstatic.com JSON files.
 
 Processes:
-  - Google (ARIN XML + gstatic JSON files)
+  - Google (Googlebot JSON file)
   - Microsoft (ARIN XML)
   - Bing (JSON file)
 
 Output files (saved to resources/):
-  - whois.arin.net-rest-nets-q-google.xml
-  - whois.arin.net-rest-nets-q-google.json (converted from XML)
-  - gstatic.com-ipranges-goog.json
-  - gstatic.com-ipranges-cloud.json
+  - googlebot.json
   - whois.arin.net-rest-nets-q-microsoft.xml
   - whois.arin.net-rest-nets-q-microsoft.json (converted from XML)
   - bing.com-toolbox-bingbot.json
@@ -155,14 +152,9 @@ if __name__ == "__main__":
 
     # Download Google data
     print("Processing Google...")
-    download_arin_xml("google", resources_dir / "whois.arin.net-rest-nets-q-google.xml")
     download_file(
-        "https://www.gstatic.com/ipranges/goog.json",
-        resources_dir / "gstatic.com-ipranges-goog.json",
-    )
-    download_file(
-        "https://www.gstatic.com/ipranges/cloud.json",
-        resources_dir / "gstatic.com-ipranges-cloud.json",
+        "https://developers.google.com/static/search/apis/ipranges/googlebot.json",
+        resources_dir / "googlebot.json",
     )
     print()
 
@@ -187,7 +179,7 @@ if __name__ == "__main__":
     print("=" * 50)
     print()
 
-    for company in ["google", "microsoft"]:
+    for company in ["microsoft"]:
         print(f"Processing {company}...")
         xml_file = resources_dir / f"whois.arin.net-rest-nets-q-{company}.xml"
         json_file = resources_dir / f"whois.arin.net-rest-nets-q-{company}.json"

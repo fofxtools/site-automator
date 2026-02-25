@@ -47,12 +47,13 @@ The `setup_tracking_wordpress()` method:
 - **Data Directory** - Creates `/var/lib/pageview-tracking/` with subdirectories:
   - `raw/` - Raw JSONL logs organized by domain/date
   - `agg/daily/` - Aggregated daily statistics
+  - `logs/` - Server log bot statistics
   - `scripts/` - Python processing scripts
 - **Environment File** - Creates `/var/www/example.com/.env` with tracking settings
 - **Plugin** - Installs tracking plugin from `/shared/`
 - **Configuration** - Writes `track_config.php` with storage path and exclusion rules
 - **Processing Scripts** - Uploads Python scripts for log processing
-- **Cron Job** - Sets up automated hourly log processing
+- **Cron Jobs** - Sets up automated hourly log processing (pageview and server logs)
 
 ## Exclusion Rules
 
@@ -76,16 +77,21 @@ These rules are written to `track_config.php` on the server.
 
 ## Required Files
 
-The tracking system requires these files in the local `/resources/` directory:
+The tracking system requires these files in the local repository:
 
-**Plugin:**
+**Plugin** (in `/resources/`):
 - `pageview-tracking.zip`
 
 **Processing Scripts** (in `/pageview-tracking/python/`):
-- `process_daily_logs.py` - Required for statistics generation
+- `process_daily_logs.py` - Required for pageview statistics generation
 - `generate_dummy_logs.py` - Optional, for testing
+- `process_server_logs.py` - Required for server log bot verification
 
-The plugin is automatically uploaded to `/shared/` on the server during setup. The Python scripts are uploaded to `/var/lib/pageview-tracking/scripts/`.
+**IP Range Files** (in `/scripts/`):
+- `google_ip_ranges.py` - Required for Googlebot IP verification
+- `bing_ip_ranges.py` - Required for Bingbot IP verification
+
+The plugin is automatically uploaded to `/shared/` on the server during setup. The Python scripts and IP range files are uploaded to `/var/lib/pageview-tracking/scripts/`.
 
 ## Complete Example
 
@@ -109,7 +115,7 @@ finally:
 
 ## Data Storage
 
-After setup, pageview data is stored in flat files:
+After setup, tracking data is stored in flat files:
 
 **Raw Logs** - `/var/lib/pageview-tracking/raw/`
 - JSONL format (one JSON object per line)
@@ -118,6 +124,12 @@ After setup, pageview data is stored in flat files:
 **Daily Aggregates** - `/var/lib/pageview-tracking/agg/daily/`
 - Processed statistics by domain and date: `{domain}/{YYYY-MM-DD}.json`
 
+**Server Log Stats** - `/var/lib/pageview-tracking/logs/`
+- Bot verification statistics from Nginx/Caddy logs: `{YYYY-MM-DD}.json`
+
 **Processing Scripts** - `/var/lib/pageview-tracking/scripts/`
-- `process_daily_logs.py` - Runs hourly via cron to aggregate raw logs
+- `process_daily_logs.py` - Runs hourly via cron to aggregate raw pageview logs
+- `process_server_logs.py` - Runs hourly via cron to extract bot statistics from server logs
 - `generate_dummy_logs.py` - Testing utility for generating sample data
+- `google_ip_ranges.py` - Googlebot IP ranges for verification
+- `bing_ip_ranges.py` - Bingbot IP ranges for verification

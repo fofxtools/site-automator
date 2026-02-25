@@ -6,14 +6,12 @@ Reads bot IP ranges from multiple JSON sources and generates Python files
 with hardcoded arrays for fast IP checking.
 
 Supported bots:
-  - Google (Googlebot, Google Cloud Platform, ARIN registry)
+  - Google (Googlebot crawler)
   - Bing (Bingbot, Microsoft ARIN registry)
 
 Input files (from resources/):
   Google:
-    - gstatic.com-ipranges-goog.json (Google services)
-    - gstatic.com-ipranges-cloud.json (Google Cloud Platform)
-    - whois.arin.net-rest-nets-q-google.json (ARIN registry)
+    - googlebot.json (Googlebot crawler IPs)
   Bing:
     - bing.com-toolbox-bingbot.json
     - whois.arin.net-rest-nets-q-microsoft.json (ARIN registry)
@@ -256,14 +254,10 @@ if __name__ == "__main__":
             "output": output_dir / "google_ip_ranges.py",
             "title": "Google IP Ranges",
             "sources": {
-                "arin": resources_dir / "whois.arin.net-rest-nets-q-google.json",
-                "goog": resources_dir / "gstatic.com-ipranges-goog.json",
-                "cloud": resources_dir / "gstatic.com-ipranges-cloud.json",
+                "googlebot": resources_dir / "googlebot.json",
             },
             "sources_description": [
-                "ARIN whois registry",
-                "gstatic.com/ipranges/goog.json (Google services)",
-                "gstatic.com/ipranges/cloud.json (Google Cloud Platform)",
+                "developers.google.com/static/search/apis/ipranges/googlebot.json (Googlebot crawler)",
             ],
         },
         "bing": {

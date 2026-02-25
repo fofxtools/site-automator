@@ -4,19 +4,14 @@ Pageview tracking system with bot detection using JavaScript and PHP.
 
 ## Bot IP Ranges Setup
 
-For bot IP detection, we use source data from Google (gstatic.com), Microsoft (bing.com), and ARIN whois registry.
+For bot IP detection, we use source data from Google (developers.google.com), Microsoft (bing.com), and ARIN whois registry.
 
 Download source IP data for Google and Bing from within the `resources/` folder. From project root:
 
 ```bash
 cd resources
 
-curl -L "https://whois.arin.net/rest/nets;q=google?showDetails=true&showARIN=true&showNonArinTopLevelNet=false&ext=netref2" \
-  | xmllint --format - > whois.arin.net-rest-nets-q-google.xml
-
-curl -s https://www.gstatic.com/ipranges/goog.json -o gstatic.com-ipranges-goog.json
-
-curl -s https://www.gstatic.com/ipranges/cloud.json -o gstatic.com-ipranges-cloud.json
+curl -s https://developers.google.com/static/search/apis/ipranges/googlebot.json -o googlebot.json
 
 curl -L "https://whois.arin.net/rest/nets;q=microsoft?showDetails=true&showARIN=true&showNonArinTopLevelNet=false&ext=netref2" \
   | xmllint --format - > whois.arin.net-rest-nets-q-microsoft.xml
@@ -130,7 +125,7 @@ Shared functions for all tracking scripts:
 - `is_internal_page($url)` - Check if URL is an internal page
 - `is_googlebot_ua($userAgent)` - Check if user agent is Googlebot
 - `is_bingbot_ua($userAgent)` - Check if user agent is Bingbot
-- `is_googlebot_ip($ip)` - Check if IP is Googlebot (only 'goog' source)
+- `is_googlebot_ip($ip)` - Check if IP is Googlebot (only 'googlebot' source)
 - `is_google_ip($ip)` - Check if IP is any Google IP (all sources)
 - `is_bingbot_ip($ip)` - Check if IP is Bingbot (only 'bingbot' source)
 - `is_microsoft_ip($ip)` - Check if IP is any Microsoft IP (all sources)
